@@ -14,6 +14,17 @@
 #include "pretty_ostream.h"
 #include "u_derivative.h"
 
+//! the maxima of e, n_B, n_Q, n_S and T over the grid (e, T in 1/fm^4 and
+//! 1/fm); valid = false until a sweep filled them
+struct GridMaxima {
+    bool valid = false;
+    double e = 0.0;
+    double rhob = 0.0;
+    double rhoq = -10.0;
+    double rhos = -10.0;
+    double T = 0.0;
+};
+
 class Cell_info {
   private:
     const InitData &DATA;
@@ -89,8 +100,10 @@ class Cell_info {
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
+    //! known (optional): the maxima of arena, from check_conservation_law
     void get_maximum_energy_density(
-        Fields &arena, double &e_max, double &nB_max, double &Tmax);
+        Fields &arena, double &e_max, double &nB_max, double &Tmax,
+        const GridMaxima *known = nullptr);
 
     //! This function outputs energy density and n_b for making movies
     void output_evolution_for_movie(Fields &arena, const double tau);
@@ -130,8 +143,14 @@ class Cell_info {
 
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
+    //! pressure (optional): the pressure of every cell of arena; maxima
+    //! (optional): filled with the maxima of arena in the same sweep.
+    //! The sums run over the (eta, x) rows in a fixed order, so the result
+    //! does not depend on the number of threads.
     void check_conservation_law(
-        Fields &arena, Fields &arena_prev, const double tau);
+        Fields &arena, Fields &arena_prev, const double tau,
+        const std::vector<double> *pressure = nullptr,
+        GridMaxima *maxima = nullptr);
 
     //! rate at which E, Px, Py, Pz [GeV] and N_B leave the grid faces
     void boundary_outflow_rate(

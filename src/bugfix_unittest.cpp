@@ -634,6 +634,62 @@ TEST_CASE("Diss::MakeWSource couples Pi_chem with turn_on_bulk = 0") {
     CHECK(dwmn[0] == doctest::Approx(0.));
 }
 
+TEST_CASE("Diss::computeWSourceDivergence matches MakeWSource bit for bit") {
+    EOS eos(0);
+    for (int bulk = 0; bulk < 2; bulk++) {
+        InitData DATA = defaultParameters();
+        DATA.boost_invariant = false;
+        DATA.delta_tau = 0.02;
+        DATA.delta_x = 0.3;
+        DATA.delta_y = 0.25;
+        DATA.delta_eta = 0.2;
+        DATA.turn_on_bulk = bulk;
+        DATA.turn_on_bulk_chem = bulk;
+        const int nx = 5, ny = 4, neta = 3;
+        Fields curr(nx, ny, neta), prev(nx, ny, neta);
+        unsigned int seed = 12345u;
+        auto rnd = [&seed]() {
+            seed = seed * 1103515245u + 12345u;
+            return ((seed >> 8) & 0xffff) / 65536.0 - 0.5;
+        };
+        for (Fields *f : {&curr, &prev}) {
+            for (int ieta = 0; ieta < neta; ieta++)
+                for (int iy = 0; iy < ny; iy++)
+                    for (int ix = 0; ix < nx; ix++) {
+                        const int I = f->getFieldIdx(ix, iy, ieta);
+                        f->e_[I] = 1. + rnd();
+                        const double ux = rnd(), uy = rnd(), ue = rnd();
+                        f->u_[1][I] = ux;
+                        f->u_[2][I] = uy;
+                        f->u_[3][I] = ue;
+                        f->u_[0][I] = sqrt(1. + ux * ux + uy * uy + ue * ue);
+                        for (int k = 0; k < 14; k++) f->Wmunu_[k][I] = rnd();
+                        f->piBulk_[I] = rnd();
+                        f->piBulkChem_[I] = rnd();
+                    }
+            f->updateGhosts();
+        }
+        const double tau = 1.3;
+        Diss diss(eos, DATA);
+        std::vector<double> wSource;
+        diss.computeWSourceDivergence(tau, curr, prev, wSource);
+        int mismatches = 0;
+        for (int ieta = 0; ieta < neta; ieta++)
+            for (int iy = 0; iy < ny; iy++)
+                for (int ix = 0; ix < nx; ix++) {
+                    const int I = curr.getFieldIdx(ix, iy, ieta);
+                    TJbVec ref = {0.}, got = {0.};
+                    diss.MakeWSource(tau, ix, iy, ieta, ref, curr, prev, I);
+                    diss.MakeWSourceFromDivergence(
+                        wSource, curr.nStorage(), I, got);
+                    for (int a = 0; a < 5; a++) {
+                        if (ref[a] != got[a]) mismatches++;
+                    }
+                }
+        CHECK(mismatches == 0);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // item 13: bulk source at T = 0
 // ---------------------------------------------------------------------------

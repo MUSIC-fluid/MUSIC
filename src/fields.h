@@ -138,6 +138,9 @@ class Fields {
     Cell_small getCell(int ix, int iy, int ieta) const;
 
     ReconstCell getCellIdeal(const int idx) const;
+    //! getCell without W^{mu nu} and Pi_bulk, which Advance::FirstRKStepW
+    //! overwrites in the cell of the next slice before reading them
+    Cell_small getCellWithoutW(const int idx) const;
     ReconstCell getCellIdeal(int ix, int iy, int ieta) const;
 };
 

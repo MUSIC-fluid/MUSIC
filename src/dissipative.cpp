@@ -182,6 +182,192 @@ void Diss::MakeWSource(
     // dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
 }
 
+void Diss::computeWSourceDivergence(
+    const double tau, const Fields &arenaCurr, const Fields &arenaPrev,
+    std::vector<double> &wSource) {
+    // the same operations as MakeWSource, in the same order
+    const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    const bool withBulk =
+        (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+    const int nx = arenaCurr.nX();
+    const int ny = arenaCurr.nY();
+    const int neta = arenaCurr.nEta();
+    const size_t nStorage = arenaCurr.nStorage();
+    wSource.resize(kWSourceComponents * nStorage);
+    // the geometric factors of MakeWSource
+    wSourceCoshDeta_ =
+        cosh(delta[3] / 2.) / std::max(delta[3], Util::small_eps);
+    wSourceSinhDeta_ =
+        sinh(delta[3] / 2.) / std::max(delta[3], Util::small_eps);
+    wSourceSinhDeta_ = std::max(0.5, wSourceSinhDeta_);
+    if (DATA.boost_invariant) {
+        wSourceCoshDeta_ = 0.0;
+        wSourceSinhDeta_ = 0.5;
+    }
+    // face components: tau W^{i alpha} for alpha < 5, then the bulk part
+    // Pi (g^{i alpha} + u^alpha u^i) tau for alpha < 4
+    constexpr int nFaceComp = 9;
+
+    for (int direction = 1; direction <= 3; direction++) {
+        const int dx = (direction == 1);
+        const int dy = (direction == 2);
+        const int deta = (direction == 3);
+        const int nfx = nx + dx;
+        const int nfy = ny + dy;
+        const int nfeta = neta + deta;
+        const size_t nFaces = static_cast<size_t>(nfx) * nfy * nfeta;
+        wSourceFaces_.resize(nFaceComp * nFaces);
+
+        // the average over the cells L = f - 1 and R = f of face f
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
+        for (int feta = 0; feta < nfeta; feta++)
+            for (int fy = 0; fy < nfy; fy++)
+                for (int fx = 0; fx < nfx; fx++) {
+                    const int IL = arenaCurr.getFieldIdxHalo(
+                        fx - dx, fy - dy, feta - deta);
+                    const int IR = arenaCurr.getFieldIdxHalo(fx, fy, feta);
+                    const size_t f =
+                        fx + nfx * (fy + static_cast<size_t>(nfy) * feta);
+                    for (int alpha = 0; alpha < 5; alpha++) {
+                        const int idx_1d = map_2d_idx_to_1d(alpha, direction);
+                        const double sL =
+                            arenaCurr.Wmunu_[idx_1d][IL] * tau_fac[direction];
+                        const double sR =
+                            arenaCurr.Wmunu_[idx_1d][IR] * tau_fac[direction];
+                        wSourceFaces_[alpha * nFaces + f] = (sR + sL) * 0.5;
+                    }
+                    if (!withBulk) continue;
+                    const double PiL =
+                        arenaCurr.piBulk_[IL] + arenaCurr.piBulkChem_[IL];
+                    const double PiR =
+                        arenaCurr.piBulk_[IR] + arenaCurr.piBulkChem_[IR];
+                    for (int alpha = 0; alpha < 4; alpha++) {
+                        const double gfac1 = (alpha == direction ? 1.0 : 0.0);
+                        const double bL =
+                            PiL
+                            * (gfac1
+                               + arenaCurr.u_[alpha][IL]
+                                     * arenaCurr.u_[direction][IL])
+                            * tau_fac[direction];
+                        const double bR =
+                            PiR
+                            * (gfac1
+                               + arenaCurr.u_[alpha][IR]
+                                     * arenaCurr.u_[direction][IR])
+                            * tau_fac[direction];
+                        wSourceFaces_[(5 + alpha) * nFaces + f] =
+                            (bR + bL) * 0.5;
+                    }
+                }
+
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
+        for (int ieta = 0; ieta < neta; ieta++)
+            for (int iy = 0; iy < ny; iy++)
+                for (int ix = 0; ix < nx; ix++) {
+                    const int fieldIdx = arenaCurr.getFieldIdx(ix, iy, ieta);
+                    const size_t Imh =
+                        ix + nfx * (iy + static_cast<size_t>(nfy) * ieta);
+                    const size_t Iph =
+                        (ix + dx)
+                        + nfx
+                              * ((iy + dy)
+                                 + static_cast<size_t>(nfy) * (ieta + deta));
+                    double *out = wSource.data() + fieldIdx;
+                    if (direction == 1) {
+                        // partial_tau (tau W^{tau alpha}) and its bulk part
+                        for (int alpha = 0; alpha < 5; alpha++) {
+                            const int idx_1d_alpha0 =
+                                map_2d_idx_to_1d(alpha, 0);
+                            double dWdtau =
+                                ((arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
+                                  - arenaPrev.Wmunu_[idx_1d_alpha0][fieldIdx])
+                                 / DATA.delta_tau);
+                            double dPidtau = 0.0;
+                            double Pi_alpha0 = 0.0;
+                            if (alpha < 4 && withBulk) {
+                                double gfac = (alpha == 0 ? -1.0 : 0.0);
+                                double PiCurr =
+                                    arenaCurr.piBulk_[fieldIdx]
+                                    + arenaCurr.piBulkChem_[fieldIdx];
+                                double PiPrev =
+                                    arenaPrev.piBulk_[fieldIdx]
+                                    + arenaPrev.piBulkChem_[fieldIdx];
+                                Pi_alpha0 =
+                                    PiCurr
+                                    * (gfac
+                                       + arenaCurr.u_[alpha][fieldIdx]
+                                             * arenaCurr.u_[0][fieldIdx]);
+                                dPidtau =
+                                    (Pi_alpha0
+                                     - PiPrev
+                                           * (gfac
+                                              + arenaPrev.u_[alpha][fieldIdx]
+                                                    * arenaPrev
+                                                          .u_[0][fieldIdx]))
+                                    / DATA.delta_tau;
+                            }
+                            double sf =
+                                tau * dWdtau
+                                + arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx];
+                            double bf = tau * dPidtau + Pi_alpha0;
+                            double d = 0.;
+                            d += sf + bf;
+                            out[alpha * nStorage] = d;
+                            if (std::isnan(sf + bf)) {
+                                music_message
+                                    << "[Error]Diss::computeWSourceDivergence: "
+                                    << "sf=" << sf << " bf=" << bf;
+                                music_message.flush("error");
+                            }
+                        }
+                    }
+                    for (int alpha = 0; alpha < 5; alpha++) {
+                        const double W_p = wSourceFaces_[alpha * nFaces + Iph];
+                        const double W_m = wSourceFaces_[alpha * nFaces + Imh];
+                        double Pi_m = 0;
+                        double Pi_p = 0;
+                        if (withBulk && alpha < 4) {
+                            Pi_p = wSourceFaces_[(5 + alpha) * nFaces + Iph];
+                            Pi_m = wSourceFaces_[(5 + alpha) * nFaces + Imh];
+                        }
+                        if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                            const int k = (alpha == 0 ? 0 : 1);
+                            out[(5 + k) * nStorage] = W_p + Pi_p;
+                            out[(7 + k) * nStorage] = W_m + Pi_m;
+                        } else {
+                            out[alpha * nStorage] +=
+                                (W_p - W_m + Pi_p - Pi_m) / delta[direction];
+                        }
+                    }
+                }
+    }
+}
+
+void Diss::MakeWSourceFromDivergence(
+    const std::vector<double> &wSource, const int nStorage, const int fieldIdx,
+    TJbVec &dwmn) const {
+    dwmn = {0.};
+    for (int alpha = 0; alpha < 5; alpha++) {
+        dwmn[alpha] = wSource[static_cast<size_t>(alpha) * nStorage + fieldIdx];
+    }
+    const double W_eta_p0 =
+        wSource[5 * static_cast<size_t>(nStorage) + fieldIdx];
+    const double W_eta_p3 =
+        wSource[6 * static_cast<size_t>(nStorage) + fieldIdx];
+    const double W_eta_m0 =
+        wSource[7 * static_cast<size_t>(nStorage) + fieldIdx];
+    const double W_eta_m3 =
+        wSource[8 * static_cast<size_t>(nStorage) + fieldIdx];
+    // the geometric terms, as in MakeWSource
+    const double cosh_deta = wSourceCoshDeta_;
+    const double sinh_deta = wSourceSinhDeta_;
+    dwmn[0] +=
+        ((W_eta_p0 - W_eta_m0) * cosh_deta + (W_eta_p3 + W_eta_m3) * sinh_deta);
+    dwmn[3] +=
+        ((W_eta_p3 - W_eta_m3) * cosh_deta + (W_eta_p0 + W_eta_m0) * sinh_deta);
+}
+
 void Diss::computeInverseReynoldsNumbers(
     const double enthalpy, const Cell_small &grid_pt, double &R_shear,
     double &R_bulk) const {

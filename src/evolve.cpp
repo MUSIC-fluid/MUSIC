@@ -174,6 +174,11 @@ int Evolve::EvolveIt(
             for (Fields *field : allFields) field->updateGhosts();
             ghostsStale = false;
         }
+        // the pressure of fpCurr, for the diagnostics and the first RK stage
+        const std::vector<double> &pressureCurr =
+            advance.preparePressure(*fpCurr);
+        // the maxima of fpCurr, when check_conservation_law found them
+        GridMaxima gridMaxima;
 
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
@@ -272,7 +277,8 @@ int Evolve::EvolveIt(
             }
             // check energy conservation
             if (!DATA.boost_invariant) {
-                grid_info.check_conservation_law(*fpCurr, *fpPrev, tau);
+                grid_info.check_conservation_law(
+                    *fpCurr, *fpPrev, tau, &pressureCurr, &gridMaxima);
                 if (DATA.output_vorticity == 1) {
                     if (std::abs(tau - 1.0) < 1e-8 || std::abs(tau - 2.0) < 1e-8
                         || std::abs(tau - 5.0) < 1e-8
@@ -307,7 +313,7 @@ int Evolve::EvolveIt(
             double Tmax_curr = 0.;
             double nB_max_curr = 0.;
             grid_info.get_maximum_energy_density(
-                *fpCurr, emax_loc, nB_max_curr, Tmax_curr);
+                *fpCurr, emax_loc, nB_max_curr, Tmax_curr, &gridMaxima);
             if (tau > source_tau_max + dt && itSinceFreezeStart > 0) {
                 if (eps_max_cur < 0.) {
                     eps_max_cur = emax_loc;
@@ -365,6 +371,7 @@ int Evolve::EvolveIt(
 
         /* execute rk steps */
         // all the evolution are at here !!!
+        // fpCurr has not changed since preparePressure
         AdvanceRK(tau, fpPrev, fpCurr, fpNext);
 
         music_message << emoji::clock() << " Done time step " << it << "/"
@@ -790,7 +797,9 @@ void Evolve::AdvanceRK(
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         // fpCurr is up to date: from the ghost update of EvolveIt or as
         // the slice the previous AdvanceIt wrote
-        advance.AdvanceIt(tau, *fpPrev, *fpCurr, *fpNext, rk_flag, true);
+        // and its pressure from preparePressure in the first stage
+        advance.AdvanceIt(
+            tau, *fpPrev, *fpCurr, *fpNext, rk_flag, true, rk_flag == 0);
         if (rk_flag == 0) {
             Fields *temp2 = fpPrev;
             fpPrev = fpCurr;

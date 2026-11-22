@@ -35,6 +35,9 @@ class Advance {
     //! the KT flux part of the W update for every cell of the current
     //! stage (Diss::computeWFluxDivergence)
     std::vector<double> wFluxDiv_;
+    //! d_m (tau W^{m alpha}) of every cell of the current stage
+    //! (Diss::computeWSourceDivergence)
+    std::vector<double> wSource_;
 
     //! KT fluxes through the faces of arenaFieldsCurr, filled at the start
     //! of each AdvanceIt (computeFaceFluxes)
@@ -56,8 +59,8 @@ class Advance {
 
     void stage2ViscousFixedPoint(
         const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-        Fields &arenaFieldsNext, const TJbVec &qiFinal,
-        const double theta_local, const DumuVec &a_local,
+        const Cell_small &cellCurrFull, Fields &arenaFieldsNext,
+        const TJbVec &qiFinal, const double theta_local, const DumuVec &a_local,
         const VelocityShearVec &sigma_local, const VorticityVec &omega_local,
         const DmuMuBoverTVec &baryon_diffusion_vector,
         const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
@@ -81,10 +84,20 @@ class Advance {
     //! currGhostsValid: the ghost cells of arenaFieldsCurr are already up
     //! to date (Evolve keeps them so), else AdvanceIt updates them first.
     //! AdvanceIt always updates the ghost cells of arenaFieldsNext.
+    //! currPressureValid: preparePressure(arenaFieldsCurr) was called and
+    //! arenaFieldsCurr has not changed since
     void AdvanceIt(
         const double tau_init, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         Fields &arenaFieldsNext, const int rk_flag,
-        const bool currGhostsValid = false);
+        const bool currGhostsValid = false,
+        const bool currPressureValid = false);
+
+    //! the pressure of every cell of arena (ghost cells included), kept for
+    //! the next AdvanceIt on arena (currPressureValid)
+    const std::vector<double> &preparePressure(const Fields &arena) {
+        computePressure(arena, pressureCurr_);
+        return (pressureCurr_);
+    }
 
     void FirstRKStepT(
         const double tau, const double x_local, const double y_local,
@@ -98,7 +111,7 @@ class Advance {
         const Fields &arena, std::vector<double> &pressure) const;
 
     void FirstRKStepW(
-        const double tau_it, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+        const double tau_it, Fields &arenaFieldsPrev, const Cell_small &grid_c,
         Fields &arenaFieldsNext, const int rk_flag, const double theta_local,
         const DumuVec &a_local, const VelocityShearVec &sigma_local,
         const VorticityVec &omega_local,

@@ -1055,12 +1055,21 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
 void Cell_info::get_maximum_energy_density(
-    Fields &arena, double &e_max, double &nB_max, double &Tmax) {
+    Fields &arena, double &e_max, double &nB_max, double &Tmax,
+    const GridMaxima *known) {
     double eps_max = 0.0;
     double rhob_max = 0.0;
     double rhoq_max = -10.0;
     double rhos_max = -10.0;
     double T_max = 0.0;
+    const bool sweep = (known == nullptr || !known->valid);
+    if (!sweep) {
+        eps_max = known->e;
+        rhob_max = known->rhob;
+        rhoq_max = known->rhoq;
+        rhos_max = known->rhos;
+        T_max = known->T;
+    }
 
     // get the grid information
     const int neta = arena.nEta();
@@ -1069,9 +1078,9 @@ void Cell_info::get_maximum_energy_density(
 
 // every maximum is a reduction: shared updates of rhoq_max and rhos_max
 // raced between the threads
-#pragma omp parallel for collapse(3) \
+#pragma omp parallel for collapse(3) if (sweep) \
     reduction(max : eps_max, rhob_max, rhoq_max, rhos_max, T_max)
-    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ieta = 0; ieta < (sweep ? neta : 0); ieta++)
         for (int ix = 0; ix < nx; ix++)
             for (int iy = 0; iy < ny; iy++) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -1354,7 +1363,8 @@ void Cell_info::compute_angular_momentum(
 //! This function checks the total energy and total net baryon, electric charge
 //! and strangeness number at a give proper time
 void Cell_info::check_conservation_law(
-    Fields &arena, Fields &arena_prev, const double tau) {
+    Fields &arena, Fields &arena_prev, const double tau,
+    const std::vector<double> *pressureIn, GridMaxima *maxima) {
     std::string filename = "global_conservation_laws.dat";
     ofstream output_file;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
@@ -1379,16 +1389,33 @@ void Cell_info::check_conservation_law(
     const int nx = arena.nX();
     const int ny = arena.nY();
 
-#pragma omp parallel for collapse(3) \
-    reduction(+ : N_B, N_Q, N_S, T_tau_t, T_tau_x, T_tau_y, T_tau_z)
+    // cosh and sinh of eta_s, once per eta slice
+    std::vector<double> coshEta(neta), sinhEta(neta);
+    for (int ieta = 0; ieta < neta; ieta++) {
+        const double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+        coshEta[ieta] = cosh(eta_s);
+        sinhEta[ieta] = sinh(eta_s);
+    }
+    // the sums of every (eta, x) row, added up in a fixed order below
+    constexpr int nSums = 7;
+    std::vector<double> rowSums(static_cast<size_t>(nSums) * neta * nx, 0.);
+    double eps_max = 0.0;
+    double rhob_max = 0.0;
+    double rhoq_max = -10.0;
+    double rhos_max = -10.0;
+    double T_max = 0.0;
+    const bool withMaxima = (maxima != nullptr);
+
+#pragma omp parallel for collapse(2) schedule(static) \
+    reduction(max : eps_max, rhob_max, rhoq_max, rhos_max, T_max)
     for (int ieta = 0; ieta < neta; ieta++)
-        for (int ix = 0; ix < nx; ix++)
+        for (int ix = 0; ix < nx; ix++) {
+            const double cosh_eta = coshEta[ieta];
+            const double sinh_eta = sinhEta[ieta];
+            double rN_B = 0.0, rN_Q = 0.0, rN_S = 0.0;
+            double rT_t = 0.0, rT_x = 0.0, rT_y = 0.0, rT_z = 0.0;
             for (int iy = 0; iy < ny; iy++) {
                 const int Idx = arena.getFieldIdx(ix, iy, ieta);
-
-                const double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
-                const double cosh_eta = cosh(eta_s);
-                const double sinh_eta = sinh(eta_s);
 
                 // The KT/RK2 update conserves tau_n T_ideal^{tau mu}(n) +
                 // 1/2 [tau_{n+1} V(n) + tau_n V(n-1)], with V^mu = W^{tau mu}
@@ -1398,9 +1425,12 @@ void Cell_info::check_conservation_law(
                 const double wCurr = 0.5 * (1. + DATA.delta_tau / tau);
                 const double wPrev = 0.5;
                 const double e_local = arena.e_[Idx];
-                const double pressure = eos.get_pressure(
-                    e_local, arena.rhob_[Idx], arena.rhoq_[Idx],
-                    arena.rhos_[Idx]);
+                const double pressure =
+                    (pressureIn != nullptr
+                         ? (*pressureIn)[Idx]
+                         : eos.get_pressure(
+                               e_local, arena.rhob_[Idx], arena.rhoq_[Idx],
+                               arena.rhos_[Idx]));
                 const double PiCurr =
                     arena.piBulk_[Idx] + arena.piBulkChem_[Idx];
                 const double PiPrev =
@@ -1422,21 +1452,61 @@ void Cell_info::check_conservation_law(
                            + (a == 0 ? -pressure : 0.) + wCurr * VCurr
                            + wPrev * VPrev;
                 }
-                N_B += arena.rhob_[Idx] * arena.u_[0][Idx]
-                       + wCurr * arena.Wmunu_[10][Idx]
-                       + wPrev * arena_prev.Wmunu_[10][Idx];
+                rN_B += arena.rhob_[Idx] * arena.u_[0][Idx]
+                        + wCurr * arena.Wmunu_[10][Idx]
+                        + wPrev * arena_prev.Wmunu_[10][Idx];
                 // no diffusion currents for Q and S
-                N_Q += arena.rhoq_[Idx] * arena.u_[0][Idx];
-                N_S += arena.rhos_[Idx] * arena.u_[0][Idx];
+                rN_Q += arena.rhoq_[Idx] * arena.u_[0][Idx];
+                rN_S += arena.rhos_[Idx] * arena.u_[0][Idx];
                 const double T_tau_tau = T[0];
-                const double T01_local = T[1];
-                const double T02_local = T[2];
                 const double T_tau_eta = T[3];
-                T_tau_t += T_tau_tau * cosh_eta + T_tau_eta * sinh_eta;
-                T_tau_x += T01_local;
-                T_tau_y += T02_local;
-                T_tau_z += T_tau_tau * sinh_eta + T_tau_eta * cosh_eta;
+                rT_t += T_tau_tau * cosh_eta + T_tau_eta * sinh_eta;
+                rT_x += T[1];
+                rT_y += T[2];
+                rT_z += T_tau_tau * sinh_eta + T_tau_eta * cosh_eta;
+
+                if (withMaxima) {
+                    const double rhob_local = arena.rhob_[Idx];
+                    const double rhoq_local = arena.rhoq_[Idx];
+                    const double rhos_local = arena.rhos_[Idx];
+                    eps_max = std::max(eps_max, e_local);
+                    rhob_max = std::max(rhob_max, rhob_local);
+                    T_max = std::max(
+                        T_max,
+                        eos.get_temperature(
+                            e_local, rhob_local, rhoq_local, rhos_local));
+                    rhoq_max = std::max(rhoq_max, rhoq_local);
+                    rhos_max = std::max(rhos_max, rhos_local);
+                }
             }
+            double *r =
+                rowSums.data() + nSums * (ix + static_cast<size_t>(nx) * ieta);
+            r[0] = rN_B;
+            r[1] = rN_Q;
+            r[2] = rN_S;
+            r[3] = rT_t;
+            r[4] = rT_x;
+            r[5] = rT_y;
+            r[6] = rT_z;
+        }
+    for (size_t row = 0; row < static_cast<size_t>(neta) * nx; row++) {
+        const double *r = rowSums.data() + nSums * row;
+        N_B += r[0];
+        N_Q += r[1];
+        N_S += r[2];
+        T_tau_t += r[3];
+        T_tau_x += r[4];
+        T_tau_y += r[5];
+        T_tau_z += r[6];
+    }
+    if (withMaxima) {
+        maxima->valid = true;
+        maxima->e = eps_max;
+        maxima->rhob = rhob_max;
+        maxima->rhoq = rhoq_max;
+        maxima->rhos = rhos_max;
+        maxima->T = T_max;
+    }
     // add units
     double factor = tau * dx * dy * deta;
     N_B *= factor;

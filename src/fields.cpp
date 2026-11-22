@@ -210,6 +210,20 @@ Cell_small Fields::getCell(const int idx) const {
     return (cell);
 }
 
+Cell_small Fields::getCellWithoutW(const int idx) const {
+    Cell_small cell;
+    cell.epsilon = e_[idx];
+    cell.rhob = rhob_[idx];
+    cell.rhoq = rhoq_[idx];
+    cell.rhos = rhos_[idx];
+    for (int i = 0; i < Nu_; i++) {
+        cell.u[i] = u_[i][idx];
+    }
+    // kept as is when turn_on_bulk = 1 and turn_on_bulk_chem = 0
+    cell.pi_b_chem = piBulkChem_[idx];
+    return (cell);
+}
+
 ReconstCell Fields::getCellIdeal(const int idx) const {
     ReconstCell cell;
     cell.e = e_[idx];

@@ -35,16 +35,43 @@ class Diss {
 
     //! the face fluxes of one direction (computeWFluxDivergence)
     std::vector<double> wFaceFluxes_;
+    //! the face averages of tau W^{i alpha} and of the bulk part of one
+    //! direction (computeWSourceDivergence)
+    std::vector<double> wSourceFaces_;
+    //! cosh(deta/2)/deta and sinh(deta/2)/deta of MakeWSource
+    double wSourceCoshDeta_ = 0.;
+    double wSourceSinhDeta_ = 0.5;
 
     //! the number of W components that Make_uWRHS evolves
     int nWComponents() const;
 
   public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
+    //! d_m (tau W^{m alpha}) + geometric terms of one cell, with the
+    //! neighbouring cells read for every cell (two reads of each face).
+    //! computeWSourceDivergence + MakeWSourceFromDivergence give the same
+    //! result bit for bit
     void MakeWSource(
         const double tau, const int ix, const int iy, const int ieta,
         TJbVec &dwmn, Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
         const int fieldIdx);
+
+    //! values per cell of computeWSourceDivergence: d_m (tau W^{m alpha})
+    //! for alpha < 5 without the eta faces of alpha = 0, 3, then
+    //! tau W^{eta alpha} (+ bulk) at eta +- deta/2 for alpha = 0, 3
+    static constexpr int kWSourceComponents = 9;
+
+    //! the part of MakeWSource that reads the neighbouring cells, for every
+    //! cell of arenaCurr, with each face average computed once. Component
+    //! k of cell fieldIdx is at wSource[k * arenaCurr.nStorage() + fieldIdx]
+    void computeWSourceDivergence(
+        const double tau, const Fields &arenaCurr, const Fields &arenaPrev,
+        std::vector<double> &wSource);
+
+    //! MakeWSource of cell fieldIdx from computeWSourceDivergence
+    void MakeWSourceFromDivergence(
+        const std::vector<double> &wSource, const int nStorage,
+        const int fieldIdx, TJbVec &dwmn) const;
 
     void Make_uWSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,

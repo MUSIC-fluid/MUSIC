@@ -50,13 +50,14 @@ Advance::Advance(
 //! this function evolves one Runge-Kutta step in tau
 void Advance::AdvanceIt(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-    Fields &arenaFieldsNext, const int rk_flag, const bool currGhostsValid) {
+    Fields &arenaFieldsNext, const int rk_flag, const bool currGhostsValid,
+    const bool currPressureValid) {
     const int grid_neta = arenaFieldsCurr.nEta();
     const int grid_nx = arenaFieldsCurr.nX();
     const int grid_ny = arenaFieldsCurr.nY();
 
     if (!currGhostsValid) arenaFieldsCurr.updateGhosts();
-    computePressure(arenaFieldsCurr, pressureCurr_);
+    if (!currPressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
         faceFluxes_);
@@ -64,6 +65,9 @@ void Advance::AdvanceIt(
         diss_helper.computeWFluxDivergence(
             tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, wFluxDiv_);
     }
+    diss_helper.computeWSourceDivergence(
+        tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, arenaFieldsPrev,
+        wSource_);
 
 #pragma omp parallel for collapse(3) schedule(dynamic, 64)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -134,15 +138,18 @@ void Advance::AdvanceIt(
                         arenaFieldsCurr.rhoq_[fieldIdx],
                         arenaFieldsCurr.rhos_[fieldIdx], thermalVec);
 
+                    const Cell_small cellCurr =
+                        arenaFieldsCurr.getCell(fieldIdx);
+
                     FirstRKStepW(
-                        tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
+                        tau, arenaFieldsPrev, cellCurr, arenaFieldsNext,
                         rk_flag, theta_local, a_local, sigma_local, omega_local,
                         baryon_diffusion_vector, w_rhs, thermalVec, ieta, ix,
                         iy, fieldIdx);
 
                     if (rk_flag == 1) {
                         stage2ViscousFixedPoint(
-                            tau, arenaFieldsPrev, arenaFieldsCurr,
+                            tau, arenaFieldsPrev, arenaFieldsCurr, cellCurr,
                             arenaFieldsNext, qiFinal, theta_local, a_local,
                             sigma_local, omega_local, baryon_diffusion_vector,
                             w_rhs, thermalVec, ieta, ix, iy, fieldIdx);
@@ -174,9 +181,9 @@ void Advance::AdvanceIt(
 // both made viscous string events blow up.
 void Advance::stage2ViscousFixedPoint(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-    Fields &arenaFieldsNext, const TJbVec &qiFinal, const double theta_local,
-    const DumuVec &a_local, const VelocityShearVec &sigma_local,
-    const VorticityVec &omega_local,
+    const Cell_small &cellCurrFull, Fields &arenaFieldsNext,
+    const TJbVec &qiFinal, const double theta_local, const DumuVec &a_local,
+    const VelocityShearVec &sigma_local, const VorticityVec &omega_local,
     const DmuMuBoverTVec &baryon_diffusion_vector,
     const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
     const int ieta, const int ix, const int iy, const int fieldIdx) {
@@ -191,9 +198,9 @@ void Advance::stage2ViscousFixedPoint(
         for (int alpha = 0; alpha < 5; alpha++) qi[alpha] -= shift[alpha];
         reconstructAndStore(tau_next, qi, guess, arenaFieldsNext, fieldIdx);
         FirstRKStepW(
-            tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext, 1,
-            theta_local, a_local, sigma_local, omega_local,
-            baryon_diffusion_vector, w_rhs, thermalVec, ieta, ix, iy, fieldIdx);
+            tau, arenaFieldsPrev, cellCurrFull, arenaFieldsNext, 1, theta_local,
+            a_local, sigma_local, omega_local, baryon_diffusion_vector, w_rhs,
+            thermalVec, ieta, ix, iy, fieldIdx);
     };
 
     TJbVec shift = {0.};  // the state in arenaFieldsNext has this shift
@@ -202,6 +209,12 @@ void Advance::stage2ViscousFixedPoint(
     double prevMiss = std::numeric_limits<double>::max();
     double lastMiss = 0.;
     double relaxation = 1.;
+    // Anderson mixing of depth 1 (a secant step on the shift) once two
+    // residuals are known; plain relaxed iteration after a miss grows
+    bool accelerate = true;
+    bool havePrev = false;
+    TJbVec prevShift = {0.};
+    TJbVec prevResidual = {0.};
     for (int iter = 0; iter <= stage2MaxIterations_; iter++) {
         TJbVec target = {0.};
         double miss = 0.;
@@ -217,17 +230,56 @@ void Advance::stage2ViscousFixedPoint(
             if (d > stage2Tolerance_ * scale) converged = false;
         }
         lastMiss = miss;
-        if (converged && iter > 0) return;
+        // also at iter 0: the state of FirstRKStepT/W is then consistent
+        if (converged) return;
         if (miss < bestMiss) {
             bestMiss = miss;
             best = shift;
         }
         if (iter == stage2MaxIterations_) break;
-        if (iter > 0 && miss > prevMiss) relaxation *= 0.5;
-        prevMiss = miss;
-        for (int alpha = 0; alpha < 5; alpha++) {
-            shift[alpha] += relaxation * (target[alpha] - shift[alpha]);
+        if (iter > 0 && miss > prevMiss) {
+            relaxation *= 0.5;
+            accelerate = false;
         }
+        prevMiss = miss;
+        TJbVec residual = {0.};
+        for (int alpha = 0; alpha < 5; alpha++) {
+            residual[alpha] = target[alpha] - shift[alpha];
+        }
+        TJbVec next = shift;
+        bool mixed = false;
+        if (accelerate && havePrev) {
+            // gamma minimises |r_k - gamma (r_k - r_{k-1})| in the scaled
+            // norm of the convergence test
+            double num = 0.;
+            double den = 0.;
+            for (int alpha = 0; alpha < 5; alpha++) {
+                const double w = 1. / (alpha < 4 ? scaleT : scaleJ);
+                const double dr = (residual[alpha] - prevResidual[alpha]) * w;
+                num += dr * residual[alpha] * w;
+                den += dr * dr;
+            }
+            if (den > 0.) {
+                const double gamma = num / den;
+                for (int alpha = 0; alpha < 5; alpha++) {
+                    next[alpha] =
+                        shift[alpha] + residual[alpha]
+                        - gamma
+                              * ((shift[alpha] - prevShift[alpha])
+                                 + (residual[alpha] - prevResidual[alpha]));
+                }
+                mixed = true;
+            }
+        }
+        if (!mixed) {
+            for (int alpha = 0; alpha < 5; alpha++) {
+                next[alpha] = shift[alpha] + relaxation * residual[alpha];
+            }
+        }
+        prevShift = shift;
+        prevResidual = residual;
+        havePrev = true;
+        shift = next;
         applyShift(shift);
     }
     if (lastMiss > bestMiss) applyShift(best);
@@ -342,8 +394,8 @@ void Advance::FirstRKStepT(
 
     TJbVec dwmn = {0.0};
 
-    diss_helper.MakeWSource(
-        tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
+    diss_helper.MakeWSourceFromDivergence(
+        wSource_, arenaFieldsCurr.nStorage(), fieldIdx, dwmn);
 
     double pressurePrev = eos.get_pressure(
         cellPrev.e, cellPrev.rhob, cellPrev.rhoq, cellPrev.rhos);
@@ -375,15 +427,15 @@ void Advance::FirstRKStepT(
 }
 
 void Advance::FirstRKStepW(
-    const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+    const double tau, Fields &arenaFieldsPrev, const Cell_small &grid_c,
     Fields &arenaFieldsNext, const int rk_flag, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_local,
     const VorticityVec &omega_local,
     const DmuMuBoverTVec &baryon_diffusion_vector,
     const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
     const int ieta, const int ix, const int iy, const int fieldIdx) {
-    auto grid_c = arenaFieldsCurr.getCell(fieldIdx);
-    auto grid_f = arenaFieldsNext.getCell(fieldIdx);
+    // grid_c: the cell of arenaFieldsCurr, copied once by the caller
+    auto grid_f = arenaFieldsNext.getCellWithoutW(fieldIdx);
 
     const double tau_now = tau + rk_flag * DATA.delta_tau;
 
