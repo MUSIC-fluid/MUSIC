@@ -579,6 +579,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
         }
     };
     Reconst reconstHelper(eos, DATA.echo_level, DATA.beastMode);
+    int nIdealRemap = 0;  // coarse cells remapped with the ideal part only
 
     for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
         for (int iy = 0; iy < arenaCurr.nY(); iy++) {
@@ -591,9 +592,14 @@ void Evolve::coarseGrainAndEnlargeGrid(
                        piBChem = 0., wSum = 0.;
                 double u[4] = {0., 0., 0., 0.};
                 double W[14] = {0.};
-                double Ttot[4] = {0., 0., 0., 0.};  // total T^{tau mu}
-                double Jtot = 0.;                   // total J^tau
-                double JQtot = 0., JStot = 0.;      // J_Q^tau, J_S^tau
+                double Ttot[4] = {0., 0., 0., 0.};    // total T^{tau mu}
+                double Jtot = 0.;                     // total J^tau
+                double JQtot = 0., JStot = 0.;        // J_Q^tau, J_S^tau
+                double Tideal[4] = {0., 0., 0., 0.};  // ideal T^{tau mu}
+                double Jideal = 0.;                   // n_B u^tau
+                double u0MaxOld = 1.;  // fastest cell under the stencil
+                // weighted |W^{tau mu} + Pi (g^{tau mu} + u^tau u^mu)|
+                double Vabs[4] = {0., 0., 0., 0.};
                 for (int a = 0; a < sx.n; a++) {
                     for (int b = 0; b < sy.n; b++) {
                         const double w = sx.w[a] * sy.w[b];
@@ -619,9 +625,27 @@ void Evolve::coarseGrainAndEnlargeGrid(
                                               + arenaCopy.Wmunu_[m][idxOld]
                                               + PiOld * (g + uu));
                             }
+                            for (int m = 0; m < 4; m++) {
+                                const double g = (m == 0 ? -1. : 0.);
+                                Vabs[m] +=
+                                    w
+                                    * std::abs(
+                                        arenaCopy.Wmunu_[m][idxOld]
+                                        + PiOld
+                                              * (g
+                                                 + u0Old
+                                                       * arenaCopy
+                                                             .u_[m][idxOld]));
+                                Tideal[m] += w
+                                             * ((eOld + POld) * u0Old
+                                                    * arenaCopy.u_[m][idxOld]
+                                                + POld * g);
+                            }
                             Jtot +=
                                 w
                                 * (nOld * u0Old + arenaCopy.Wmunu_[10][idxOld]);
+                            Jideal += w * nOld * u0Old;
+                            u0MaxOld = std::max(u0MaxOld, u0Old);
                             JQtot += w * nQOld * u0Old;
                             JStot += w * nSOld * u0Old;
                         }
@@ -677,6 +701,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
                     for (int m = 0; m < 4; m++) {
                         cell.u[m] = arenaCurr.u_[m][idxNew];
                     }
+                    const ReconstCell guess = cell;
                     double Wp[14];
                     for (int iter = 0; iter < 20; iter++) {
                         projectDissipative(cell.u, W, Wp);
@@ -698,6 +723,54 @@ void Evolve::coarseGrainAndEnlargeGrid(
                         cell = next;
                         if (du < 1e-12) break;
                     }
+                    // at the dilute edge of the fluid, where near-empty
+                    // cells move with u^tau ~ 20 and the dissipative part
+                    // is comparable to the ideal part, the W projected onto
+                    // a fast u can have huge tau-mu components, and
+                    // subtracting them from the averaged T^{tau mu} creates
+                    // energy: the solve returned e = 1.2 and |pi| = 270 at
+                    // u^tau = 19 from parents with e <= 0.08, |W| <= 0.015
+                    // and u^tau <= 17.8, which seeded an instability
+                    // (beastMode 3). Where the remapped dissipative part
+                    // exceeds what the parents carried, or the cell is
+                    // faster than its parents and the average of their
+                    // ideal parts, conserve the ideal part only (always well
+                    // posed) and project the averaged W onto its u.
+                    auto idealAverage = [&]() {
+                        TJbVec qIdeal;
+                        for (int m = 0; m < 4; m++) qIdeal[m] = Tideal[m];
+                        qIdeal[4] = Jideal;
+                        qIdeal[5] = JQtot;
+                        qIdeal[6] = JStot;
+                        return reconstHelper.ReconstIt_shell(1., qIdeal, guess);
+                    };
+                    projectDissipative(cell.u, W, Wp);
+                    bool physical = std::isfinite(cell.e) && cell.e > 0.
+                                    && std::isfinite(cell.u[0]);
+                    // the largest component: a projection onto a slightly
+                    // different u legitimately mixes the components
+                    double VpMax = 0., VabsMax = 0.;
+                    for (int m = 0; m < 4; m++) {
+                        const double g = (m == 0 ? -1. : 0.);
+                        VpMax = std::max(
+                            VpMax,
+                            std::abs(
+                                Wp[m] + PiTot * (g + cell.u[0] * cell.u[m])));
+                        VabsMax = std::max(VabsMax, Vabs[m]);
+                    }
+                    physical =
+                        physical && VpMax <= 2. * VabsMax + 1e-12 * Ttot[0];
+                    if (physical) {
+                        const ReconstCell cellIdeal = idealAverage();
+                        if (cell.u[0] > std::max(u0MaxOld, cellIdeal.u[0])
+                                            * (1. + 1e-6)) {
+                            physical = false;
+                            cell = cellIdeal;
+                        }
+                    } else {
+                        cell = idealAverage();
+                    }
+                    if (!physical) nIdealRemap++;
                     projectDissipative(cell.u, W, Wp);
                     arenaCurr.e_[idxNew] = cell.e;
                     arenaCurr.rhob_[idxNew] = cell.rhob;
@@ -714,6 +787,11 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 arenaCurr.piBulkChem_[idxNew] = piBChem * dissFactor;
             }
         }
+    }
+    if (nIdealRemap > 0 && DATA.echo_level > 1) {
+        music_message << "coarsening: " << nIdealRemap
+                      << " cells remapped conserving the ideal part only";
+        music_message.flush("info");
     }
 }
 

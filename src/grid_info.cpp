@@ -1520,14 +1520,27 @@ void Cell_info::check_conservation_law(
     // the flux through the grid faces since tau0
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         outflow_flux = {0.};
+        boundary_outflow_rate(arena, tau, outflowRateLast_);
+        outflowTauLast_ = tau;
     } else {
         TJbVec fluxCurr, fluxPrev;
         boundary_outflow_rate(arena, tau, fluxCurr);
-        boundary_outflow_rate(arena_prev, tau - DATA.delta_tau, fluxPrev);
-        for (unsigned int i = 0; i < outflow_flux.size(); i++) {
-            outflow_flux[i] +=
-                0.5 * DATA.delta_tau * (fluxCurr[i] + fluxPrev[i]);
+        // the interval since the previous record: delta_tau, except in the
+        // step where beastMode changed it (arena_prev is then extrapolated
+        // to tau - delta_tau_new); use the rate stored at that record
+        double dt = DATA.delta_tau;
+        if (outflowTauLast_ > 0.
+            && std::abs(tau - outflowTauLast_ - DATA.delta_tau) > 1e-8) {
+            dt = tau - outflowTauLast_;
+            fluxPrev = outflowRateLast_;
+        } else {
+            boundary_outflow_rate(arena_prev, tau - DATA.delta_tau, fluxPrev);
         }
+        for (unsigned int i = 0; i < outflow_flux.size(); i++) {
+            outflow_flux[i] += 0.5 * dt * (fluxCurr[i] + fluxPrev[i]);
+        }
+        outflowRateLast_ = fluxCurr;
+        outflowTauLast_ = tau;
     }
     T_tau_t += outflow_flux[0];  // GeV
     T_tau_x += outflow_flux[1];  // GeV

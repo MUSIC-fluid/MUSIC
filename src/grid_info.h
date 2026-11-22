@@ -53,6 +53,11 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
     TJbVec outflow_flux;
+    // the outflow rate and tau of the previous conservation record: the
+    // trapezoidal rule must span the elapsed tau, which differs from
+    // delta_tau in the step where beastMode changes delta_tau
+    TJbVec outflowRateLast_;
+    double outflowTauLast_ = -1.;
 
   public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
