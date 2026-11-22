@@ -1,6 +1,6 @@
 # GPU port, phase 3: source terms and the 4D EoS on the device
 
-Branch `gpu`, from cebd857 (phase 2, [gpu_porting_phase2_viscous.md](gpu_porting_phase2_viscous.md)). 2026-11-22. Machine: Apple M4 (10 CPU cores, 10-core GPU, 16 GB unified memory); no NVIDIA hardware.
+Branch `gpu`, from cebd857 (phase 2, [gpu_porting_phase2_viscous.md](gpu_porting_phase2_viscous.md)). 2026-11-22. Next: [phase 4](gpu_porting_phase4_diffusion_chem_causality.md). Machine: Apple M4 (10 CPU cores, 10-core GPU, 16 GB unified memory); no NVIDIA hardware.
 
 ## Summary
 

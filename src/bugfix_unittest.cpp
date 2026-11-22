@@ -1823,9 +1823,16 @@ namespace {
 //! the lumpy state of fillLumpyIdeal with a traceless, transverse
 //! W^{mu nu} and Pi of 10% of e; prev: the same with W, Pi and u changed
 //! by a few %, as the slice of the previous time step
+//! fillLumpyViscous scales W and Pi by this (the causality test)
+double gLumpyWScale = 1.;
+//! fillLumpyViscous also fills a transverse q^mu (and Pi_chem, if
+//! gLumpyChem)
+bool gLumpyDiffChem = false;
+bool gLumpyChem = false;
+
 void fillLumpyViscous(Fields &arena, bool prev) {
     fillLumpyIdeal(arena);
-    const double f = (prev ? 0.9 : 1.);
+    const double f = (prev ? 0.9 : 1.) * gLumpyWScale;
     for (int ieta = 0; ieta < arena.nEta(); ieta++)
         for (int iy = 0; iy < arena.nY(); iy++)
             for (int ix = 0; ix < arena.nX(); ix++) {
@@ -1866,6 +1873,17 @@ void fillLumpyViscous(Fields &arena, bool prev) {
                 double t = 0.;
                 for (int n = 1; n < 4; n++) t += W[n] * (*u[n]);
                 W[0] = t / (*u[0]);
+                if (gLumpyDiffChem) {
+                    const double nb = arena.rhob_[idx];
+                    W[11] = 0.04 * nb * c * f;
+                    W[12] = -0.03 * nb * s * f;
+                    W[13] = 0.02 * nb * s * c * f;
+                    double tq = 0.;
+                    for (int n = 1; n < 4; n++) tq += W[10 + n] * (*u[n]);
+                    W[10] = tq / (*u[0]);
+                    arena.piBulkChem_[idx] =
+                        (gLumpyChem ? -0.02 * e * (1. + 0.4 * c) * f : 0.);
+                }
                 for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = W[k];
                 arena.piBulk_[idx] = -0.1 * e * (1. + 0.5 * s) / f;
             }
@@ -1955,6 +1973,18 @@ TEST_CASE("Device kernels reproduce the viscous update of Advance") {
         eosIds.push_back(9);
     } else {
         MESSAGE("EoS 9 skipped: set HYDROPROGRAMPATH to the MUSIC directory");
+    }
+    {
+        // NEOS with mu_S and mu_Q tables: the thermal variables from the
+        // 2D tables and n_B capped at the table edge in the entropy
+        const char *p = getenv("HYDROPROGRAMPATH");
+        struct stat st;
+        if (stat((std::string(p ? p : ".") + "/EOS/neos_bqs").c_str(), &st)
+            == 0) {
+            eosIds.push_back(14);
+        } else {
+            MESSAGE("EoS 14 skipped: no EOS/neos_bqs");
+        }
     }
     const int nPerCell = 22;  // e, n_B, u, W, Pi, Pi_chem
     for (const int eosId : eosIds) {
@@ -2106,4 +2136,140 @@ TEST_CASE("Device kernels reproduce the update of Advance with the 4D EoS") {
         }
     }
     gLumpyQS = false;
+}
+
+TEST_CASE("Device kernels reproduce baryon diffusion and Pi_chem of Advance") {
+    // turn_on_diff (q^mu with the mu_B / T gradients and D(mu_B / T) from
+    // the ideal equations of motion) and turn_on_bulk_chem, alone and
+    // together; config 1 takes the 1+1D kappa of Initial_profile = 1
+    const char *envPath = std::getenv("HYDROPROGRAMPATH");
+    const std::string base = std::string(envPath ? envPath : ".");
+    std::vector<int> eosIds = {0};
+    struct stat st;
+    if (stat((base + "/EOS/neos_bqs").c_str(), &st) == 0) eosIds.push_back(14);
+    if (std::ifstream(base + "/EOS/neos4D/neos4d_p_b.dat").good())
+        eosIds.push_back(20);
+    gLumpyDiffChem = true;
+    const int nPerCell = 22;
+    for (const int eosId : eosIds) {
+        gLumpyQS = (eosId == 20);
+        for (int mode = 0; mode < 3; mode++) {
+            for (int config = 0; config < 2; config++) {
+                CAPTURE(eosId);
+                CAPTURE(mode);
+                CAPTURE(config);
+                InitData DATA = viscousDeviceParameters(config);
+                DATA.turn_on_diff = (mode != 1 ? 1 : 0);
+                DATA.turn_on_bulk_chem = (mode != 0 ? 1 : 0);
+                DATA.kappa_coefficient = 0.2;
+                DATA.chem_rate_C = 2.;
+                gLumpyChem = (DATA.turn_on_bulk_chem == 1);
+                const auto host = runViscousSteps(DATA, eosId, 0, 0, 4);
+                const auto dev = runViscousSteps(DATA, eosId, 1, 0, 4);
+                REQUIRE(host.size() == dev.size());
+                double maxDiff = 0., qNorm = 0., chemNorm = 0.;
+                int nDiff = 0;
+                for (size_t i = 0; i < host.size(); i++) {
+                    REQUIRE(std::isfinite(host[i]));
+                    REQUIRE(std::isfinite(dev[i]));
+                    const double d = std::abs(host[i] - dev[i]);
+                    if (d > 0.) nDiff++;
+                    maxDiff = std::max(maxDiff, d);
+                    const size_t k = i % nPerCell;
+                    if (k >= 16 && k < 20) qNorm += std::abs(host[i]);
+                    if (k == 21) chemNorm += std::abs(host[i]);
+                }
+                CAPTURE(nDiff);
+                CAPTURE(maxDiff);
+                CHECK((DATA.turn_on_diff == 1) == (qNorm > 0.));
+                CHECK((DATA.turn_on_bulk_chem == 1) == (chemNorm > 0.));
+                CHECK(maxDiff == 0.);
+                const auto devF = runViscousSteps(DATA, eosId, 1, 1, 4);
+                double l1E = 0., normE = 0., l1Q = 0., normQ = 0., l1C = 0.,
+                       normC = 0.;
+                for (size_t i = 0; i < host.size(); i++) {
+                    REQUIRE(std::isfinite(devF[i]));
+                    const size_t k = i % nPerCell;
+                    const double d = std::abs(devF[i] - host[i]);
+                    if (k == 0) {
+                        l1E += d;
+                        normE += std::abs(host[i]);
+                    } else if (k >= 16 && k < 20) {
+                        l1Q += d;
+                        normQ += std::abs(host[i]);
+                    } else if (k == 21) {
+                        l1C += d;
+                        normC += std::abs(host[i]);
+                    }
+                }
+                const double relE = l1E / normE;
+                const double relQ = (normQ > 0. ? l1Q / normQ : 0.);
+                const double relC = (normC > 0. ? l1C / normC : 0.);
+                CAPTURE(relE);
+                CAPTURE(relQ);
+                CAPTURE(relC);
+                MESSAGE("float: EoS " << eosId << " mode " << mode << " config "
+                                      << config << ": L1(e) " << relE
+                                      << ", L1(q) " << relQ << ", L1(Pi_chem) "
+                                      << relC);
+                // float: q^mu relaxes in tau_rho = 3 dtau here and its
+                // explicit update (with the q omega and q sigma terms)
+                // amplifies rounding in this rough state, on the host as
+                // well: a few cells differ by O(1) of their q after two
+                // steps. Float is judged on realistic events (the Metal
+                // integration tests); here it must stay finite and close.
+                CHECK(relE < 1e-4);
+                CHECK(relQ < 3e-2);
+                CHECK(relC < 1e-4);
+            }
+        }
+    }
+    gLumpyQS = false;
+    gLumpyDiffChem = false;
+    gLumpyChem = false;
+}
+
+TEST_CASE("Device kernels reproduce the causality limiter of Advance") {
+    // FlagCausalityMethod = 1: the host takes the eigenvalues of W^mu_nu
+    // from Eigen's EigenSolver, the device from the closed form, so they
+    // agree to rounding. W and Pi are scaled up so that the limiter acts.
+    std::vector<int> eosIds = {0};
+    if (hotQCDTablesFound()) eosIds.push_back(9);
+    gLumpyWScale = 8.;
+    for (const int eosId : eosIds) {
+        for (int config = 0; config < 4; config += 2) {
+            CAPTURE(eosId);
+            CAPTURE(config);
+            InitData DATA = viscousDeviceParameters(config);
+            DATA.FlagCausalityMethod = 1;
+            const auto host = runViscousSteps(DATA, eosId, 0, 0, 4);
+            const auto dev = runViscousSteps(DATA, eosId, 1, 0, 4);
+            InitData noLimit = DATA;
+            noLimit.FlagCausalityMethod = 0;
+            const auto hostNoLimit = runViscousSteps(noLimit, eosId, 0, 0, 4);
+            REQUIRE(host.size() == dev.size());
+            double maxRel = 0., effect = 0., scale = 0.;
+            for (size_t i = 0; i < host.size(); i++) {
+                REQUIRE(std::isfinite(dev[i]));
+                scale = std::max(scale, std::abs(host[i]));
+            }
+            for (size_t i = 0; i < host.size(); i++) {
+                maxRel =
+                    std::max(maxRel, std::abs(host[i] - dev[i]) / scale);
+                effect = std::max(
+                    effect, std::abs(host[i] - hostNoLimit[i]) / scale);
+            }
+            CAPTURE(maxRel);
+            CAPTURE(effect);
+            CHECK(effect > 1e-4);    // the limiter acts
+            // rounding of the eigenvalues: <= 6e-14 of the largest value
+            // after one step, growing about 2x per step in this strongly
+            // limited state (8e-12 after 4)
+            CHECK(maxRel < 1e-10);
+            MESSAGE("causality: EoS " << eosId << " config " << config
+                                      << ": max diff " << maxRel
+                                      << ", effect of the limiter " << effect);
+        }
+    }
+    gLumpyWScale = 1.;
 }

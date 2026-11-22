@@ -335,15 +335,6 @@ std::string DeviceHydro::unsupportedReason() const {
     if (DATA.viscosity_flag != 1)
         return ("viscosity_flag " + std::to_string(DATA.viscosity_flag)
                 + " is not on the device");
-    if (DATA.turn_on_diff == 1)
-        return ("baryon diffusion is not on the device yet");
-    if (DATA.turn_on_bulk_chem == 1)
-        return ("the chemical bulk pressure is not on the device yet");
-    if (!(id == 0 || id == 9 || id == 91 || id == 20))
-        return ("viscous hydro with EoS " + std::to_string(id)
-                + " is not on the device yet");
-    if (DATA.FlagCausalityMethod == 1)
-        return ("FlagCausalityMethod = 1 is not on the device yet");
     if (DATA.T_dependent_shear_to_s == 23 || DATA.T_dependent_bulk_to_s == 23)
         return ("transport coefficients from files are not on the device");
     return ("");
@@ -441,12 +432,37 @@ void fillEos(
         }
         const double *data = b.pressure_tb.data();
         table.assign(data, data + b.pressure_tb.size());
-        if (withThermal) {
+        d.muSOffset = d.muQOffset = d.edgeOffset = -1;
+        if (withThermal && d.type == 1) {
             // EOS_hotQCD::get_temperature: T^5 on the e grid of table 0
             d.tOffset = static_cast<int>(
                 table.size() + b.temperature_tb.offset(0));
             const double *t = b.temperature_tb.data();
             table.insert(table.end(), t, t + b.temperature_tb.size());
+        } else if (withThermal) {
+            // EOS_neos: T^5, mu_B (mu_S, mu_Q if tabulated) as the pressure,
+            // then the n_B edges
+            const auto append = [&](const EosTable &tb) {
+                const int off = static_cast<int>(table.size());
+                const double *t = tb.data();
+                table.insert(table.end(), t, t + tb.size());
+                return (off);
+            };
+            d.t2Offset = append(b.temperature_tb);
+            d.muBOffset = append(b.mu_B_tb);
+            if (b.get_flag_muS()) d.muSOffset = append(b.mu_S_tb);
+            if (b.get_flag_muQ()) d.muQOffset = append(b.mu_Q_tb);
+            if (!b.nb_edge.empty()) {
+                d.edgeOffset = static_cast<int>(table.size());
+                for (int t = 0; t < d.nTables; t++) {
+                    if (static_cast<int>(b.nb_edge[t].size()) != d.eLength[t]) {
+                        err = "the n_B edges do not match the EoS tables";
+                        return;
+                    }
+                    table.insert(
+                        table.end(), b.nb_edge[t].begin(), b.nb_edge[t].end());
+                }
+            }
         }
     } else if (withThermal) {
         // EOS_idealgas::get_muB_over_T
@@ -535,13 +551,23 @@ void DeviceHydro::fillViscParams(StepParams<Real> &P) const {
     P.vorticity = (DATA.include_vorticity_terms ? 1 : 0);
     P.duIdeal = DATA.Du_from_ideal_EoM;
     P.resum = (DATA.FlagResumTransportCoeff ? 1 : 0);
+    P.causality = (DATA.FlagCausalityMethod == 1 ? 1 : 0);
+    P.bulkChem = DATA.turn_on_bulk_chem;
+    P.diff = DATA.turn_on_diff;
+    P.profile1 = (DATA.Initial_profile == 1 ? 1 : 0);
+    P.kappaCoeff = Real(DATA.kappa_coefficient);
+    P.chemRateC = Real(DATA.chem_rate_C);
     P.muBShear = DATA.muB_dependent_shear_to_s;
     P.bulkRelaxType = DATA.bulk_relaxation_type;
     P.questRevert = (DATA.Initial_profile != 0 && DATA.Initial_profile != 1);
     P.shearT = DATA.T_dependent_shear_to_s;
     P.bulkT = DATA.T_dependent_bulk_to_s;
     // Diss::nWComponents (no chemical bulk, no diffusion)
-    P.nWComp = (DATA.turn_on_bulk == 1 ? 6 : 5);
+    // Diss::nWComponents
+    P.nWComp = 5;
+    if (DATA.turn_on_bulk == 1) P.nWComp = 6;
+    if (DATA.turn_on_bulk_chem == 1) P.nWComp = 7;
+    if (DATA.turn_on_diff == 1) P.nWComp = 10;
     for (int a = 0; a < 4; a++)
         for (int b = 0; b < 4; b++) P.g[a][b] = Real(DATA.gmunu[a][b]);
     P.duIdealEDilute = Real(DATA.Du_from_ideal_EoM_e_dilute);

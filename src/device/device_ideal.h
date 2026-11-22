@@ -46,6 +46,11 @@ struct StepParams {
     int vorticity;      // include_vorticity_terms
     int duIdeal;        // Du_from_ideal_EoM
     int resum;          // FlagResumTransportCoeff
+    int causality;      // FlagCausalityMethod == 1
+    int bulkChem, diff;  // turn_on_bulk_chem, turn_on_diff
+    int profile1;        // Initial_profile == 1 (the 1+1D diffusion test)
+    Real kappaCoeff;     // kappa_coefficient
+    Real chemRateC;      // chem_rate_C
     int muBShear;       // muB_dependent_shear_to_s
     int bulkRelaxType;  // bulk_relaxation_type
     int questRevert;    // Initial_profile is neither 0 nor 1

@@ -97,7 +97,7 @@ MD_FN void kernelWFace(
     const int nFaces = faceCount(nx, ny, neta, direction);
     const Real tau = P.tau + Real(P.rkFlag) * P.dtau;
     const Real tauFac = (direction == 3 ? Real(1.0) : tau);
-    const bool withBulk = (P.bulk == 1);
+    const bool withBulk = (P.bulk == 1 || P.bulkChem == 1);
     const int IL = cellIndex(nx, ny, neta, fx - dx, fy - dy, feta - deta);
     const int IR = cellIndex(nx, ny, neta, fx, fy, feta);
     const int ILL =
@@ -453,6 +453,7 @@ struct Gradients {
     Real sigma[10];  // VelocityShearVec
     Real omega[6];   // VorticityVec
     Real wRhs[10];   // Diss::Make_uWRHS
+    Real dMuBT[4];   // DmuMuBoverTVec: partial^mu (mu_B / T)
 };
 
 template <typename Real>
@@ -513,6 +514,13 @@ struct ViscSolver {
                     const Real Pm1 = pCurr[Im1];
                     dPsup[dir] = (minmodDx(Pp1, Pc, Pm1, P.theta) / delta[dir]);
                 }
+                if (P.diff == 1) {
+                    // partial_n (mu_B / T)
+                    const Real f = muBOverT(sCurr, n, Ic);
+                    const Real fp1 = muBOverT(sCurr, n, Ip1);
+                    const Real fm1 = muBOverT(sCurr, n, Im1);
+                    dUsup[4][dir] = (minmodDx(fp1, f, fm1, P.theta) / delta[dir]);
+                }
             }
             for (int nn = 1; nn < 4; nn++) {
                 Real f = Real(0.0);
@@ -538,6 +546,13 @@ struct ViscSolver {
                 f += dUsup[m][0] * sCurr[(4 + m) * n + i];
             }
             dUsup[0][0] = f / sCurr[4 * n + i];
+            if (P.diff == 1) {
+                // the backward difference of mu_B / T
+                const Real tildemu = muBOverT(sCurr, n, i);
+                const Real tildemu_prev = muBOverT(sPrev, n, i);
+                f = (tildemu - tildemu_prev) / (P.dtau);
+                dUsup[4][0] = -f;
+            }
         }
         // MakeDTauIdealEoM
         if (P.duIdeal == 1) {
@@ -736,7 +751,172 @@ struct ViscSolver {
                 G.wRhs[5] -= (grid_pt.pi) * (grid_pt.c.u[0]) / tau * P.dtau;
                 G.wRhs[5] += (grid_pt.pi) * G.theta * P.dtau;
             }
+            if (P.bulkChem == 1) {
+                G.wRhs[6] -=
+                    (grid_pt.piChem) * (grid_pt.c.u[0]) / tau * P.dtau;
+                G.wRhs[6] += (grid_pt.piChem) * G.theta * P.dtau;
+            }
         }
+        for (int mu = 0; mu < 4; mu++) G.dMuBT[mu] = dUsup[4][mu];
+    }
+
+    //! mu_B / T of cell I of slice s, as eos.get_muB / eos.get_temperature
+    MD_FN Real muBOverT(MD_GLOBAL const Real *s, int n, int I) const {
+        Real T, muB;
+        eosTMuB(*d_, tab, s[I], s[n + I], s[2 * n + I], s[3 * n + I], T, muB);
+        return (muB / T);
+    }
+
+    //! Diss::D_muB_over_T_ideal (the EoS at n_Q = n_S = 0, as on the host)
+    MD_FN Real dMuBOverTIdeal(
+        Real epsilon, Real rhob, Real pressure, Real theta) const {
+        const Real small_eps = Real(1e-16);
+        if (epsilon < small_eps) return Real(0.);
+        if (sizeof(Real) == 4 && d_->type == 0) {
+            // the two terms below cancel exactly for the conformal ideal
+            // gas, where mu_B / T depends on n / s alone and the ideal flow
+            // conserves n / s: with float's rounding in each 1e-4
+            // difference only noise remained. One difference along
+            // (e + P, n), the same derivative, avoids the cancellation.
+            // (The tables of the other EoSs are piecewise linear, and a
+            // step this large crosses their kinks.)
+            const Real h = Real(1e-3);
+            const Real dEp = h * (epsilon + pressure);
+            const Real dNp = h * rhob;
+            const Real Dalpha =
+                -theta
+                * (alphaB(epsilon + dEp, rhob + dNp)
+                   - alphaB(epsilon - dEp, rhob - dNp))
+                / (Real(2.) * h);
+            return isfinite(Dalpha) ? Dalpha : Real(0.);
+        }
+        const Real de = Real(1e-4) * epsilon;
+        const Real dalpha_de =
+            (alphaB(epsilon + de, rhob) - alphaB(epsilon - de, rhob))
+            / (Real(2.) * de);
+        Real dalpha_dn = Real(0.);
+        if (fabs(rhob) > small_eps) {
+            const Real dn = Real(1e-4) * fabs(rhob);
+            dalpha_dn = (alphaB(epsilon, rhob + dn) - alphaB(epsilon, rhob - dn))
+                        / (Real(2.) * dn);
+        }
+        const Real Dalpha =
+            -theta * ((epsilon + pressure) * dalpha_de + rhob * dalpha_dn);
+        return isfinite(Dalpha) ? Dalpha : Real(0.);
+    }
+    MD_FN Real alphaB(Real e, Real nb) const {
+        Real T, muB;
+        eosTMuB(*d_, tab, e, nb, Real(0.), Real(0.), T, muB);
+        return (muB / dmax(T, Real(1e-16)));
+    }
+
+    //! Diss::Make_uqSource
+    MD_FN void uqSource(
+        Real tau, MD_THREAD const VCell<Real> &grid_pt,
+        MD_THREAD const Gradients<Real> &G, MD_THREAD const Thermal<Real> &th,
+        MD_THREAD Real *sourceTerms) const {
+        MD_CONST const StepParams<Real> &P = *P_;
+        const Real small_eps = Real(1e-16);
+        Real epsilon = th.e;
+        Real rhob = th.rhob;
+        Real pressure = th.p;
+        Real T = th.T;
+        Real kappa_coefficient = P.kappaCoeff;
+        Real tau_rho = kappa_coefficient / dmax(T, small_eps);
+        tau_rho = dmin(Real(10.), dmax(Real(3.) * P.dtau, tau_rho));
+        Real mub = th.muB;
+        Real alpha = mub / dmax(T, small_eps);
+        Real denorm_safe = copysign(
+            dmax(fabs(Real(3.) * T * tanh(alpha)), small_eps),
+            Real(3.) * T * tanh(alpha));
+        Real kappa = kappa_coefficient
+                     * (rhob / denorm_safe
+                        - rhob * rhob / dmax(epsilon + pressure, small_eps));
+        if (P.profile1) {
+            Real denorm_safe1 = copysign(dmax(fabs(mub), small_eps), mub);
+            kappa = kappa_coefficient * (rhob / denorm_safe1);
+        }
+        kappa = dmax(Real(0.), kappa);
+        Real q[4];
+        for (int ii = 0; ii < 4; ii++) q[ii] = grid_pt.W[10 + ii];
+        Real transport_coeff = Real(1.0) * tau_rho;
+        Real transport_coeff_2 = Real(3.) / Real(5.) * tau_rho;
+        Real sigma[4][4];
+        unpackSym(G.sigma, sigma);
+        const Real DmuBoverT =
+            dMuBOverTIdeal(epsilon, rhob, pressure, G.theta);
+        for (int nu = 1; nu < 4; nu++) {
+            Real NS = kappa * (G.dMuBT[nu] + grid_pt.c.u[nu] * DmuBoverT);
+            Real Nonlinear1 = -transport_coeff * q[nu] * G.theta;
+            Real temptemp = Real(0.0);
+            for (int ii = 0; ii < 4; ii++) {
+                temptemp += q[ii] * sigma[ii][nu] * P.g[ii][ii];
+            }
+            Real Nonlinear2 = -transport_coeff_2 * temptemp;
+            Real Nonlinear3 = Real(0.0);
+            if (P.vorticity) {
+                Real transport_coeff_3 = Real(1.0) * tau_rho;
+                Real omega[4][4];
+                unpackAnti(G.omega, omega);
+                Real temp3 = Real(0.0);
+                for (int ii = 0; ii < 4; ii++) {
+                    temp3 += q[ii] * omega[ii][nu] * P.g[ii][ii];
+                }
+                Nonlinear3 = -transport_coeff_3 * temp3;
+            }
+            sourceTerms[nu - 1] =
+                ((-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3) / tau_rho);
+            if (P.profile1) {
+                sourceTerms[nu - 1] = (-q[nu] - NS) / tau_rho;
+            }
+            sourceTerms[nu - 1] += (G.theta - grid_pt.c.u[0] / tau) * q[nu];
+            Real tempf =
+                ((P.g[nu][0] + grid_pt.c.u[nu] * grid_pt.c.u[0])
+                     * grid_pt.c.u[3] * q[3] / tau
+                 - (P.g[nu][3] + grid_pt.c.u[nu] * grid_pt.c.u[3])
+                       * grid_pt.c.u[3] * q[0] / tau);
+            sourceTerms[nu - 1] += tempf;
+            tempf = Real(0.0);
+            for (int ii = 0; ii < 4; ii++) {
+                const Real gmn = (ii == 0 ? Real(-1.) : Real(1.));
+                tempf += q[ii] * gmn * G.a[ii];
+            }
+            sourceTerms[nu - 1] += (grid_pt.c.u[nu]) * tempf;
+        }
+    }
+
+    //! Diss::Make_uPiChemSource (without the messages)
+    MD_FN Real uPiChemSource(
+        MD_THREAD const VCell<Real> &grid_pt,
+        MD_THREAD const Gradients<Real> &G,
+        MD_THREAD const Thermal<Real> &th) const {
+        MD_CONST const StepParams<Real> &P = *P_;
+        const Real small_eps = Real(1e-16);
+        const Real epsilon = th.e;
+        const Real pressure = th.p;
+        const Real cs2 = th.cs2;
+        const Real temperature = th.T;
+        const Real Iqcd = (epsilon - Real(3.0) * pressure);
+        const Real Iqcd_safe = copysign(dmax(fabs(Iqcd), small_eps), Iqcd);
+        const Real y_q_inner = Real(1.0) - Real(3.0) * grid_pt.piChem / Iqcd_safe;
+        const Real y_q_sqrt = dmin(Real(1.0), fabs(y_q_inner));
+        const Real chem_rate_C = dmax(P.chemRateC, small_eps);
+        Real tau_Pi_chem =
+            Real(2.0)
+            / dmax(
+                chem_rate_C * temperature * (Real(1.0) + y_q_sqrt)
+                    * (sqrt(Real(2.0)) + y_q_sqrt),
+                small_eps);
+        tau_Pi_chem =
+            dmin(Real(10.0), dmax(Real(3.0) * P.dtau, tau_Pi_chem));
+        const Real dI3de = (Real(1.0) - Real(3.0) * cs2);
+        const Real zeta_raw = tau_Pi_chem * (Real(1.0) / Real(3.0))
+                              * (Real(1.0) - y_q_sqrt) * dI3de
+                              * (epsilon + pressure);
+        const Real zeta = dmax(Real(0.0), zeta_raw);
+        const Real NS_term = -zeta * G.theta;
+        const Real relax_term = -(grid_pt.piChem);
+        return (NS_term + relax_term) / tau_Pi_chem;
     }
 
     //! Diss::computeInverseReynoldsNumbers
@@ -1017,12 +1197,10 @@ struct ViscSolver {
         return Final_Answer / (Bulk_Relax_time);
     }
 
-    //! Advance::QuestRevert (without the messages)
-    MD_FN void questRevert(MD_THREAD VCell<Real> &grid_pt) const {
+    //! the factor of Advance::QuestRevert and QuestRevert_qmu
+    MD_FN Real questFactor(Real e_local) const {
         MD_CONST const StepParams<Real> &P = *P_;
         Real eps_scale = Real(0.1);
-        Real e_local = grid_pt.c.e;
-        Real rhob = grid_pt.c.rhob;
         Real xi = Real(0.05);
         Real factor;
         if (sizeof(Real) == 8) {
@@ -1040,6 +1218,37 @@ struct ViscSolver {
                      * (-e0 * dexpm1(-e_local / xi))
                      / ((em + Real(1.)) * (e0 + Real(1.)));
         }
+        return (factor);
+    }
+
+    //! Advance::QuestRevert_qmu (without the messages)
+    MD_FN void questRevertQmu(MD_THREAD VCell<Real> &grid_pt) const {
+        Real factor = questFactor(grid_pt.c.e);
+        Real q_mu_local[4];
+        for (int ii = 0; ii < 4; ii++) q_mu_local[ii] = grid_pt.W[10 + ii];
+        Real q_size = Real(0.0);
+        for (int ii = 0; ii < 4; ii++) {
+            Real gfac = (ii == 0 ? Real(-1.0) : Real(1.0));
+            q_size += gfac * q_mu_local[ii] * q_mu_local[ii];
+        }
+        if (q_size < Real(0.0)) {
+            for (int ii = 0; ii < 4; ii++) grid_pt.W[10 + ii] = Real(0.0);
+        }
+        Real rhob_local = grid_pt.c.rhob;
+        Real rho_q = sqrt(q_size / (rhob_local * rhob_local)) / factor;
+        Real rho_q_max = Real(0.1);
+        if (rho_q > rho_q_max) {
+            for (int ii = 0; ii < 4; ii++) {
+                grid_pt.W[10 + ii] = (rho_q_max / rho_q) * q_mu_local[ii];
+            }
+        }
+    }
+
+    //! Advance::QuestRevert (without the messages)
+    MD_FN void questRevert(MD_THREAD VCell<Real> &grid_pt) const {
+        Real e_local = grid_pt.c.e;
+        Real rhob = grid_pt.c.rhob;
+        Real factor = questFactor(e_local);
         Real factor_bulk = factor;
         Real pi_00 = grid_pt.W[0];
         Real pi_01 = grid_pt.W[1];
@@ -1083,6 +1292,132 @@ struct ViscSolver {
         if (rho_bulkChem > rho_bulkChem_max) {
             grid_pt.piChem = (rho_bulkChem_max / rho_bulkChem) * grid_pt.piChem;
         }
+    }
+
+    //! Advance::solveEigenvaluesWmunu: Lambdas = (min, -min - max, max) of
+    //! the real eigenvalues of A = W^mu_nu. The host uses Eigen's
+    //! EigenSolver; here the closed form: A u = 0 (transversality), so the
+    //! eigenvalues are 0 and the three roots of the cubic with the power
+    //! sums tr A, tr A^2, tr A^3. They are real: on the space orthogonal to
+    //! u, A is the spatial W of the local rest frame, a symmetric matrix.
+    //! The two agree to rounding, not bit for bit.
+    MD_FN void wEigenvalues(
+        MD_THREAD const VCell<Real> &g, MD_THREAD Real *Lambdas) const {
+        Real A[4][4];
+        A[0][0] = -g.W[0];
+        A[0][1] = g.W[1];
+        A[0][2] = g.W[2];
+        A[0][3] = g.W[3];
+        A[1][0] = -g.W[1];
+        A[1][1] = g.W[4];
+        A[1][2] = g.W[5];
+        A[1][3] = g.W[6];
+        A[2][0] = -g.W[2];
+        A[2][1] = g.W[5];
+        A[2][2] = g.W[7];
+        A[2][3] = g.W[8];
+        A[3][0] = -g.W[3];
+        A[3][1] = g.W[6];
+        A[3][2] = g.W[8];
+        A[3][3] = g.W[9];
+        Real t1 = Real(0.), t2 = Real(0.), t3 = Real(0.);
+        for (int i = 0; i < 4; i++) {
+            t1 += A[i][i];
+            for (int j = 0; j < 4; j++) {
+                t2 += A[i][j] * A[j][i];
+                Real a2 = Real(0.);
+                for (int k = 0; k < 4; k++) a2 += A[i][k] * A[k][j];
+                t3 += a2 * A[j][i];
+            }
+        }
+        // roots m + y_k: sum y = 0, sum y^2 = 6 q, prod y = 2 r
+        const Real m = t1 / Real(3.);
+        const Real q = (t2 - Real(3.) * m * m) / Real(6.);
+        const Real sumY3 = t3 - Real(3.) * m * t2 + Real(6.) * m * m * m;
+        const Real r = sumY3 / Real(6.);
+        Real roots[3] = {m, m, m};
+        if (q > Real(0.)) {
+            const Real sq = sqrt(q);
+            const Real c = dmax(Real(-1.), dmin(Real(1.), r / (q * sq)));
+            const Real phi = acos(c) / Real(3.);
+            const Real twoPiOver3 = Real(2.0943951023931954923);
+            roots[0] = m + Real(2.) * sq * cos(phi);
+            roots[1] = m + Real(2.) * sq * cos(phi + twoPiOver3);
+            roots[2] = m + Real(2.) * sq * cos(phi + Real(2.) * twoPiOver3);
+        }
+        Real lmin = Real(0.), lmax = Real(0.);
+        for (int k = 0; k < 3; k++) {
+            lmin = dmin(lmin, roots[k]);
+            lmax = dmax(lmax, roots[k]);
+        }
+        Lambdas[0] = lmin;
+        Lambdas[1] = -lmin - lmax;
+        Lambdas[2] = lmax;
+    }
+
+    //! Advance::nCausalityConstraints
+    MD_FN void causalityConstraints(
+        MD_THREAD VCell<Real> &grid_pt, MD_THREAD const Real *Lambdas) const {
+        Real eps = grid_pt.c.e;
+        Real rhob = grid_pt.c.rhob;
+        Real cs2 =
+            eosCs2(*d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        Real Pr =
+            eosPressure(*d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        // TransportCoeffs: the second-order coefficients
+        const Real tau_pipi = Real(10.) / Real(7.);
+        const Real delta_pipi = Real(4.) / Real(3.);
+        const Real lambda_pibulkPi = Real(6.) / Real(5.);
+        const Real lambda_bulkPipi = Real(8.) / Real(5.);
+        const Real delta_bulkPibulkPi = Real(2.) / Real(3.);
+        Real transportPart_n13 =
+            Real(2.) * Real(1.) / P_->shearRelaxFactor;
+        Real viscousPart1_n13 = lambda_pibulkPi;
+        Real viscousPart2_n13 = -Real(1.) / Real(2.) * tau_pipi;
+        Real transportPart_n56 =
+            cs2 + Real(4.) / Real(3.) * Real(1.) / P_->shearRelaxFactor
+            + Real(1.) / P_->bulkRelaxFactor * (Real(1.) / Real(3.) - cs2)
+                  * (Real(1.) / Real(3.) - cs2);
+        Real viscousPart1_n56 =
+            Real(2.) / Real(3.) * lambda_pibulkPi + delta_bulkPibulkPi + cs2;
+        Real viscousPart2_n56 =
+            delta_pipi + Real(1.) / Real(3.) * tau_pipi
+            + lambda_bulkPipi * (Real(1.) / Real(3.) - cs2) + cs2;
+
+        Real n1 = transportPart_n13
+                  + viscousPart1_n13 * grid_pt.pi / (eps + Pr)
+                  + viscousPart2_n13 * fabs(Lambdas[0]) / (eps + Pr);
+        Real n3 = transportPart_n13
+                  + viscousPart1_n13 * grid_pt.pi / (eps + Pr)
+                  + viscousPart2_n13 * Lambdas[2] / (eps + Pr);
+        Real n5 = transportPart_n56
+                  + viscousPart1_n56 * grid_pt.pi / (eps + Pr)
+                  + viscousPart2_n56 * Lambdas[0] / (eps + Pr);
+        Real n6 = (Real(1.) - transportPart_n56)
+                  + (Real(1.) - viscousPart1_n56) * grid_pt.pi / (eps + Pr)
+                  + (Real(1.) - viscousPart2_n56) * Lambdas[2] / (eps + Pr);
+
+        Real minAlp = Real(1.);
+        Real alp = Real(1.);
+        if (n1 < Real(0.)) {
+            alp = -transportPart_n13 / (n1 - transportPart_n13);
+            minAlp = dmax(Real(0.), dmin(minAlp, alp));
+        }
+        if (n3 < Real(0.)) {
+            alp = -transportPart_n13 / (n3 - transportPart_n13);
+            minAlp = dmax(Real(0.), dmin(minAlp, alp));
+        }
+        if (n5 < Real(0.)) {
+            alp = -transportPart_n56 / (n5 - transportPart_n56);
+            minAlp = dmax(Real(0.), dmin(minAlp, alp));
+        }
+        if (n6 < Real(0.)) {
+            alp = -(Real(1.) - transportPart_n56)
+                  / (n6 - (Real(1.) - transportPart_n56));
+            minAlp = dmax(Real(0.), dmin(minAlp, alp));
+        }
+        for (int k = 0; k < 14; k++) grid_pt.W[k] = grid_pt.W[k] * minAlp;
+        grid_pt.pi = grid_pt.pi * minAlp;
     }
 
     //! Advance::QuestRevertResummedTransCoeff
@@ -1160,8 +1495,37 @@ struct ViscSolver {
             grid_f.pi = Real(0.0);
             grid_f.piChem = Real(0.0);
         }
-        for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
-            grid_f.W[idx_1d] = Real(0.0);
+        if (P.bulkChem == 1) {
+            Real piBulkChemPrev_local = prev.piChem;
+            tempf =
+                ((Real(1.) - rk_flag) * (grid_c.piChem * grid_c.c.u[0])
+                 + rk_flag * piBulkChemPrev_local * u0Prev);
+            Real temps_chem = uPiChemSource(grid_c, G, th);
+            tempf += temps_chem * (P.dtau);
+            tempf += G.wRhs[6];
+            tempf += rk_flag * ((grid_c.piChem) * (grid_c.c.u[0]));
+            tempf *= Real(1.) / (Real(1.) + rk_flag);
+            grid_f.piChem = tempf / (grid_f.c.u[0]);
+        }
+        if (P.diff == 1) {
+            const Real tau_now = P.tau + rk_flag * P.dtau;
+            Real sourceTerms[3] = {Real(0.), Real(0.), Real(0.)};
+            uqSource(tau_now, grid_c, G, th, sourceTerms);
+            for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
+                Real WmunuPrev = prev.W[idx_1d];
+                tempf =
+                    ((Real(1.) - rk_flag) * (grid_c.W[idx_1d] * grid_c.c.u[0])
+                     + rk_flag * WmunuPrev * u0Prev);
+                tempf += sourceTerms[idx_1d - 11] * (P.dtau);
+                tempf += G.wRhs[idx_1d - 4];
+                tempf += rk_flag * (grid_c.W[idx_1d] * grid_c.c.u[0]);
+                tempf *= Real(1.) / (Real(1.) + rk_flag);
+                grid_f.W[idx_1d] = tempf / (grid_f.c.u[0]);
+            }
+        } else {
+            for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
+                grid_f.W[idx_1d] = Real(0.0);
+            }
         }
         Real u0sq = grid_f.c.u[0] * grid_f.c.u[0];
         grid_f.W[9] =
@@ -1183,10 +1547,21 @@ struct ViscSolver {
         tempf = Real(0.0);
         for (int nu = 1; nu < 4; nu++) tempf += grid_f.W[nu] * grid_f.c.u[nu];
         grid_f.W[0] = tempf / (grid_f.c.u[0]);
-        // W[10] = turn_on_diff * (...) / u^tau = 0
+        // q^tau from the transversality
+        tempf = Real(0.0);
+        for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
+            tempf += grid_f.W[idx_1d] * grid_f.c.u[idx_1d - 10];
+        }
+        grid_f.W[10] = Real(P.diff) * tempf / (grid_f.c.u[0]);
         if (P.questRevert) {
             questRevert(grid_f);
+            if (P.diff == 1) questRevertQmu(grid_f);
             if (P.resum) questRevertResummed(grid_f);
+            if (P.causality) {
+                Real Lambdas[3];
+                wEigenvalues(grid_f, Lambdas);
+                causalityConstraints(grid_f, Lambdas);
+            }
         }
     }
 
@@ -1195,7 +1570,7 @@ struct ViscSolver {
         MD_THREAD const VCell<Real> &v, int alpha) const {
         if (alpha == 4) return v.W[10];
         Real val = v.W[alpha];
-        if (P_->bulk == 1) {
+        if (P_->bulk == 1 || P_->bulkChem == 1) {
             const Real g = (alpha == 0 ? Real(-1.) : Real(0.));
             const Real Pi = v.pi + v.piChem;
             val += Pi * (g + v.c.u[alpha] * v.c.u[0]);
@@ -1225,7 +1600,7 @@ MD_FN void kernelCellVisc(
     const int iy = (i / nx) % ny;
     const int ieta = i / (nx * ny);
     const Real tau = P.tau + Real(P.rkFlag) * P.dtau;
-    const bool withBulk = (P.bulk == 1);
+    const bool withBulk = (P.bulk == 1 || P.bulkChem == 1);
     const VCell<Real> curr = loadVCell(sCurr, n, i);
     const VCell<Real> prev = loadVCell(sPrev, n, i);
 

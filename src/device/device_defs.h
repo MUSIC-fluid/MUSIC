@@ -38,8 +38,10 @@
 namespace music_device {
 
 #if defined(__METAL_VERSION__)
+using metal::acos;
 using metal::atanh;
 using metal::copysign;
+using metal::cos;
 using metal::exp;
 using metal::fabs;
 using metal::isfinite;
@@ -47,14 +49,17 @@ using metal::isnan;
 using metal::log;
 using metal::pow;
 using metal::sqrt;
+using metal::tanh;
 MD_FN void flagOr(MD_FLAGS f, int v) {
     metal::atomic_fetch_or_explicit(f, v, metal::memory_order_relaxed);
 }
 #elif defined(__CUDACC__)
 __device__ inline void flagOr(MD_FLAGS f, int v) { atomicOr(f, v); }
 #else
+using std::acos;
 using std::atanh;
 using std::copysign;
+using std::cos;
 using std::exp;
 using std::fabs;
 using std::isfinite;
@@ -62,6 +67,7 @@ using std::isnan;
 using std::log;
 using std::pow;
 using std::sqrt;
+using std::tanh;
 inline void flagOr(MD_FLAGS f, int v) {
     __atomic_fetch_or(f, v, __ATOMIC_RELAXED);
 }

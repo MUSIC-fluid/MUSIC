@@ -36,6 +36,10 @@ struct EosDesc {
     int xOffset, xLength;  // type 0: mu_B / T on a grid in rho
     Real coeffA, coeffB;  // type 0: P = T^4 D(x), D = a + b (...)
     Real rCap, xMax;      // type 0: n_B / e^{3/4} at the cap, the cap
+    // type 2 (NEOS), thermal variables: the T^5, mu_B, mu_S, mu_Q tables
+    // (laid out as the pressure table, -1 if absent) and the n_B edge of
+    // each e column (EOS_base::nb_edge, the tables one after the other)
+    int t2Offset, muBOffset, muSOffset, muQOffset, edgeOffset;
     // type 3: EOS_4D. The tables are float (as on the host) and start at
     // index f4Offset of the Real table buffer, f4Size floats each: P, then
     // (with the thermal variables) T, mu_B, mu_Q, mu_S. T5diff_ (Real) is
@@ -679,6 +683,28 @@ MD_FN Real eos4DPressure(
     return (dmax(smallEps, Real(ResArr[0])));
 }
 
+//! EOS_base::get_rhob_edge
+template <typename Real>
+MD_FN Real eosRhobEdge(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e) {
+    if (d.edgeOffset < 0) return (realMax<Real>());
+    const int t = eosTableIdx(d, e);
+    int base = d.edgeOffset;
+    for (int k = 0; k < t; k++) base += d.eLength[k];
+    MD_GLOBAL const Real *edge = tab + base;
+    const int N_e = d.eLength[t];
+    const Real x = (e - d.eBounds[t]) / d.eSpacing[t];
+    if (x <= Real(0.)) return (edge[0]);
+    const int j = int(x);
+    if (j >= N_e - 1) {
+        if (t + 1 >= d.nTables) return (edge[N_e - 1]);
+        const Real f = dmin(Real(1.), x - Real(N_e - 1));
+        return (edge[N_e - 1] * (Real(1.) - f) + edge[N_e] * f);
+    }
+    const Real f = x - Real(j);
+    return (edge[j] * (Real(1.) - f) + edge[j + 1] * f);
+}
+
 //! EOS::getThermalVariables, the entries the viscous update reads
 template <typename Real>
 struct Thermal {
@@ -704,6 +730,40 @@ MD_FN Thermal<Real> eosThermal(
         t.T = T;
         t.muB = copysign(x * T, rhob);
         t.s = dmax(smallEps, T * T * T * idealS(d, x));
+        return (t);
+    }
+    if (d.type == 2) {
+        // EOS_base::getThermalVariables with EOS_neos
+        const EosGrad<Real> g = eosPressureGrad(d, tab, e, rhob, rhoq, rhos);
+        t.p = g.p;
+        t.dpde = g.dpde;
+        t.dpdrhob = g.dpdrhob;
+        t.cs2 = g.cs2;
+        const Real nb = fabs(rhob);
+        const int it = eosTableIdx(d, e);
+        // EOS_neos::get_temperature
+        Real T5 = eosInterp2D(d, tab + d.t2Offset, e, nb, it);
+        T5 = dmax(smallEps, T5);
+        t.T = Real(pow(T5, Real(0.2)));
+        // EOS_neos::get_muB, get_muS, get_muQ
+        const Real sign = rhob / (fabs(rhob) + smallEps);
+        t.muB = sign * eosInterp2D(d, tab + d.muBOffset, e, nb, it);
+        const Real muS =
+            (d.muSOffset < 0
+                 ? Real(0.)
+                 : sign * eosInterp2D(d, tab + d.muSOffset, e, nb, it));
+        const Real muQ =
+            (d.muQOffset < 0
+                 ? Real(0.)
+                 : sign * eosInterp2D(d, tab + d.muQOffset, e, nb, it));
+        // EOS_base::get_densities_in_table: n_B up to the table edge,
+        // n_Q = 0.4 n_B, n_S = 0
+        const Real nEdge = eosRhobEdge(d, tab, e);
+        const Real rhobT = (fabs(rhob) <= nEdge ? rhob : copysign(nEdge, rhob));
+        const Real rhoQ = Real(0.4) * rhobT, rhoS = Real(0.);
+        Real entropy = ((e + t.p - t.muB * rhobT - muS * rhoS - muQ * rhoQ)
+                        / (t.T + smallEps));
+        t.s = dmax(smallEps, entropy);
         return (t);
     }
     if (d.type == 3) {
@@ -804,6 +864,87 @@ MD_FN EosGrad<Real> eosPressureGrad(
                      / (e + g.p);
     g.cs2 = dmax(Real(0.01), dmin(Real(1) / Real(3), cs2));
     return g;
+}
+
+//! EOS::get_temperature and EOS::get_muB (the mu_B / T gradients of the
+//! baryon diffusion)
+template <typename Real>
+MD_FN void eosTMuB(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
+    Real rhob, Real rhoq, Real rhos, MD_THREAD Real &T, MD_THREAD Real &muB) {
+    const Real smallEps = Real(1e-16);
+    if (d.type == 0) {
+        // EOS_idealgas
+        const Real x = idealMuBOverT(d, tab, e, rhob);
+        T = idealTofEX(d, e, x);
+        muB = copysign(x * idealTofEX(d, e, x), rhob);
+        return;
+    }
+    if (d.type == 1) {
+        // EOS_hotQCD: mu_B = 0
+        const Real T5 = eosInterp1DAt(d, tab, d.tOffset, e);
+        T = dmax(smallEps, Real(pow(T5, Real(0.2))));
+        muB = Real(0.);
+        return;
+    }
+    if (d.type == 2) {
+        // EOS_neos
+        const int it = eosTableIdx(d, e);
+        const Real nb = fabs(rhob);
+        Real T5 = eosInterp2D(d, tab + d.t2Offset, e, nb, it);
+        T5 = dmax(smallEps, T5);
+        T = Real(pow(T5, Real(0.2)));
+        const Real sign = rhob / (fabs(rhob) + smallEps);
+        muB = sign * eosInterp2D(d, tab + d.muBOffset, e, nb, it);
+        return;
+    }
+    // EOS_4D
+    float TildeVar[4];
+    eos4DTilde(d, e, rhob, rhoq, rhos, TildeVar);
+    const float scale = eos4DDilute(d, TildeVar);
+    const Eos4DCell c = eos4DSetup(d, TildeVar);
+    float ResArr[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
+    eos4DEval(d, tab, eos4DTable(d, tab, kEos4DT), TildeVar, c, ResArr, false);
+    ResArr[0] *= scale;
+    T = dmax(smallEps, Real(ResArr[0]));
+    eos4DEval(d, tab, eos4DTable(d, tab, kEos4DMuB), TildeVar, c, ResArr, false);
+    ResArr[0] *= scale;
+    muB = Real(ResArr[0]);
+}
+
+//! EOS::get_cs2, which Advance::nCausalityConstraints reads: for the
+//! tables EOS_base::calculate_velocity_of_sound_sq with the finite
+//! differences of get_dpOverde3 and get_dpOverdrhob2 (NEOS; hotQCD has
+//! dP/dn_B = 0), clamped to [0.01, 1]
+template <typename Real>
+MD_FN Real eosCs2(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
+    Real rhob, Real rhoq, Real rhos) {
+    const Real smallEps = Real(1e-16);
+    if (d.type == 0) return (Real(1.) / Real(3.));
+    if (d.type == 3) return (eos4DGrad(d, tab, e, rhob, rhoq, rhos).cs2);
+    // EOS_base::get_dpOverde3
+    const Real de = dmax(Real(0.01), Real(0.01) * e);
+    const Real eLeft = dmax(Real(1e-16), e - de);
+    const Real eRight = e + de;
+    const Real pL = eosPressure(d, tab, eLeft, rhob, Real(0.), Real(0.));
+    const Real pR = eosPressure(d, tab, eRight, rhob, Real(0.), Real(0.));
+    const Real dpde = (pR - pL) / (eRight - eLeft);
+    Real dpdrho = Real(0.);
+    if (d.type == 2) {
+        // EOS_base::get_dpOverdrhob2
+        const int t = eosTableIdx(d, e);
+        const Real deltaRhob = d.nbSpacing[t];
+        const Real rhobLeft = rhob - deltaRhob * Real(0.5);
+        const Real rhobRight = rhob + deltaRhob * Real(0.5);
+        const Real qL = eosPressure(d, tab, e, rhobLeft, Real(0.), Real(0.));
+        const Real qR = eosPressure(d, tab, e, rhobRight, Real(0.), Real(0.));
+        dpdrho = (qR - qL) / (rhobRight - rhobLeft);
+    }
+    const Real pressure = eosPressure(d, tab, e, rhob, Real(0.), Real(0.));
+    Real v_sound = dpde + rhob / (e + pressure + smallEps) * dpdrho;
+    v_sound = dmax(Real(0.01), dmin(Real(1.0), v_sound));
+    return (v_sound);
 }
 
 }  // namespace music_device

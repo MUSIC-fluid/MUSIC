@@ -63,7 +63,10 @@ __device__ int atomicOr(int *, int);
     __host__ __device__ float f(float);
 MUSIC_CUDA_MATH(sqrt)
 MUSIC_CUDA_MATH(fabs)
+MUSIC_CUDA_MATH(acos)
 MUSIC_CUDA_MATH(atanh)
+MUSIC_CUDA_MATH(cos)
+MUSIC_CUDA_MATH(tanh)
 MUSIC_CUDA_MATH(exp)
 MUSIC_CUDA_MATH(log)
 __host__ __device__ double pow(double, double);

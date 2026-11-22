@@ -1132,35 +1132,44 @@ def test_gpu_backend(r):
 def test_gpu_backend_viscous(r):
     # the viscous update on the device: the lumpy 3D event with n_B, shear
     # and bulk with the second-order terms (as lumpy_second_order), for the
-    # conformal EoS and hotQCD (9). Backend 1 against the CPU code as in
-    # gpu_backend (bit for bit with clang, g++ contracts differently);
-    # Metal in float: 8e-7 of E, and W / (e + P) and Pi in the cells above
-    # 0.1 GeV/fm^3 to 2e-6 (L1) at tau = 2 fm/c. Also the 4D EoS (20), whose
-    # tables are float on the host too.
+    # conformal EoS, hotQCD (9), NEOS (14) and the 4D EoS (20), whose tables
+    # are float on the host too. Then the conformal EoS with baryon
+    # diffusion (as lumpy_diffusion) and with the causality limiter
+    # (FlagResetCausality 1); the chemical bulk pressure is in
+    # gpu_backend_pi_chem. Backend 1 against
+    # the CPU code as in gpu_backend (bit for bit with clang, g++ contracts
+    # differently); Metal in float: 1e-6 of E, and W / (e + P), Pi and
+    # mu_B in the cells above 0.1 GeV to 1e-5 (L1) at tau = 2 fm/c.
     n, size = 41, 12.0
     ncell = n * n * 17
 
     def fields(wd):
-        e = np.loadtxt(os.path.join(wd, "evolution_xyeta.dat"))[-ncell:, 0]
+        th = np.loadtxt(os.path.join(wd, "evolution_xyeta.dat"))[-ncell:]
         W = np.loadtxt(os.path.join(
             wd, "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat"))[-ncell:]
         Pi = np.loadtxt(os.path.join(
-            wd, "evolution_bulk_pressure_xyeta.dat"))[-ncell:, 1]
-        return e, W, Pi
+            wd, "evolution_bulk_pressure_xyeta.dat"))[-ncell:, 1:3]
+        return th[:, 0], th[:, 1], W, Pi
 
     eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            "..", "..", "EOS")
     limits = {1: 1e-6, 2: 1e-4}
     have = {1: True, 2: True}
-    for eos, table in [(0, None), (9, "hotQCD"), (20, "neos4D")]:
+    cases = [("EoS 0", 0, None, {}), ("EoS 9", 9, "hotQCD", {}),
+             ("EoS 14", 14, "neos_bqs", {}), ("EoS 20", 20, "neos4D", {}),
+             ("diffusion", 0, None, {"turn_on_baryon_diffusion": 1,
+                                     "kappa_coefficient": 0.2}),
+             ("causality", 0, None, {"FlagResetCausality": 1})]
+    for name, eos, table, extra in cases:
         if table and not os.path.isdir(os.path.join(eos_dir, table)):
-            print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
+            print("    {}: no tables in {}, skipped".format(name, eos_dir))
             continue
         res = {}
         for backend in (0, 1, 2):
             if not have.get(backend, True):
                 continue
-            wd = r.workdir("gpu_viscous_eos{}_{}".format(eos, backend))
+            wd = r.workdir("gpu_viscous_{}_{}".format(
+                name.replace(" ", ""), backend))
             _write_lumpy_TATB(wd, n, size)
             if table:
                 os.symlink(eos_dir, os.path.join(wd, "EOS"))
@@ -1176,6 +1185,7 @@ def test_gpu_backend_viscous(r):
                 "outputBinaryEvolution": 0,
                 "output_evolution_every_N_timesteps": 10,
             })
+            params.update(extra)
             log, _, t = r.run(wd, params)
             if backend > 0 and "built without" in log:
                 print("    gpu_backend = {}: not in this build, skipped"
@@ -1184,33 +1194,160 @@ def test_gpu_backend_viscous(r):
                 continue
             if backend > 0:
                 check("hydro on the device" in log and "viscous" in log,
-                      "gpu_backend = {} fell back to the CPU code (EoS {})"
-                      .format(backend, eos))
+                      "gpu_backend = {} fell back to the CPU code ({})"
+                      .format(backend, name))
             res[backend] = (read_conservation(wd), t, fields(wd))
         a = res[0][0]
-        e0, W0, Pi0 = res[0][2]
-        hot = e0 > 0.1  # GeV/fm^3
+        T0, mu0, W0, Pi0 = res[0][2]
+        hot = T0 > 0.1  # GeV
         for backend in sorted(res):
             c = res[backend][0]
-            print("    EoS {} gpu_backend {}: {:.1f} s, max |E/E0 - 1| "
-                  "{:.2e}".format(eos, backend, res[backend][1],
-                                  np.max(np.abs(c[:, 1] / c[0, 1] - 1))))
+            print("    {} gpu_backend {}: {:.1f} s, max |E/E0 - 1| {:.2e}, "
+                  "max |N_B/N_B0 - 1| {:.2e}".format(
+                      name, backend, res[backend][1],
+                      np.max(np.abs(c[:, 1] / c[0, 1] - 1)),
+                      np.max(np.abs(c[:, 5] / c[0, 5] - 1))))
             if backend == 0:
                 continue
             check(len(c) == len(a), "backend {} wrote {} rows, the CPU code "
                   "{}".format(backend, len(c), len(a)))
             diff = np.max(np.abs(a[:, 1:] - c[:, 1:]) / np.abs(a[:, 1:2]))
-            report("EoS {} backend {} max |conservation diff| / E".format(
-                eos, backend), diff, limits[backend])
-            report("EoS {} backend {} max |E/E0 - 1|".format(eos, backend),
+            report("{} backend {} max |conservation diff| / E".format(
+                name, backend), diff, limits[backend])
+            report("{} backend {} max |N_B diff| / N_B".format(
+                name, backend), np.max(np.abs(a[:, 5] - c[:, 5]))
+                / np.max(np.abs(a[:, 5])), limits[backend])
+            report("{} backend {} max |E/E0 - 1|".format(name, backend),
                    np.max(np.abs(c[:, 1] / c[0, 1] - 1)), 2e-5)
-            _, W, Pi = res[backend][2]
-            report("EoS {} backend {} L1 |W/(e+P) diff| (hot cells)".format(
-                eos, backend), np.sum(np.abs(W[hot] - W0[hot]))
-                / np.sum(np.abs(W0[hot])), {1: 1e-5, 2: 1e-4}[backend])
-            report("EoS {} backend {} L1 |Pi diff| (hot cells)".format(
-                eos, backend), np.sum(np.abs(Pi[hot] - Pi0[hot]))
-                / np.sum(np.abs(Pi0[hot])), {1: 1e-5, 2: 1e-4}[backend])
+            _, mu, W, Pi = res[backend][2]
+            lim = {1: 1e-5, 2: 1e-4}[backend]
+            l1 = lambda x, x0: np.sum(np.abs(x - x0)) / np.sum(np.abs(x0))
+            report("{} backend {} L1 |W/(e+P) diff| (hot cells)".format(
+                name, backend), l1(W[hot], W0[hot]), lim)
+            report("{} backend {} L1 |Pi diff| (hot cells)".format(
+                name, backend), l1(Pi[hot, 0], Pi0[hot, 0]), lim)
+            if np.any(Pi0[hot, 1] != 0.):
+                report("{} backend {} L1 |Pi_chem diff| (hot cells)".format(
+                    name, backend), l1(Pi[hot, 1], Pi0[hot, 1]), lim)
+            if np.any(mu0[hot] != 0.):
+                report("{} backend {} L1 |mu_B diff| (hot cells)".format(
+                    name, backend), l1(mu[hot], mu0[hot]), lim)
+
+
+def test_gpu_backend_pi_chem(r):
+    # the chemical bulk pressure on the device. Pi_chem = 0 is a fixed point
+    # of its equation (sqrt(Y_q) = 1 gives zeta_chem = 0), so it needs a
+    # start away from it: IP-Glasma (profile 9) sets Pi_chem = (e/3 - P) at
+    # tau_0 with turn_on_bulk_chem = 1. hotQCD (9): with P = e/3 there is no
+    # Pi_chem. Backend 1 and Metal against the CPU code: E, P, N_B, and
+    # Pi_bulk and Pi_chem (L1 over all cells and output times).
+    eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "..", "EOS")
+    if not os.path.isdir(os.path.join(eos_dir, "hotQCD")):
+        raise TestSkipped("no hotQCD tables in " + eos_dir)
+    tau0 = 0.6
+    x, e, ux, uy, ueta = _ipglasma_state()
+    eta = np.linspace(-0.8, 0.8, 9)
+    res = {}
+    for backend in (0, 1, 2):
+        wd = r.workdir("gpu_pi_chem_{}".format(backend))
+        os.symlink(eos_dir, os.path.join(wd, "EOS"))
+        write_ipglasma_file(os.path.join(wd, "ic.dat"), x, x, e, ux, uy, ueta,
+                            tau0)
+        params = base_params(
+            Initial_profile=9, Initial_Distribution_input_filename="ic.dat",
+            EOS_to_use=9, boost_invariant=0, Initial_time_tau_0=tau0,
+            Total_evolution_time_tau=1.0, Delta_Tau=0.01,
+            X_grid_size_in_fm=x[-1] - x[0], Y_grid_size_in_fm=x[-1] - x[0],
+            Grid_size_in_x=len(x), Grid_size_in_y=len(x),
+            Eta_grid_size=eta[-1] - eta[0], Grid_size_in_eta=len(eta),
+            Eta_plateau_size=100., Eta_fall_off=1.0,
+            Viscosity_Flag_Yes_1_No_0=1, Include_Shear_Visc_Yes_1_No_0=1,
+            Shear_to_S_ratio=0.12, Include_Bulk_Visc_Yes_1_No_0=1,
+            T_dependent_Bulk_to_S_ratio=1, turn_on_bulk_chem=1,
+            chem_rate_C=2.0, output_evolution_data=1,
+            outputBinaryEvolution=0, output_evolution_every_N_timesteps=10,
+            gpu_backend=backend)
+        log, _, t = r.run(wd, params)
+        if backend > 0 and "built without" in log:
+            print("    gpu_backend = {}: not in this build, skipped"
+                  .format(backend))
+            continue
+        if backend > 0:
+            check("hydro on the device" in log and "viscous" in log,
+                  "gpu_backend = {} fell back to the CPU code".format(backend))
+        Pi = np.loadtxt(os.path.join(
+            wd, "evolution_bulk_pressure_xyeta.dat"))[:, 1:3]
+        res[backend] = (read_conservation(wd), Pi, t)
+    a, Pi0, _ = res[0]
+    check(np.max(np.abs(Pi0[:, 1])) > 0., "Pi_chem is zero")
+    print("    max |Pi_chem| / max |Pi_bulk| = {:.3g}".format(
+        np.max(np.abs(Pi0[:, 1])) / np.max(np.abs(Pi0[:, 0]))))
+    l1 = lambda v, v0: np.sum(np.abs(v - v0)) / np.sum(np.abs(v0))
+    for backend in sorted(res):
+        if backend == 0:
+            continue
+        c, Pi, t = res[backend]
+        lim = {1: 1e-6, 2: 1e-4}[backend]
+        print("    gpu_backend {}: {:.1f} s (CPU {:.1f} s)".format(
+            backend, t, res[0][2]))
+        check(len(c) == len(a), "backend {} wrote {} rows, the CPU code "
+              "{}".format(backend, len(c), len(a)))
+        report("Pi_chem backend {} max |conservation diff| / E".format(
+            backend), np.max(np.abs(a[:, 1:] - c[:, 1:]) / np.abs(a[:, 1:2])),
+            lim)
+        report("Pi_chem backend {} L1 |Pi_bulk diff|".format(backend),
+               l1(Pi[:, 0], Pi0[:, 0]), lim)
+        report("Pi_chem backend {} L1 |Pi_chem diff|".format(backend),
+               l1(Pi[:, 1], Pi0[:, 1]), lim)
+
+
+def test_gpu_backend_gubser_viscous(r):
+    # the viscous Gubser test (tests/Gubser_flow, eta/s = 0.2, conformal
+    # EoS) with gpu_backend 2: Metal in float must be as close to the
+    # semi-analytic solution as the CPU code. MUSIC prints the L1 error of
+    # T, u and pi^{mu nu} on the diagonal y = x at tau = 1.2, 1.5, 2 fm/c.
+    gsrc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                        "Gubser_flow")
+    params = {}
+    with open(os.path.join(gsrc, "music_input_Gubser")) as f:
+        for line in f:
+            parts = line.split()
+            if parts and not parts[0].startswith("#") and len(parts) >= 2:
+                params[parts[0]] = parts[1]
+    params.update({"output_evolution_data": 0, "Do_FreezeOut_Yes_1_No_0": 0})
+    errors = {}
+    for backend in (0, 2):
+        wd = r.workdir("gpu_gubser_viscous_{}".format(backend))
+        os.makedirs(os.path.join(wd, "tests"))
+        os.symlink(os.path.abspath(gsrc),
+                   os.path.join(wd, "tests", "Gubser_flow"))
+        p = dict(params)
+        p["gpu_backend"] = backend
+        log, _, t = r.run(wd, p)
+        if backend > 0 and "built without" in log:
+            print("    gpu_backend = 2: not in this build, skipped")
+            return
+        if backend > 0:
+            check("hydro on the device" in log,
+                  "gpu_backend = 2 fell back to the CPU code")
+        rows = []
+        for line in log.splitlines():
+            if "Autocheck:" in line:
+                rows.append([float(v.split("=")[1]) for v in
+                             line.split("Autocheck:")[1].split(",")])
+        check(len(rows) == 3, "backend {}: {} Autocheck lines, expected 3"
+              .format(backend, len(rows)))
+        errors[backend] = (np.array(rows), t)
+    names = ("T", "u^x", "u^y", "pi^xx", "pi^xy", "pi^yy", "pi^etaeta")
+    for k, tau in enumerate((1.2, 1.5, 2.0)):
+        for i, name in enumerate(names):
+            e0, e2 = errors[0][0][k, i], errors[2][0][k, i]
+            print("    tau = {:3.1f} L1 error of {:9s} CPU {:.4e}, Metal "
+                  "{:.4e}".format(tau, name, e0, e2))
+            report("Gubser tau = {} {} Metal / CPU error - 1".format(
+                tau, name), abs(e2 / e0 - 1.), 1e-2)
+    print("    CPU {:.1f} s, Metal {:.1f} s".format(errors[0][1], errors[2][1]))
 
 
 def _write_strings_event(path, ncopy=40, seed=11):
@@ -1351,6 +1488,8 @@ TESTS = [
     ("gpu_backend", test_gpu_backend),
     ("gpu_backend_viscous", test_gpu_backend_viscous),
     ("gpu_backend_sources", test_gpu_backend_sources),
+    ("gpu_backend_pi_chem", test_gpu_backend_pi_chem),
+    ("gpu_backend_gubser_viscous", test_gpu_backend_gubser_viscous),
 ]
 
 
