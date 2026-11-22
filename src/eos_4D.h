@@ -61,6 +61,27 @@ class EOS_4D : public EOS_base {
     void FourDLInterp(
         const std::vector<float> &data, const std::array<float, 4> &TildeVar,
         std::array<float, 5> &ResArr, bool compute_derivatives = false) const;
+
+    //! the table cell and the 16 interpolation weights of a point
+    struct FourDCell {
+        int iT = 0;
+        int base = 0;  // index() of the lower corner
+        float w0000, w1111, w1000, w0100, w0010, w0001, w1001, w0101, w0011,
+            w1100, w1010, w0110, w0111, w1011, w1101, w1110;
+    };
+    //! FourDLInterp = FourDSetup + FourDEval: the setup depends only on
+    //! TildeVar and is shared by the tables
+    void FourDSetup(const std::array<float, 4> &TildeVar, FourDCell &c) const;
+    void FourDEval(
+        const std::vector<float> &data, const std::array<float, 4> &TildeVar,
+        const FourDCell &c, std::array<float, 5> &ResArr,
+        bool compute_derivatives = false) const;
+    //! get_pressure_with_gradients from the scaled TildeVar and its cell
+    void pressureWithGradients(
+        const double rhob, const double rhoq, const double rhos,
+        const std::array<float, 4> &TildeVar, const float scale,
+        const FourDCell &c, double &p, double &dpde, double &dpdrhob,
+        double &dpdrhoq, double &dpdrhos) const;
     void get_tilde_variables(
         double e, double nb, double nq, double ns,
         std::array<float, 4> &TildeVar) const;
@@ -108,6 +129,10 @@ class EOS_4D : public EOS_base {
         double epsilon, double rhob, double rhoq, double rhos, double &p,
         double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos,
         double &cs2) const;
+
+    void getThermalVariables(
+        double epsilon, double rhob, double rhoq, double rhos,
+        ThermalVec &thermalVec) const;
 
     bool has_QS_densities() const { return (true); }
 

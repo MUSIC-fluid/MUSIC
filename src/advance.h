@@ -32,6 +32,11 @@ class Advance {
     //! P(e, n_B, n_Q, n_S) of arenaFieldsCurr, filled at the start of each
     //! AdvanceIt so that the stencils do not call the EoS for every neighbour
     std::vector<double> pressureCurr_;
+    //! the slice whose pressure is in pressureCurr_ (nullptr: unknown)
+    const Fields *pressureCurrOwner_ = nullptr;
+    //! in the second RK stage: the pressure of arenaFieldsPrev, which was
+    //! the current slice of the first stage
+    std::vector<double> pressurePrev_;
     //! the KT flux part of the W update for every cell of the current
     //! stage (Diss::computeWFluxDivergence)
     std::vector<double> wFluxDiv_;
@@ -72,9 +77,11 @@ class Advance {
         const Fields &arena, const int fieldIdx, const int alpha) const;
 
     //! reconstruct e, n and u from tau T^{tau mu} and store them
+    //! pressureGuess: the pressure of guess (see Reconst::ReconstIt_shell)
     void reconstructAndStore(
         const double tau_next, const TJbVec &qi, const ReconstCell &guess,
-        Fields &arenaFieldsNext, const int fieldIdx);
+        Fields &arenaFieldsNext, const int fieldIdx,
+        const double pressureGuess = -1.);
 
   public:
     Advance(
@@ -96,6 +103,7 @@ class Advance {
     //! the next AdvanceIt on arena (currPressureValid)
     const std::vector<double> &preparePressure(const Fields &arena) {
         computePressure(arena, pressureCurr_);
+        pressureCurrOwner_ = &arena;
         return (pressureCurr_);
     }
 
@@ -104,7 +112,8 @@ class Advance {
         const double eta_s_local, const int ix, const int iy, const int ieta,
         const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
         Fields &arenaFieldsNext, Fields &arenaFieldsPrev,
-        const std::vector<double> &pressureCurr, TJbVec &qiFinal);
+        const std::vector<double> &pressureCurr, TJbVec &qiFinal,
+        const std::vector<double> *pressurePrev = nullptr);
 
     //! fills pressure[idx] = P(e, n_B, n_Q, n_S) of every cell of arena
     void computePressure(

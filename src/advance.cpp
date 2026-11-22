@@ -57,17 +57,26 @@ void Advance::AdvanceIt(
     const int grid_ny = arenaFieldsCurr.nY();
 
     if (!currGhostsValid) arenaFieldsCurr.updateGhosts();
-    if (!currPressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
+    // in the second stage arenaFieldsPrev is the current slice of the first
+    // stage, unchanged since: keep its pressure
+    const std::vector<double> *pressurePrev = nullptr;
+    bool pressureValid = currPressureValid;
+    if (rk_flag == 1 && pressureCurrOwner_ == &arenaFieldsPrev) {
+        std::swap(pressurePrev_, pressureCurr_);
+        pressurePrev = &pressurePrev_;
+        pressureValid = false;
+    }
+    if (!pressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
+    // the first stage's slice is kept for the second stage only
+    pressureCurrOwner_ = (rk_flag == 0 ? &arenaFieldsCurr : nullptr);
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
         faceFluxes_);
-    if (DATA.viscosity_flag == 1) {
-        diss_helper.computeWFluxDivergence(
-            tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, wFluxDiv_);
-    }
-    diss_helper.computeWSourceDivergence(
+    // the W flux divergence (viscous runs) and d_m (tau W^{m alpha}), in
+    // one pass over the faces
+    diss_helper.computeWDivergences(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, arenaFieldsPrev,
-        wSource_);
+        DATA.viscosity_flag == 1, wFluxDiv_, wSource_);
 
 #pragma omp parallel for collapse(3) schedule(dynamic, 64)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -84,7 +93,7 @@ void Advance::AdvanceIt(
                 FirstRKStepT(
                     tau, x_local, y_local, eta_s_local, ix, iy, ieta, rk_flag,
                     fieldIdx, arenaFieldsCurr, arenaFieldsNext, arenaFieldsPrev,
-                    pressureCurr_, qiFinal);
+                    pressureCurr_, qiFinal, pressurePrev);
 
                 if (DATA.viscosity_flag == 1) {
                     // arenaFieldsCurr is at tau_rk: tau_n in the first RK
@@ -196,7 +205,9 @@ void Advance::stage2ViscousFixedPoint(
     auto applyShift = [&](const TJbVec &shift) {
         TJbVec qi = qiFinal;
         for (int alpha = 0; alpha < 5; alpha++) qi[alpha] -= shift[alpha];
-        reconstructAndStore(tau_next, qi, guess, arenaFieldsNext, fieldIdx);
+        reconstructAndStore(
+            tau_next, qi, guess, arenaFieldsNext, fieldIdx,
+            pressureCurr_[fieldIdx]);
         FirstRKStepW(
             tau, arenaFieldsPrev, cellCurrFull, arenaFieldsNext, 1, theta_local,
             a_local, sigma_local, omega_local, baryon_diffusion_vector, w_rhs,
@@ -299,8 +310,9 @@ double Advance::viscousTimeComponent(
 
 void Advance::reconstructAndStore(
     const double tau_next, const TJbVec &qi, const ReconstCell &guess,
-    Fields &arenaFieldsNext, const int fieldIdx) {
-    auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, guess);
+    Fields &arenaFieldsNext, const int fieldIdx, const double pressureGuess) {
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(
+        tau_next, qi, guess, nullptr, pressureGuess);
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
     arenaFieldsNext.rhoq_[fieldIdx] = grid_rk_t.rhoq;
@@ -330,7 +342,8 @@ void Advance::FirstRKStepT(
     const double eta_s_local, const int ix, const int iy, const int ieta,
     const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
     Fields &arenaFieldsNext, Fields &arenaFieldsPrev,
-    const std::vector<double> &pressureCurr, TJbVec &qiFinal) {
+    const std::vector<double> &pressureCurr, TJbVec &qiFinal,
+    const std::vector<double> *pressurePrevIn) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag * (DATA.delta_tau);
 
@@ -397,8 +410,15 @@ void Advance::FirstRKStepT(
     diss_helper.MakeWSourceFromDivergence(
         wSource_, arenaFieldsCurr.nStorage(), fieldIdx, dwmn);
 
-    double pressurePrev = eos.get_pressure(
-        cellPrev.e, cellPrev.rhob, cellPrev.rhoq, cellPrev.rhos);
+    // only the second RK stage uses the previous slice
+    double pressurePrev = 0.;
+    if (rk_flag == 1) {
+        pressurePrev =
+            (pressurePrevIn != nullptr ? (*pressurePrevIn)[fieldIdx]
+                                       : eos.get_pressure(
+                                             cellPrev.e, cellPrev.rhob,
+                                             cellPrev.rhoq, cellPrev.rhos));
+    }
     for (int alpha = 0; alpha < 7; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
@@ -422,8 +442,10 @@ void Advance::FirstRKStepT(
     }
 
     qiFinal = qi;
+    // cellCurr is the guess, with its pressure
     reconstructAndStore(
-        tau + DATA.delta_tau, qi, cellCurr, arenaFieldsNext, fieldIdx);
+        tau + DATA.delta_tau, qi, cellCurr, arenaFieldsNext, fieldIdx,
+        pressure);
 }
 
 void Advance::FirstRKStepW(
@@ -861,8 +883,10 @@ void Advance::computeFaceFlux(
     // cell on its own side of the face as the guess (and fallback)
     // and returns the EoS at its solution, which MaxSpeed reuses
     ReconstEos eosL, eosR;
-    auto gridL = reconst_helper.ReconstIt_shell(tau, qL, cL, &eosL);
-    auto gridR = reconst_helper.ReconstIt_shell(tau, qR, cR, &eosR);
+    auto gridL =
+        reconst_helper.ReconstIt_shell(tau, qL, cL, &eosL, pressure[IL]);
+    auto gridR =
+        reconst_helper.ReconstIt_shell(tau, qR, cR, &eosR, pressure[IR]);
 
     double pressureL, pressureR;  // of the half-way states
     double aL, aR;

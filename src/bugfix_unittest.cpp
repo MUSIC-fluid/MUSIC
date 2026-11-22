@@ -634,7 +634,9 @@ TEST_CASE("Diss::MakeWSource couples Pi_chem with turn_on_bulk = 0") {
     CHECK(dwmn[0] == doctest::Approx(0.));
 }
 
-TEST_CASE("Diss::computeWSourceDivergence matches MakeWSource bit for bit") {
+TEST_CASE(
+    "Diss::computeWSourceDivergence and computeWDivergences match the "
+    "per-cell MakeWSource and computeWFluxDivergence bit for bit") {
     EOS eos(0);
     for (int bulk = 0; bulk < 2; bulk++) {
         InitData DATA = defaultParameters();
@@ -645,7 +647,9 @@ TEST_CASE("Diss::computeWSourceDivergence matches MakeWSource bit for bit") {
         DATA.delta_eta = 0.2;
         DATA.turn_on_bulk = bulk;
         DATA.turn_on_bulk_chem = bulk;
-        const int nx = 5, ny = 4, neta = 3;
+        DATA.turn_on_diff = bulk;
+        // more than one block of x cells in the fused pass
+        const int nx = 37, ny = 4, neta = 3;
         Fields curr(nx, ny, neta), prev(nx, ny, neta);
         unsigned int seed = 12345u;
         auto rnd = [&seed]() {
@@ -673,6 +677,29 @@ TEST_CASE("Diss::computeWSourceDivergence matches MakeWSource bit for bit") {
         Diss diss(eos, DATA);
         std::vector<double> wSource;
         diss.computeWSourceDivergence(tau, curr, prev, wSource);
+        std::vector<double> wFluxDiv, fusedFlux, fusedSource;
+        diss.computeWFluxDivergence(tau, curr, wFluxDiv);
+        diss.computeWDivergences(tau, curr, prev, true, fusedFlux, fusedSource);
+        // the W components of a run with bulk and diffusion on or off
+        const int nComp = (bulk == 1 ? 10 : 5);
+        int fusedMismatches = 0;
+        for (int ieta = 0; ieta < neta; ieta++)
+            for (int iy = 0; iy < ny; iy++)
+                for (int ix = 0; ix < nx; ix++) {
+                    const size_t I = curr.getFieldIdx(ix, iy, ieta);
+                    const size_t n = curr.nStorage();
+                    for (int k = 0; k < Diss::kWSourceComponents; k++) {
+                        if (wSource[k * n + I] != fusedSource[k * n + I]) {
+                            fusedMismatches++;
+                        }
+                    }
+                    for (int k = 0; k < nComp; k++) {
+                        if (wFluxDiv[k * n + I] != fusedFlux[k * n + I]) {
+                            fusedMismatches++;
+                        }
+                    }
+                }
+        CHECK(fusedMismatches == 0);
         int mismatches = 0;
         for (int ieta = 0; ieta < neta; ieta++)
             for (int iy = 0; iy < ny; iy++)

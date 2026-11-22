@@ -53,8 +53,23 @@ double three_dimension_linear_interpolation(
 int binary_search(double *array, int length, double x);
 void print_backtrace_errors();
 
-int map_2d_idx_to_1d(int a, int b);
-void map_1d_idx_to_2d(int idx_1d, int &a, int &b);
+// inline: called per cell and component in the hot loops
+inline int map_2d_idx_to_1d(int a, int b) {
+    static constexpr int index_map[5][4] = {
+        {0, 1, 2, 3},
+        {1, 4, 5, 6},
+        {2, 5, 7, 8},
+        {3, 6, 8, 9},
+        {10, 11, 12, 13}};
+    return index_map[a][b];
+}
+
+inline void map_1d_idx_to_2d(int idx_1d, int &a, int &b) {
+    static constexpr int index_1d_a[5] = {1, 1, 1, 2, 2};
+    static constexpr int index_1d_b[5] = {1, 2, 3, 2, 3};
+    a = index_1d_a[idx_1d - 4];
+    b = index_1d_b[idx_1d - 4];
+}
 
 Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
 Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);

@@ -192,6 +192,256 @@ int EOS_4D::index(int i_T, int i_mub, int i_muq, int i_mus) const {
     return (idx);
 }
 
+void EOS_4D::FourDSetup(
+    const std::array<float, 4> &TildeVar, FourDCell &c) const {
+    // Constrain the input tilde variables values to the table boundaries.
+    double Tfrac = (TildeVar[0] - Ttilde0) / dTtilde;
+    double mubfrac = (TildeVar[1] - mubtilde0) / dmubtilde;
+    double muqfrac = (TildeVar[2] - muqtilde0) / dmuqtilde;
+    double musfrac = (TildeVar[3] - mustilde0) / dmustilde;
+
+    // Calculate the weights associated to the sixteen surrounding point
+    int iT = static_cast<int>(Tfrac);
+    iT = std::max(0, std::min(N_T - 2, iT));
+    int ib = static_cast<int>(mubfrac);
+    ib = std::max(0, std::min(N_mub - 2, ib));
+    int iq = static_cast<int>(muqfrac);
+    iq = std::max(0, std::min(N_muq - 2, iq));
+    int is = static_cast<int>(musfrac);
+    is = std::max(0, std::min(N_mus - 2, is));
+
+    float dx = std::max(0., std::min(1., Tfrac - iT));
+    float dy = std::max(0., std::min(1., mubfrac - ib));
+    float dz = std::max(0., std::min(1., muqfrac - iq));
+    float dt = std::max(0., std::min(1., musfrac - is));
+
+    c.w0000 = (1 - dx) * (1 - dy) * (1 - dz) * (1 - dt);
+    c.w1111 = dx * dy * dz * dt;
+
+    c.w1000 = dx * (1 - dy) * (1 - dz) * (1 - dt);
+    c.w0100 = (1 - dx) * dy * (1 - dz) * (1 - dt);
+    c.w0010 = (1 - dx) * (1 - dy) * dz * (1 - dt);
+    c.w0001 = (1 - dx) * (1 - dy) * (1 - dz) * dt;
+
+    c.w1001 = dx * (1 - dy) * (1 - dz) * dt;
+    c.w0101 = (1 - dx) * dy * (1 - dz) * dt;
+    c.w0011 = (1 - dx) * (1 - dy) * dz * dt;
+    c.w1100 = dx * dy * (1 - dz) * (1 - dt);
+    c.w1010 = dx * (1 - dy) * dz * (1 - dt);
+    c.w0110 = (1 - dx) * dy * dz * (1 - dt);
+
+    c.w0111 = (1 - dx) * dy * dz * dt;
+    c.w1011 = dx * (1 - dy) * dz * dt;
+    c.w1101 = dx * dy * (1 - dz) * dt;
+    c.w1110 = dx * dy * dz * (1 - dt);
+
+    c.iT = iT;
+    c.base = index(iT, ib, iq, is);
+}
+
+void EOS_4D::FourDEval(
+    const std::vector<float> &data, const std::array<float, 4> &TildeVar,
+    const FourDCell &c, std::array<float, 5> &ResArr,
+    bool compute_derivatives) const {
+    const float w0000 = c.w0000;
+    const float w1111 = c.w1111;
+    const float w1000 = c.w1000;
+    const float w0100 = c.w0100;
+    const float w0010 = c.w0010;
+    const float w0001 = c.w0001;
+    const float w1001 = c.w1001;
+    const float w0101 = c.w0101;
+    const float w0011 = c.w0011;
+    const float w1100 = c.w1100;
+    const float w1010 = c.w1010;
+    const float w0110 = c.w0110;
+    const float w0111 = c.w0111;
+    const float w1011 = c.w1011;
+    const float w1101 = c.w1101;
+    const float w1110 = c.w1110;
+    const int iT = c.iT;
+    // store values at surrounding data points on the grid: index() is
+    // linear in each index, so the corners are the base plus fixed strides
+    const int oB = 1;
+    const int oQ = N_mub;
+    const int oS = N_mub * N_muq;
+    const int oT = N_mub * N_muq * N_mus;
+    const float *d0 = data.data() + c.base;
+    float data_0000 = d0[0];
+    float data_1111 = d0[oT + oB + oQ + oS];
+
+    float data_1000 = d0[oT];
+    float data_0100 = d0[oB];
+    float data_0010 = d0[oQ];
+    float data_0001 = d0[oS];
+
+    float data_1001 = d0[oT + oS];
+    float data_0101 = d0[oB + oS];
+    float data_0011 = d0[oQ + oS];
+    float data_1100 = d0[oT + oB];
+    float data_1010 = d0[oT + oQ];
+    float data_0110 = d0[oB + oQ];
+
+    float data_0111 = d0[oB + oQ + oS];
+    float data_1011 = d0[oT + oQ + oS];
+    float data_1101 = d0[oT + oB + oS];
+    float data_1110 = d0[oT + oB + oQ];
+
+    // Interpolate the value of the target point using the weights
+    // and the values of the sixteen surrounding points
+    float interpolated_value =
+        (w0000 * data_0000 + w1111 * data_1111 + w1000 * data_1000
+         + w0100 * data_0100 + w0010 * data_0010 + w0001 * data_0001
+         + w1001 * data_1001 + w0101 * data_0101 + w0011 * data_0011
+         + w1100 * data_1100 + w1010 * data_1010 + w0110 * data_0110
+         + w0111 * data_0111 + w1011 * data_1011 + w1101 * data_1101
+         + w1110 * data_1110);
+
+    ResArr[0] = interpolated_value;
+
+    if (!compute_derivatives) return;
+
+    // Calculate derivatives.
+    // Ttilde direction
+    float wT000 = w0000 + w1000;
+    float wT111 = w0111 + w1111;
+    float wT100 = w0100 + w1100;
+    float wT110 = w0110 + w1110;
+    float wT010 = w0010 + w1010;
+    float wT011 = w0011 + w1011;
+    float wT001 = w0001 + w1001;
+    float wT101 = w0101 + w1101;
+
+    float tempT1 =
+        (wT000 * data_0000 + wT100 * data_0100 + wT010 * data_0010
+         + wT001 * data_0001 + wT101 * data_0101 + wT011 * data_0011
+         + wT110 * data_0110 + wT111 * data_0111);
+
+    float tempT2 =
+        (wT111 * data_1111 + wT000 * data_1000 + wT001 * data_1001
+         + wT100 * data_1100 + wT010 * data_1010 + wT011 * data_1011
+         + wT101 * data_1101 + wT110 * data_1110);
+
+    // X is interpolated linearly in Ttilde, but its slope is taken as that of
+    // X linear in Ttilde^5 across the cell: P ~ Ttilde^4, so this follows the
+    // smooth dX/dTtilde closer than the cell-constant slope of the linear
+    // interpolation (rms 0.5-1.2% against 2-6% above Ttilde = 0.12 GeV)
+    float T = std::max(Ttilde0, std::min(T_tilde_max, TildeVar[0]));
+    // T^2 of a float is exact in double, so T^4 is rounded once, as by pow
+    const double Tsq = static_cast<double>(T) * T;
+    float dXdTtilde = (5 * (tempT2 - tempT1) / T5diff_[iT] * (Tsq * Tsq));
+
+    // mubtilde direction
+    float wb000 = w0000 + w0100;
+    float wb111 = w1011 + w1111;
+    float wb100 = w1000 + w1100;
+    float wb110 = w1010 + w1110;
+    float wb010 = w0010 + w0110;
+    float wb011 = w0011 + w0111;
+    float wb001 = w0001 + w0101;
+    float wb101 = w1001 + w1101;
+
+    float tempb1 =
+        (wb000 * data_0000 + wb100 * data_1000 + wb010 * data_0010
+         + wb001 * data_0001 + wb101 * data_1001 + wb011 * data_0011
+         + wb110 * data_1010 + wb111 * data_1011);
+
+    float tempb2 =
+        (wb111 * data_1111 + wb000 * data_0100 + wb001 * data_0101
+         + wb100 * data_1100 + wb010 * data_0110 + wb011 * data_0111
+         + wb101 * data_1101 + wb110 * data_1110);
+
+    float dXdmubtilde = (tempb2 - tempb1) / dmubtilde;
+    // to test for speed
+    // float dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmubtilde);
+
+    // muqtilde direction
+    float wq000 = w0000 + w0010;
+    float wq111 = w1101 + w1111;
+    float wq100 = w1000 + w1010;
+    float wq110 = w1100 + w1110;
+    float wq010 = w0100 + w0110;
+    float wq011 = w0101 + w0111;
+    float wq001 = w0001 + w0011;
+    float wq101 = w1001 + w1011;
+
+    float tempq1 =
+        (wq000 * data_0000 + wq100 * data_1000 + wq010 * data_0100
+         + wq001 * data_0001 + wq101 * data_1001 + wq011 * data_0101
+         + wq110 * data_1100 + wq111 * data_1101);
+
+    float tempq2 =
+        (wq111 * data_1111 + wq000 * data_0010 + wq001 * data_0011
+         + wq100 * data_1010 + wq010 * data_0110 + wq011 * data_0111
+         + wq101 * data_1011 + wq110 * data_1110);
+
+    float dXdmuqtilde = (tempq2 - tempq1) / dmuqtilde;
+    // to test for speed
+    // float dXdmuqtilde = (tempq2 - interpolated_value)/((1-dz) * dmuq);
+
+    // mustilde direction
+    float ws000 = w0000 + w0001;
+    float ws111 = w1110 + w1111;
+    float ws100 = w1000 + w1001;
+    float ws110 = w1100 + w1101;
+    float ws010 = w0100 + w0101;
+    float ws011 = w0110 + w0111;
+    float ws001 = w0010 + w0011;
+    float ws101 = w1010 + w1011;
+
+    float temps1 =
+        (ws000 * data_0000 + ws100 * data_1000 + ws010 * data_0100
+         + ws001 * data_0010 + ws110 * data_1100 + ws101 * data_1010
+         + ws011 * data_0110 + ws111 * data_1110);
+
+    float temps2 =
+        (ws111 * data_1111 + ws000 * data_0001 + ws100 * data_1001
+         + ws010 * data_0101 + ws001 * data_0011 + ws011 * data_0111
+         + ws101 * data_1011 + ws110 * data_1101);
+
+    float dXdmustilde = (temps2 - temps1) / dmustilde;
+    // to test for speed
+    // float dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
+
+    // Outside the table the value is clamped to the edge, so the derivative
+    // along that direction is zero (the slope of the edge cell would be
+    // inconsistent with the clamped value).
+    if (TildeVar[0] > T_tilde_max) dXdTtilde = 0.;
+    if (TildeVar[1] < mubtilde0 || TildeVar[1] > mub_tilde_max) {
+        dXdmubtilde = 0.;
+    }
+    if (TildeVar[2] < muqtilde0 || TildeVar[2] > muq_tilde_max) {
+        dXdmuqtilde = 0.;
+    }
+    if (TildeVar[3] < mustilde0 || TildeVar[3] > mus_tilde_max) {
+        dXdmustilde = 0.;
+    }
+
+    // derivatives in (e, n_B, n_Q, n_S) through get_tilde_variables:
+    // Ttilde = (e / (3 alphaNf))^{1/4}, so dTtilde/de = 3 / (19 pi^2 Ttilde^3),
+    // and mu-tilde = A n / Ttilde^2, so d(mu-tilde)/dn = A / Ttilde^2 and, at
+    // fixed n, d(mu-tilde)/de = -mu-tilde / (2 e)
+    // dX/de at fixed n_B, n_Q, n_S (the mu-tilde term vanishes at n = 0)
+    const double T0sq = static_cast<double>(TildeVar[0]) * TildeVar[0];
+    const double eLocal = 3. * alphaNf * (T0sq * T0sq);
+    ResArr[1] = 3.0 / (19.0 * M_PI * M_PI * T * T * T) * dXdTtilde
+                - 0.5
+                      * (TildeVar[1] * dXdmubtilde + TildeVar[2] * dXdmuqtilde
+                         + TildeVar[3] * dXdmustilde)
+                      / eLocal;
+    // dXoverdrhob
+    ResArr[2] =
+        ((5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde) / (T * T));
+    // dXoverdrhoq
+    ResArr[3] =
+        ((-1.0 * dXdmubtilde + 2.0 * dXdmuqtilde - dXdmustilde) / (T * T));
+    // dXoverdrhos
+    ResArr[4] =
+        ((2.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde) / (T * T));
+}
+
+//! one table: FourDSetup + FourDEval in one function, which the compiler
+//! keeps inline in get_pressure (the Newton solve calls it most)
 void EOS_4D::FourDLInterp(
     const std::vector<float> &data, const std::array<float, 4> &TildeVar,
     std::array<float, 5> &ResArr, bool compute_derivatives) const {
@@ -553,6 +803,37 @@ void EOS_4D::get_pressure_with_gradients(
     dpdrhos = static_cast<double>(ResArr[4]);
 }
 
+void EOS_4D::pressureWithGradients(
+    const double rhob, const double rhoq, const double rhos,
+    const std::array<float, 4> &TildeVar, const float scale, const FourDCell &c,
+    double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
+    double &dpdrhos) const {
+    std::array<float, 5> ResArr {};
+    FourDEval(pressure_vec, TildeVar, c, ResArr, true);
+    if (scale < 1.f) {
+        // P = e g(mu-tilde) with g = P_ref / e_ref at the same mu-tilde, and
+        // mu-tilde ~ n / sqrt(e): dP/de|_n = g - sum_a n_a dg/dn_a / 2 and
+        // dP/dn_a = scale^2 (dP/dn_a)_ref, with n_ref = n / scale^2.
+        const double s2 = static_cast<double>(scale) * scale;
+        const double Tsq = static_cast<double>(TildeVar[0]) * TildeVar[0];
+        const double eref = 3. * alphaNf * (Tsq * Tsq);
+        const double pref = ResArr[0];
+        const double ndpdn =
+            (rhob * ResArr[2] + rhoq * ResArr[3] + rhos * ResArr[4]) / s2;
+        p = std::max(Util::small_eps, pref * s2 * s2);
+        dpde = (pref - 0.5 * ndpdn) / eref;
+        dpdrhob = s2 * ResArr[2];
+        dpdrhoq = s2 * ResArr[3];
+        dpdrhos = s2 * ResArr[4];
+        return;
+    }
+    p = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
+    dpde = static_cast<double>(ResArr[1]);
+    dpdrhob = static_cast<double>(ResArr[2]);
+    dpdrhoq = static_cast<double>(ResArr[3]);
+    dpdrhos = static_cast<double>(ResArr[4]);
+}
+
 void EOS_4D::get_pressure_with_gradients_and_cs2(
     double e, double rhob, double rhoq, double rhos, double &p, double &dpde,
     double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
@@ -597,4 +878,60 @@ double EOS_4D::get_muQ(double e, double rhob, double rhoq, double rhos) const {
     FourDLInterp(muq_vec, TildeVar, ResArr);
     ResArr[0] *= scale;  // 1/fm
     return (static_cast<double>(ResArr[0]));
+}
+
+//! EOS_base::getThermalVariables with one table cell for all the tables:
+//! the same values bit for bit, with the tilde variables, the dilute scale
+//! and the interpolation weights computed once instead of five times
+void EOS_4D::getThermalVariables(
+    double epsilon, double rhob, double rhoq, double rhos,
+    ThermalVec &thermalVec) const {
+    std::array<float, 4> TildeVar {};
+    get_tilde_variables(epsilon, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
+    FourDCell c;
+    FourDSetup(TildeVar, c);
+
+    thermalVec[0] = epsilon;
+    thermalVec[1] = rhob;
+    // get_pressure_with_gradients_and_cs2
+    double p, dpde, dpdrhob, dpdrhoq, dpdrhos;
+    pressureWithGradients(
+        rhob, rhoq, rhos, TildeVar, scale, c, p, dpde, dpdrhob, dpdrhoq,
+        dpdrhos);
+    const double enthalpy = epsilon + p + Util::small_eps;
+    double cs2 =
+        dpde + (rhob * dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos) / enthalpy;
+    cs2 = std::max(0.01, std::min(1. / 3, cs2));
+    thermalVec[2] = p;
+    thermalVec[3] = dpde;
+    thermalVec[4] = dpdrhob;
+    thermalVec[5] = cs2;
+
+    std::array<float, 5> ResArr {};
+    // get_temperature
+    FourDEval(temp_vec, TildeVar, c, ResArr);
+    ResArr[0] *= scale;
+    thermalVec[6] = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
+    // get_muB, get_muS, get_muQ
+    FourDEval(mub_vec, TildeVar, c, ResArr);
+    ResArr[0] *= scale;
+    thermalVec[7] = static_cast<double>(ResArr[0]);
+    FourDEval(mus_vec, TildeVar, c, ResArr);
+    ResArr[0] *= scale;
+    thermalVec[8] = static_cast<double>(ResArr[0]);
+    thermalVec[9] = rhos;  // has_QS_densities
+    FourDEval(muq_vec, TildeVar, c, ResArr);
+    ResArr[0] *= scale;
+    thermalVec[10] = static_cast<double>(ResArr[0]);
+    thermalVec[11] = rhoq;
+    // the tabulated densities are the input densities (has_QS_densities)
+    double entropy =
+        ((epsilon + p - thermalVec[7] * rhob - thermalVec[8] * rhos
+          - thermalVec[10] * rhoq)
+         / (thermalVec[6] + Util::small_eps));
+    entropy = std::max(Util::small_eps, entropy);
+    thermalVec[12] = entropy;
+    thermalVec[13] = dpdrhoq;
+    thermalVec[14] = dpdrhos;
 }

@@ -68,6 +68,15 @@ class Diss {
         const double tau, const Fields &arenaCurr, const Fields &arenaPrev,
         std::vector<double> &wSource);
 
+    //! computeWFluxDivergence (if withFlux) and computeWSourceDivergence
+    //! in one pass per direction that walks the grid lines: each face is
+    //! computed once from one read of its cells and used at once by the two
+    //! cells next to it, without face buffers. Bit for bit the same results
+    void computeWDivergences(
+        const double tau, const Fields &arenaCurr, const Fields &arenaPrev,
+        const bool withFlux, std::vector<double> &wFluxDiv,
+        std::vector<double> &wSource);
+
     //! MakeWSource of cell fieldIdx from computeWSourceDivergence
     void MakeWSourceFromDivergence(
         const std::vector<double> &wSource, const int nStorage,

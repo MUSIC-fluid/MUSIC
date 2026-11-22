@@ -344,6 +344,248 @@ void Diss::computeWSourceDivergence(
     }
 }
 
+void Diss::computeWDivergences(
+    const double tau, const Fields &arenaCurr, const Fields &arenaPrev,
+    const bool withFlux, std::vector<double> &wFluxDiv,
+    std::vector<double> &wSource) {
+    // the operations of computeWFluxDivergence and computeWSourceDivergence,
+    // in the same order for every cell
+    static const int piIdxArr[kWComponents] = {4, 5,  6,  7,  8,
+                                               9, 14, 11, 12, 13};
+    const Fields &arena = arenaCurr;
+    const int nComp = nWComponents();
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const int neta = arena.nEta();
+    const size_t nStorage = arena.nStorage();
+    // the flux and the source use different eta spacings
+    const double deltaFlux[4] = {
+        0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
+    const double deltaSrc[4] = {
+        0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    const double delta_tau = DATA.delta_tau;
+    const bool withBulk =
+        (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+    if (withFlux) wFluxDiv.resize(static_cast<size_t>(kWComponents) * nStorage);
+    wSource.resize(kWSourceComponents * nStorage);
+    wSourceCoshDeta_ =
+        cosh(deltaSrc[3] / 2.) / std::max(deltaSrc[3], Util::small_eps);
+    wSourceSinhDeta_ =
+        sinh(deltaSrc[3] / 2.) / std::max(deltaSrc[3], Util::small_eps);
+    wSourceSinhDeta_ = std::max(0.5, wSourceSinhDeta_);
+    if (DATA.boost_invariant) {
+        wSourceCoshDeta_ = 0.0;
+        wSourceSinhDeta_ = 0.5;
+    }
+
+    const FieldComponent *fluxComp[kWComponents];
+    for (int idx = 0; idx < kWComponents; idx++) {
+        const int i = piIdxArr[idx];
+        fluxComp[idx] =
+            (i == 9 ? &arena.piBulk_
+                    : (i == 14 ? &arena.piBulkChem_ : &arena.Wmunu_[i]));
+    }
+
+    // the values of one face: the KT fluxes of the W components, then the
+    // averages of tau W^{d alpha} (alpha < 5) and of the bulk part (alpha < 4)
+    constexpr int nFaceVal = kWComponents + 9;
+    auto faceValues = [&](const int direction, const int fx, const int fy,
+                          const int feta, double *v) {
+        const int dx = (direction == 1);
+        const int dy = (direction == 2);
+        const int deta = (direction == 3);
+        const int IL = arena.getFieldIdxHalo(fx - dx, fy - dy, feta - deta);
+        const int IR = arena.getFieldIdxHalo(fx, fy, feta);
+        if (withFlux) {
+            const int ILL = arena.getFieldIdxHalo(
+                fx - 2 * dx, fy - 2 * dy, feta - 2 * deta);
+            const int IRR =
+                arena.getFieldIdxHalo(fx + dx, fy + dy, feta + deta);
+            const double aL =
+                std::abs(arena.u_[direction][IL]) / arena.u_[0][IL];
+            const double aR =
+                std::abs(arena.u_[direction][IR]) / arena.u_[0][IR];
+            const double ax = std::max(aL, aR);
+            for (int idx = 0; idx < nComp; idx++) {
+                const FieldComponent &W = *fluxComp[idx];
+                const double fLL = W[ILL] * arena.u_[direction][ILL];
+                const double fL = W[IL] * arena.u_[direction][IL];
+                const double fR = W[IR] * arena.u_[direction][IR];
+                const double fRR = W[IRR] * arena.u_[direction][IRR];
+                const double gLL = W[ILL] * arena.u_[0][ILL];
+                const double gL = W[IL] * arena.u_[0][IL];
+                const double gR = W[IR] * arena.u_[0][IR];
+                const double gRR = W[IRR] * arena.u_[0][IRR];
+                const double uWR = fR - 0.5 * minmod.minmod_dx(fRR, fR, fL);
+                const double uWL = fL + 0.5 * minmod.minmod_dx(fR, fL, fLL);
+                const double WR = gR - 0.5 * minmod.minmod_dx(gRR, gR, gL);
+                const double WL = gL + 0.5 * minmod.minmod_dx(gR, gL, gLL);
+                v[idx] = ((uWR + uWL) - ax * (WR - WL)) * 0.5;
+            }
+        }
+        double *s = v + kWComponents;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const int idx_1d = map_2d_idx_to_1d(alpha, direction);
+            const double sL = arena.Wmunu_[idx_1d][IL] * tau_fac[direction];
+            const double sR = arena.Wmunu_[idx_1d][IR] * tau_fac[direction];
+            s[alpha] = (sR + sL) * 0.5;
+        }
+        if (!withBulk) return;
+        const double PiL = arena.piBulk_[IL] + arena.piBulkChem_[IL];
+        const double PiR = arena.piBulk_[IR] + arena.piBulkChem_[IR];
+        for (int alpha = 0; alpha < 4; alpha++) {
+            const double gfac1 = (alpha == direction ? 1.0 : 0.0);
+            const double bL =
+                PiL * (gfac1 + arena.u_[alpha][IL] * arena.u_[direction][IL])
+                * tau_fac[direction];
+            const double bR =
+                PiR * (gfac1 + arena.u_[alpha][IR] * arena.u_[direction][IR])
+                * tau_fac[direction];
+            s[5 + alpha] = (bR + bL) * 0.5;
+        }
+    };
+
+    // the partial_tau part of the source, written before the x faces
+    auto timePart = [&](const int fieldIdx) {
+        double *out = wSource.data() + fieldIdx;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const int idx_1d_alpha0 = map_2d_idx_to_1d(alpha, 0);
+            double dWdtau =
+                ((arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
+                  - arenaPrev.Wmunu_[idx_1d_alpha0][fieldIdx])
+                 / DATA.delta_tau);
+            double dPidtau = 0.0;
+            double Pi_alpha0 = 0.0;
+            if (alpha < 4 && withBulk) {
+                double gfac = (alpha == 0 ? -1.0 : 0.0);
+                double PiCurr = arenaCurr.piBulk_[fieldIdx]
+                                + arenaCurr.piBulkChem_[fieldIdx];
+                double PiPrev = arenaPrev.piBulk_[fieldIdx]
+                                + arenaPrev.piBulkChem_[fieldIdx];
+                Pi_alpha0 = PiCurr
+                            * (gfac
+                               + arenaCurr.u_[alpha][fieldIdx]
+                                     * arenaCurr.u_[0][fieldIdx]);
+                dPidtau = (Pi_alpha0
+                           - PiPrev
+                                 * (gfac
+                                    + arenaPrev.u_[alpha][fieldIdx]
+                                          * arenaPrev.u_[0][fieldIdx]))
+                          / DATA.delta_tau;
+            }
+            double sf =
+                tau * dWdtau + arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx];
+            double bf = tau * dPidtau + Pi_alpha0;
+            double d = 0.;
+            d += sf + bf;
+            out[alpha * nStorage] = d;
+            if (std::isnan(sf + bf)) {
+                music_message << "[Error]Diss::computeWDivergences: "
+                              << "sf=" << sf << " bf=" << bf;
+                music_message.flush("error");
+            }
+        }
+    };
+
+    // the update of a cell from its faces at -1/2 (vm) and +1/2 (vp)
+    auto cellUpdate = [&](const int direction, const int fieldIdx,
+                          const double *vm, const double *vp) {
+        if (withFlux) {
+            for (int idx = 0; idx < nComp; idx++) {
+                const double HW = (vp[idx] - vm[idx]) / deltaFlux[direction];
+                double &div =
+                    wFluxDiv[static_cast<size_t>(idx) * nStorage + fieldIdx];
+                if (direction == 1) div = 0.;
+                div += (-HW) * delta_tau;
+            }
+        }
+        const double *sm = vm + kWComponents;
+        const double *sp = vp + kWComponents;
+        double *out = wSource.data() + fieldIdx;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const double W_p = sp[alpha];
+            const double W_m = sm[alpha];
+            double Pi_m = 0;
+            double Pi_p = 0;
+            if (withBulk && alpha < 4) {
+                Pi_p = sp[5 + alpha];
+                Pi_m = sm[5 + alpha];
+            }
+            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                const int k = (alpha == 0 ? 0 : 1);
+                out[(5 + k) * nStorage] = W_p + Pi_p;
+                out[(7 + k) * nStorage] = W_m + Pi_m;
+            } else {
+                out[alpha * nStorage] +=
+                    (W_p - W_m + Pi_p - Pi_m) / deltaSrc[direction];
+            }
+        }
+    };
+
+    // x: each thread walks whole x lines and keeps the last face
+#pragma omp parallel for collapse(2) schedule(dynamic, 4)
+    for (int ieta = 0; ieta < neta; ieta++)
+        for (int iy = 0; iy < ny; iy++) {
+            double faceA[nFaceVal], faceB[nFaceVal];
+            double *vm = faceA;
+            double *vp = faceB;
+            faceValues(1, 0, iy, ieta, vm);
+            for (int ix = 0; ix < nx; ix++) {
+                faceValues(1, ix + 1, iy, ieta, vp);
+                const int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                timePart(fieldIdx);
+                cellUpdate(1, fieldIdx, vm, vp);
+                std::swap(vm, vp);
+            }
+        }
+
+    // y and eta: a block of x cells walks along the direction and keeps the
+    // last row of faces, so the reads stay contiguous in x
+    constexpr int xBlock = 32;
+    const int nxBlocks = (nx + xBlock - 1) / xBlock;
+    for (int direction = 2; direction <= 3; direction++) {
+        const int nOuter = (direction == 2 ? neta : ny);
+        const int nAlong = (direction == 2 ? ny : neta);
+#pragma omp parallel
+        {
+            std::vector<double> rows(2 * xBlock * nFaceVal);
+#pragma omp for collapse(2) schedule(dynamic, 1)
+            for (int outer = 0; outer < nOuter; outer++)
+                for (int xb = 0; xb < nxBlocks; xb++) {
+                    const int x0 = xb * xBlock;
+                    const int x1 = std::min(nx, x0 + xBlock);
+                    double *rowM = rows.data();
+                    double *rowP = rows.data() + xBlock * nFaceVal;
+                    auto face = [&](const int f, const int ix, double *v) {
+                        if (direction == 2) {
+                            faceValues(2, ix, f, outer, v);
+                        } else {
+                            faceValues(3, ix, outer, f, v);
+                        }
+                    };
+                    for (int ix = x0; ix < x1; ix++) {
+                        face(0, ix, rowM + (ix - x0) * nFaceVal);
+                    }
+                    for (int i = 0; i < nAlong; i++) {
+                        for (int ix = x0; ix < x1; ix++) {
+                            double *vp = rowP + (ix - x0) * nFaceVal;
+                            face(i + 1, ix, vp);
+                            const int fieldIdx =
+                                (direction == 2
+                                     ? arena.getFieldIdx(ix, i, outer)
+                                     : arena.getFieldIdx(ix, outer, i));
+                            cellUpdate(
+                                direction, fieldIdx,
+                                rowM + (ix - x0) * nFaceVal, vp);
+                        }
+                        std::swap(rowM, rowP);
+                    }
+                }
+        }
+    }
+}
+
 void Diss::MakeWSourceFromDivergence(
     const std::vector<double> &wSource, const int nStorage, const int fieldIdx,
     TJbVec &dwmn) const {

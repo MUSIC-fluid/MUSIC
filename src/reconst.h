@@ -45,9 +45,13 @@ class Reconst {
     //! eosOut (optional): filled with the EoS at the solution, which then
     //! comes from get_pressure_with_gradients_and_cs2 instead of
     //! get_pressure (one EoS call for the solution and its signal speed)
+    //! pressureGuess (if > 0): an estimate of the pressure of the solution,
+    //! e.g. that of grid_pt. The Newton iteration then starts from
+    //! v = |M| / (T^{00} + pressureGuess), one fixed-point step from the
+    //! solution, instead of from the velocity of grid_pt
     ReconstCell ReconstIt_shell(
         double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt,
-        ReconstEos *eosOut = nullptr);
+        ReconstEos *eosOut = nullptr, const double pressureGuess = -1.);
 
     int get_max_iter() const { return (max_iter); }
     int get_echo_level() const { return (echo_level); }
@@ -59,7 +63,8 @@ class Reconst {
 
     int ReconstIt_velocity_Newton(
         ReconstCell &grid_p, double tau, const TJbVec &q,
-        const ReconstCell &grid_pt, ReconstEos *eosOut = nullptr);
+        const ReconstCell &grid_pt, ReconstEos *eosOut = nullptr,
+        const double pressureGuess = -1.);
 
     void reconst_velocity_fdf(
         const double v, const double T00, const double M, const double J0B,
@@ -99,6 +104,10 @@ class Reconst {
         const double J0B, const double J0Q, const double J0S,
         double &v_solution) const;
     static constexpr int maxGuessIter_ = 8;
+    //! c_s^2 of the first step of solve_v_from_guess: 0.2 needed the fewest
+    //! evaluations of f (EoS 9 and 20, 3.6 and 4.3 per face, against 4.3
+    //! and 5.0 with the finite-difference slope)
+    static constexpr double kFirstStepCs2_ = 0.2;
 
     int solve_u0_Newton(
         const double u0_guess, const double T00, const double K00,

@@ -24,7 +24,7 @@ Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode)
 
 ReconstCell Reconst::ReconstIt_shell(
     double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt,
-    ReconstEos *eosOut) {
+    ReconstEos *eosOut, const double pressureGuess) {
     if (eosOut != nullptr) eosOut->valid = false;
     ReconstCell grid_p1;
 
@@ -60,7 +60,8 @@ ReconstCell Reconst::ReconstIt_shell(
         }
     }
 
-    int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt, eosOut);
+    int flag = ReconstIt_velocity_Newton(
+        grid_p1, tau, q_vec, grid_pt, eosOut, pressureGuess);
 
     if (flag == -1) {
         revert_grid(grid_p1, grid_pt);
@@ -87,7 +88,8 @@ void Reconst::revert_grid(
 //! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
     ReconstCell &grid_p, double tau, const TJbVec &q,
-    const ReconstCell &grid_pt, ReconstEos *eosOut) {
+    const ReconstCell &grid_pt, ReconstEos *eosOut,
+    const double pressureGuess) {
     if (eosOut != nullptr) eosOut->valid = false;
     double K00 = q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
     double M = sqrt(K00);
@@ -117,6 +119,11 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double v_solution = 0.0;
     double v_guess = sqrt(1. - 1. / (grid_pt.u[0] * grid_pt.u[0] + abs_err));
+    if (pressureGuess > 0.) {
+        // v = |M| / (T^{00} + P): one fixed-point step from the solution
+        // when P is close, also where |M| differs from that of grid_pt
+        v_guess = M / (T00 + pressureGuess);
+    }
     // if (v_guess != v_guess) {
     //     v_guess = 0.0;
     // }
@@ -365,8 +372,13 @@ int Reconst::solve_v_from_guess(
     const double J0Q, const double J0S, double &v_solution) const {
     if (!(v_guess >= 0. && v_guess < 1.)) return (0);
     double v = v_guess;
-    double fv, dfdv;
-    reconst_velocity_fdf(v, T00, M, J0B, J0Q, J0S, fv, dfdv);
+    double fv;
+    reconst_velocity_f(v, T00, M, J0B, J0Q, J0S, fv);
+    // f(v) = v - M / (T^{00} + P(v)) has df/dv = 1 - (dP/dv) M / (T^{00} +
+    // P)^2 ~ 1 - c_s^2 v^2. The first step takes this slope with c_s^2 =
+    // kFirstStepCs2_ instead of a finite difference (one evaluation of f
+    // fewer); the secant steps that follow correct it
+    double dfdv = 1. - kFirstStepCs2_ * v * v;
     if (!std::isfinite(fv)) return (0);
     if (std::abs(fv) < abs_err) {
         v_solution = v;
