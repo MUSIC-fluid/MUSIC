@@ -282,6 +282,14 @@ InitData read_in_parameters(std::string input_file) {
         input_file, "face_reconstruction",
         (parameter_list.beastMode > 0 ? 1 : 0));
 
+    // gpu_backend: the ideal hydro update on a device (src/device)
+    // 0: off, 1: the device kernels on the CPU, 2: Metal, 3: CUDA
+    parameter_list.gpu_backend = getParameter(input_file, "gpu_backend", 0);
+    // gpu_float: 1 runs the device in float (Metal: always)
+    parameter_list.gpu_float = getParameter(input_file, "gpu_float", 0);
+    // gpu_store_q: 1 carries tau T^{tau mu} on the device (default: in float)
+    parameter_list.gpu_store_q = getParameter(input_file, "gpu_store_q", -1);
+
     // EOS_to_use:
     // 0: ideal gas
     // 1: EOS-Q from azhydro

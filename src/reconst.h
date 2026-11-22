@@ -56,6 +56,7 @@ class Reconst {
     int get_max_iter() const { return (max_iter); }
     int get_echo_level() const { return (echo_level); }
     double get_abs_err() const { return (abs_err); }
+    double get_rel_err() const { return (rel_err); }
     double get_v_critical() const { return (v_critical); }
 
     void revert_grid(

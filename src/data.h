@@ -110,6 +110,14 @@ typedef struct init_data {
     //! root solve. The default is 1 with beastMode > 0 and 0 otherwise.
     int face_reconstruction = 0;
 
+    //! hydro on a device (src/device/device_hydro.h): 0 off, 1 the device
+    //! kernels on the CPU, 2 Metal, 3 CUDA
+    int gpu_backend = 0;
+    //! 1: the device works in float (always so with Metal)
+    int gpu_float = 0;
+    //! 1: the device carries tau T^{tau mu}; -1 (default): 1 in float
+    int gpu_store_q = -1;
+
     double sFactor;  //!< overall normalization on energy density profile
 
     //! A scale factor for initial shear and bulk viscous pressure

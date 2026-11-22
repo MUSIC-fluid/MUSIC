@@ -1664,3 +1664,128 @@ TEST_CASE("the 4D EoS pressure gradients match finite differences of P") {
     }
     CHECK(nChecked == 36);
 }
+
+// ---------------------------------------------------------------------------
+// GPU port: the device kernels (gpu_backend 1, the device code on the CPU)
+// ---------------------------------------------------------------------------
+
+namespace {
+//! a lumpy state with fast transverse and longitudinal flow, n_B, and a few
+//! nearly empty cells
+void fillLumpyIdeal(Fields &arena) {
+    for (int ieta = 0; ieta < arena.nEta(); ieta++)
+        for (int iy = 0; iy < arena.nY(); iy++)
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, ieta);
+                const double s = std::sin(1.3 * ix + 0.7 * iy + 0.9 * ieta);
+                const double c = std::cos(0.8 * ix - 1.1 * iy + 0.5 * ieta);
+                arena.e_[idx] = 2. + 1.5 * s * c;
+                if ((ix + 2 * iy + ieta) % 11 == 0) arena.e_[idx] = 1e-7;
+                arena.rhob_[idx] = 0.3 + 0.2 * c;
+                arena.rhoq_[idx] = 0.;
+                arena.rhos_[idx] = 0.;
+                arena.u_[1][idx] = 1.6 * s;
+                arena.u_[2][idx] = -1.2 * c;
+                arena.u_[3][idx] = (arena.nEta() > 1 ? 0.4 * s * c : 0.);
+                arena.u_[0][idx] = std::sqrt(
+                    1. + arena.u_[1][idx] * arena.u_[1][idx]
+                    + arena.u_[2][idx] * arena.u_[2][idx]
+                    + arena.u_[3][idx] * arena.u_[3][idx]);
+                arena.piBulk_[idx] = 0.;
+                arena.piBulkChem_[idx] = 0.;
+                for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+            }
+    arena.updateGhosts();
+}
+
+//! steps Heun steps of the ideal update with gpu_backend = backend
+std::vector<double> runIdealSteps(
+    InitData DATA, int backend, int gpuFloat, int steps) {
+    DATA.gpu_backend = backend;
+    DATA.gpu_float = gpuFloat;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+    fillLumpyIdeal(a);
+    b = a;
+    c = a;
+    Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+    double tau = DATA.tau0;
+    for (int it = 0; it < steps; it++) {
+        evolve.preparePressure(*fpCurr);
+        evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+        tau += DATA.delta_tau;
+    }
+    std::vector<double> out;
+    for (int ieta = 0; ieta < DATA.neta; ieta++)
+        for (int iy = 0; iy < DATA.ny; iy++)
+            for (int ix = 0; ix < DATA.nx; ix++) {
+                const int idx = fpCurr->getFieldIdx(ix, iy, ieta);
+                out.push_back(fpCurr->e_[idx]);
+                out.push_back(fpCurr->rhob_[idx]);
+                for (int k = 0; k < 4; k++) out.push_back(fpCurr->u_[k][idx]);
+            }
+    return out;
+}
+
+InitData idealDeviceParameters(bool boostInvariant, int mode) {
+    InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+    DATA.viscosity_flag = 0;
+    DATA.turn_on_shear = 0;
+    DATA.turn_on_bulk = 0;
+    DATA.turn_on_diff = 0;
+    DATA.boost_invariant = boostInvariant;
+    DATA.face_reconstruction = mode;
+    DATA.nx = 13;
+    DATA.ny = 11;
+    DATA.neta = (boostInvariant ? 1 : 7);
+    DATA.delta_x = 0.3;
+    DATA.delta_y = 0.3;
+    DATA.delta_eta = 0.2;
+    DATA.x_size = 0.3 * 12;
+    DATA.y_size = 0.3 * 10;
+    DATA.eta_size = 0.2 * DATA.neta;
+    DATA.tau0 = 1.3;
+    DATA.delta_tau = 0.02;
+    return DATA;
+}
+}  // namespace
+
+TEST_CASE("Device kernels reproduce the ideal update of Advance") {
+    for (int bi = 0; bi < 2; bi++) {
+        for (int mode = 0; mode < 2; mode++) {
+            CAPTURE(bi);
+            CAPTURE(mode);
+            const InitData DATA = idealDeviceParameters(bi == 1, mode);
+            const auto host = runIdealSteps(DATA, 0, 0, 4);
+            const auto dev = runIdealSteps(DATA, 1, 0, 4);
+            REQUIRE(host.size() == dev.size());
+            double maxDiff = 0.;
+            int nDiff = 0;
+            for (size_t i = 0; i < host.size(); i++) {
+                const double d = std::abs(host[i] - dev[i]);
+                if (d > 0.) nDiff++;
+                maxDiff = std::max(maxDiff, d);
+                REQUIRE(std::isfinite(dev[i]));
+            }
+            CAPTURE(nDiff);
+            CAPTURE(maxDiff);
+            CHECK(maxDiff == 0.);
+            // float with tau T^{tau mu} carried on the device: rounding
+            // errors of 1e-7 per step, amplified by ~(u^tau)^2 in
+            // e = T^{tau tau} - v M (6e-4 in a dilute cell with u^tau = 40)
+            const auto devF = runIdealSteps(DATA, 1, 1, 4);
+            double l1 = 0., norm = 0., maxRel = 0.;
+            for (size_t i = 0; i < host.size(); i += 6) {
+                l1 += std::abs(devF[i] - host[i]);
+                norm += std::abs(host[i]);
+                if (host[i] > 1e-3 && host[i + 2] < 5.)
+                    maxRel = std::max(maxRel, std::abs(devF[i] / host[i] - 1.));
+            }
+            CAPTURE(maxRel);
+            CHECK(l1 / norm < 1e-5);
+            CHECK(maxRel < 1e-4);
+        }
+    }
+}
+

@@ -1041,6 +1041,93 @@ def test_gubser_face_reconstruction(r):
               "face_reconstruction = 1 is less accurate than 0 in " + name)
 
 
+def test_gpu_backend(r):
+    # the device kernels on the CPU (gpu_backend = 1, double) and, in a
+    # build with metal=ON, on the GPU (2, float) against the CPU code of
+    # Advance on the lumpy 3D event with n_B: conformal EoS, hotQCD (9) and
+    # NEOS (14) when their tables are installed.
+    # Backend 1: with clang identical bit for bit (0 for all three EoSs).
+    # g++ contracts multiply-adds across statements, differently in the two
+    # code paths: 1e-16 for EoS 0 and 9; with NEOS the 1e-19 noise grows to
+    # 4e-8 by tau = 2.3 fm/c once a capped or reverted cell flips. The bit
+    # for bit check runs in the unit test (unittest_bugfix).
+    # Metal (float, stored tau T^{tau mu}): ~1e-6 of E.
+    # Then the Gubser test (face_reconstruction 1) on the GPU must be as
+    # close to the analytic solution as the CPU code.
+    n, size = 41, 12.0
+    eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "..", "EOS")
+    limits = {1: 1e-6, 2: 1e-4}
+    have = {1: True, 2: True}
+    for eos, table in [(0, None), (9, "hotQCD"), (14, "neos_bqs")]:
+        if table and not os.path.isdir(os.path.join(eos_dir, table)):
+            print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
+            continue
+        res = {}
+        for backend in (0, 1, 2):
+            if not have.get(backend, True):
+                continue
+            wd = r.workdir("gpu_backend_eos{}_{}".format(eos, backend))
+            _write_lumpy_TATB(wd, n, size)
+            if table:
+                os.symlink(eos_dir, os.path.join(wd, "EOS"))
+            log, _, t = r.run(wd, tatb_params(
+                n, size, 17, 10.0, 1.0, EOS_to_use=eos,
+                gpu_backend=backend))
+            if backend > 0 and "built without" in log:
+                print("    gpu_backend = {}: not in this build, skipped"
+                      .format(backend))
+                have[backend] = False
+                continue
+            if backend > 0:
+                check("hydro on the device" in log,
+                      "gpu_backend = {} fell back to the CPU code (EoS {})"
+                      .format(backend, eos))
+            res[backend] = (read_conservation(wd), t)
+        a = res[0][0]
+        for backend in sorted(res):
+            print("    EoS {} gpu_backend {}: {:.1f} s".format(
+                eos, backend, res[backend][1]))
+            if backend == 0:
+                continue
+            b = res[backend][0]
+            diff = np.max(np.abs(a[:, 1:] - b[:, 1:]) / np.abs(a[:, 1:2]))
+            report("EoS {} backend {} max |conservation diff| / E".format(
+                eos, backend), diff, limits[backend])
+    if not have[2]:
+        return
+    hbarc = 0.19733
+    tau_end = 1.5
+    errors = {}
+    for backend in (0, 2):
+        wd = r.workdir("gpu_backend_gubser_{}".format(backend))
+        gdir = os.path.join(wd, "tests", "Gubser_flow")
+        os.makedirs(gdir)
+        for tau in (0.98, 1.0):
+            _write_gubser_ideal(
+                os.path.join(gdir, "y=0_tau={:4.2f}_ideal.dat".format(tau)),
+                tau)
+        r.run(wd, base_params(
+            Initial_profile=0, boost_invariant=1, Grid_size_in_eta=1,
+            Eta_grid_size=10.0, Initial_time_tau_0=1.0,
+            Total_evolution_time_tau=tau_end - 1.0, Delta_Tau=0.02,
+            UseCFL_condition=0, X_grid_size_in_fm=10.0,
+            Y_grid_size_in_fm=10.0, Grid_size_in_x=201, Grid_size_in_y=201,
+            Include_Rhob_Yes_1_No_0=1, face_reconstruction=1,
+            gpu_backend=backend))
+        d = np.loadtxt(os.path.join(
+            wd, "Gubser_flow_check_tau_{:g}.dat".format(tau_end)))
+        d = d[np.abs(d[:, 1]) < 1e-6]
+        e, nb, ux, _ = _gubser_ideal(d[:, 0], d[:, 1], tau_end)
+        l1 = lambda num, ana: np.sum(np.abs(num - ana)) / np.sum(np.abs(ana))
+        errors[backend] = (l1(d[:, 2] / hbarc, e), l1(d[:, 3], nb),
+                           l1(d[:, 5], ux))
+    for i, name in enumerate(("e", "n_B", "u^x")):
+        print("    Gubser L1 error of {:4s} CPU code: {:.3e}, Metal: {:.3e}"
+              .format(name, errors[0][i], errors[2][i]))
+        report("Gubser Metal / CPU L1 error of " + name + " - 1",
+               abs(errors[2][i] / errors[0][i] - 1.), 1e-2)
+
 TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
@@ -1061,6 +1148,7 @@ TESTS = [
     ("gubser_face_reconstruction", test_gubser_face_reconstruction),
     ("tatb_source", test_tatb_source),
     ("memory_history", test_memory_history),
+    ("gpu_backend", test_gpu_backend),
 ]
 
 

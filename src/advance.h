@@ -88,6 +88,10 @@ class Advance {
         const EOS &eosIn, const InitData &DATA_in,
         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
+    //! source terms enter the update (the device path has none yet)
+    bool hasHydroSource() const { return (flag_add_hydro_source); }
+    const Reconst &getReconst() const { return (reconst_helper); }
+
     //! currGhostsValid: the ghost cells of arenaFieldsCurr are already up
     //! to date (Evolve keeps them so), else AdvanceIt updates them first.
     //! AdvanceIt always updates the ghost cells of arenaFieldsNext.

@@ -36,6 +36,13 @@ Evolve::Evolve(
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr = hydro_source_ptr_in;
+    if (DATA.gpu_backend != 0) {
+        const Reconst &rec = advance.getReconst();
+        deviceHydro_.reset(new DeviceHydro(
+            DATA, eos, rec.get_abs_err(), rec.get_rel_err(),
+            rec.get_max_iter(), rec.get_v_critical(),
+            advance.hasHydroSource()));
+    }
 }
 
 // master control function for hydrodynamic evolution
@@ -428,6 +435,7 @@ void Evolve::store_previous_step_for_freezeout(
 
 void Evolve::regridTransverse(
     const std::vector<Fields *> &fieldList, double gridPadding, bool coarsen) {
+    if (deviceHydro_) deviceHydro_->invalidate();
     // update the transverse grid information in DATA and remap all fields
     // coarsen = true : double dx and dy (coarse grid stays centred at 0)
     // gridPadding > 0: add gridPadding [fm] of padding cells on both sides
@@ -849,6 +857,7 @@ bool Evolve::fluidNearGridEdge(Fields &arena) {
 
 void Evolve::extrapolatePrevForNewDtau(
     Fields &arenaCurr, Fields &arenaPrev, double dtauRatio) {
+    if (deviceHydro_) deviceHydro_->invalidate();
     // arenaPrev is at tau - dtau_old. Linearly extrapolate it to
     // tau - dtauRatio*dtau_old, so that (curr - prev)/dtau_new gives the
     // same backward time derivative as before the change of delta_tau.
@@ -886,6 +895,10 @@ void Evolve::extrapolatePrevForNewDtau(
 void Evolve::AdvanceRK(
     double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext) {
     // control function for Runge-Kutta evolution in tau
+    if (deviceHydro_ && deviceHydro_->active() && rk_order == 2) {
+        deviceHydro_->advanceStep(tau, fpPrev, fpCurr, fpNext);
+        return;
+    }
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         // fpCurr is up to date: from the ghost update of EvolveIt or as

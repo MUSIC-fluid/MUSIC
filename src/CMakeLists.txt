@@ -34,6 +34,7 @@ set (SOURCES
     music_logo.cpp
     HydroinfoMUSIC.cpp
     transport_coeffs.cpp
+    device/device_hydro.cpp
     )
 if (GSL_FOUND)
     set(SOURCES ${SOURCES}
@@ -43,9 +44,37 @@ if (GSL_FOUND)
         )
 endif()
 
-add_library(${libname} SHARED ${SOURCES})
-target_link_libraries (${libname} Eigen3::Eigen)
 set(CompileFlags "")
+if (metal)
+    # the kernel headers and the Metal entry points as one C string
+    set(MSL_INPUTS
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/device_defs.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/device_eos.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/device_ideal.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/metal_kernels.metal)
+    set(MSL_BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/metal_source.inc)
+    string(REPLACE ";" "\\;" MSL_INPUTS_ARG "${MSL_INPUTS}")
+    add_custom_command(OUTPUT ${MSL_BUNDLE}
+        COMMAND ${CMAKE_COMMAND} -DOUT=${MSL_BUNDLE}
+                "-DINPUTS=${MSL_INPUTS_ARG}"
+                -P ${CMAKE_SOURCE_DIR}/cmake/bundle_msl.cmake
+        DEPENDS ${MSL_INPUTS} ${CMAKE_SOURCE_DIR}/cmake/bundle_msl.cmake
+        COMMENT "Bundling the Metal kernel source")
+    set_source_files_properties(device/metal_backend.m PROPERTIES
+        COMPILE_OPTIONS "-fobjc-arc;-I${CMAKE_CURRENT_BINARY_DIR}"
+        OBJECT_DEPENDS ${MSL_BUNDLE})
+    set(SOURCES ${SOURCES} device/metal_backend.m ${MSL_BUNDLE})
+    set(CompileFlags "${CompileFlags} -DMUSIC_WITH_METAL")
+    set(METAL_LIBS "-framework Metal" "-framework Foundation" objc)
+endif (metal)
+if (cuda)
+    set(SOURCES ${SOURCES} device/cuda_backend.cu)
+    set(CompileFlags "${CompileFlags} -DMUSIC_WITH_CUDA")
+    set(CUDA_LIBS CUDA::cudart)
+endif (cuda)
+
+add_library(${libname} SHARED ${SOURCES})
+target_link_libraries (${libname} Eigen3::Eigen ${METAL_LIBS} ${CUDA_LIBS})
 if (APPLE)
     set(CompileFlags "${CompileFlags} -DAPPLE")
 endif (APPLE)
@@ -87,7 +116,7 @@ else (unittest)
         target_link_libraries (${exename} ${libname})
     else (link_with_lib)
         add_executable (${exename} main.cpp ${SOURCES})
-        target_link_libraries (${exename} Eigen3::Eigen)
+        target_link_libraries (${exename} Eigen3::Eigen ${METAL_LIBS} ${CUDA_LIBS})
         if (GSL_FOUND)
             target_link_libraries (${exename} ${GSL_LIBRARIES})
         endif (GSL_FOUND)

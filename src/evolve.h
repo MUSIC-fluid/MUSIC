@@ -7,6 +7,7 @@
 
 #include "HydroinfoMUSIC.h"
 #include "advance.h"
+#include "device/device_hydro.h"
 #include "cell.h"
 #include "data.h"
 #include "eos.h"
@@ -25,6 +26,8 @@ class Evolve {
 
     Cell_info grid_info;
     Advance advance;
+    // the ideal update on a device (gpu_backend > 0)
+    std::unique_ptr<DeviceHydro> deviceHydro_;
     pretty_ostream music_message;
 
     // simulation information
@@ -50,6 +53,11 @@ class Evolve {
         Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr);
 
+    //! AdvanceRK expects the pressure of fpCurr from this (EvolveIt calls
+    //! it before every step)
+    void preparePressure(const Fields &arenaCurr) {
+        advance.preparePressure(arenaCurr);
+    }
     void AdvanceRK(
         double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext);
 

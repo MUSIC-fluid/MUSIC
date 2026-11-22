@@ -19,6 +19,10 @@ class EOS {
     EOS() = delete;
     EOS(const int eos_id_in);
 
+    int get_eos_id() const { return (eos_id); }
+    //! the EoS implementation, e.g. for its tables (the device EoS)
+    const EOS_base &get_eos_base() const { return (*eos_ptr); }
+
     ~EOS() {};
 
     // functions to call the function pointers
