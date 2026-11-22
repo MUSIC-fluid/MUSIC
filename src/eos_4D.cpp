@@ -682,7 +682,7 @@ void EOS_4D::get_tilde_variables(
 }
 
 float EOS_4D::diluteScale(std::array<float, 4> &TildeVar) const {
-    const float Tref = Ttilde_dilute_GeV_ / Util::hbarc;
+    const float Tref = get_Ttilde_dilute();
     if (TildeVar[0] >= Tref) return 1.f;
     const float scale = TildeVar[0] / Tref;
     TildeVar[0] = Tref;

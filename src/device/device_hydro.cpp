@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -11,8 +12,10 @@
 #include <utility>
 
 #include "../eos.h"
+#include "../eos_4D.h"
 #include "../eos_idealgas.h"
 #include "../fields.h"
+#include "../hydro_source_base.h"
 #include "../util.h"
 #include "device_api.h"
 #include "device_visc.h"
@@ -39,6 +42,7 @@ class CpuBackend : public Backend {
     std::vector<Real> pCur_, pPred_;
     std::vector<Real> flux_[3];
     std::vector<Real> wFace_[3];
+    std::vector<Real> src_;
     EosDesc<Real> desc_;
     std::vector<Real> table_;
     int dummyTable_ = 0;
@@ -68,6 +72,7 @@ class CpuBackend : public Backend {
                 wFace_[d].clear();
             }
         }
+        src_.assign(static_cast<size_t>(kNTJ) * n_, Real(0));
         cur_ = 0;
         pred_ = 1;
         next_ = 2;
@@ -88,13 +93,17 @@ class CpuBackend : public Backend {
     }
 
     void *state(int which) {
-        return (slice_[which == 0 ? cur_ : next_].data());
+        return (slice_[which == 0 ? cur_ : (which == 1 ? next_ : pred_)].data());
     }
     bool upload(std::string &) { return (true); }
     bool download(std::string &) { return (true); }
+    void *source() { return (src_.data()); }
+    bool uploadSource(std::string &) { return (true); }
+    bool fetch(int, int, int, std::string &) { return (true); }
 
-    bool step(
-        const void *params, size_t paramBytes, int &flags, std::string &err) {
+    bool stage(
+        const void *params, size_t paramBytes, int rk, int &flags,
+        std::string &err) {
         if (paramBytes != sizeof(StepParams<Real>)) {
             err = "StepParams size mismatch";
             return (false);
@@ -111,7 +120,7 @@ class CpuBackend : public Backend {
             (table_.empty() ? reinterpret_cast<const Real *>(&dummyTable_)
                             : table_.data());
         int f = 0;
-        for (int rk = 0; rk < 2; rk++) {
+        {
             P.rkFlag = rk;
             const Real *sIn = slice_[rk == 0 ? cur_ : pred_].data();
             // the second stage averages with tau_n; the viscous update of
@@ -145,18 +154,19 @@ class CpuBackend : public Backend {
                             P, D, tab, sIn, sPrev, pIn, pCur_.data(),
                             flux_[0].data(), flux_[1].data(), flux_[2].data(),
                             wFace_[0].data(), wFace_[1].data(),
-                            wFace_[2].data(), sOut, i, &f);
+                            wFace_[2].data(), src_.data(), sOut, i, &f);
                 } else {
 #pragma omp for schedule(dynamic, 64)
                     for (int i = 0; i < n; i++)
                         kernelCell(
                             P, D, tab, sIn, sPrev, pIn, pCur_.data(),
                             flux_[0].data(), flux_[1].data(), flux_[2].data(),
-                            sOut, i, &f);
+                            src_.data(), sOut, i, &f);
                 }
             }
         }
-        std::swap(cur_, next_);
+        // after the second stage the new slice is the current one
+        if (rk == 1) std::swap(cur_, next_);
         flags = f;
         return (true);
     }
@@ -206,10 +216,22 @@ class CApiBackend : public Backend {
     bool upload(std::string &err) {
         return (check(api_->upload(dev_, err_, sizeof(err_)), err));
     }
-    bool step(
-        const void *params, size_t paramBytes, int &flags, std::string &err) {
+    bool stage(
+        const void *params, size_t paramBytes, int rk, int &flags,
+        std::string &err) {
         return (check(
-            api_->step(dev_, params, paramBytes, &flags, err_, sizeof(err_)),
+            api_->stage(
+                dev_, params, paramBytes, rk, &flags, err_, sizeof(err_)),
+            err));
+    }
+    void *source() { return (api_->source(dev_)); }
+    bool uploadSource(std::string &err) {
+        return (check(api_->uploadSource(dev_, err_, sizeof(err_)), err));
+    }
+    bool fetch(int which, int firstComp, int nComp, std::string &err) {
+        return (check(
+            api_->fetch(
+                dev_, which, firstComp, nComp, err_, sizeof(err_)),
             err));
     }
     bool download(std::string &err) {
@@ -230,16 +252,17 @@ static_assert(
 
 DeviceHydro::DeviceHydro(
     const InitData &DATA_in, const EOS &eos, double absErr, double relErr,
-    int maxIter, double vCritical, bool hasHydroSource)
+    int maxIter, double vCritical, std::shared_ptr<HydroSourceBase> source)
     : DATA(DATA_in),
       eos_(eos),
+      source_(source),
       absErr_(absErr),
       relErr_(relErr),
       vCritical_(vCritical),
       maxIter_(maxIter) {
     const int which = DATA.gpu_backend;
     if (which == 0) return;
-    const std::string reason = unsupportedReason(hasHydroSource);
+    const std::string reason = unsupportedReason();
     if (!reason.empty()) {
         music_message << "gpu_backend = " << which << ": " << reason
                       << "; the CPU code runs instead";
@@ -287,7 +310,8 @@ DeviceHydro::DeviceHydro(
     music_message << "hydro on the device: " << backend_->name() << ", "
                   << (viscous_ ? "viscous, " : "ideal, ")
                   << (float_ ? "float" : "double")
-                  << (storeQ_ ? ", stored tau T^{tau mu}" : "");
+                  << (storeQ_ ? ", stored tau T^{tau mu}" : "")
+                  << (source_ ? ", source terms from the host" : "");
     music_message.flush("info");
 }
 
@@ -296,13 +320,16 @@ DeviceHydro::~DeviceHydro() {
     music_message << "device: " << nSteps_ << " steps, "
                   << stepSeconds_ << " s in the kernels, "
                   << downloadSeconds_ << " s copying to the host Fields";
+    if (source_)
+        music_message << ", " << sourceSeconds_
+                      << " s for the source terms on the host";
     music_message.flush("info");
 }
 
-std::string DeviceHydro::unsupportedReason(bool hasHydroSource) const {
-    if (hasHydroSource) return ("source terms are not on the device yet");
+std::string DeviceHydro::unsupportedReason() const {
     const int id = eos_.get_eos_id();
-    if (!(id == 0 || id == 9 || id == 91 || (id >= 10 && id <= 14)))
+    if (!(id == 0 || id == 9 || id == 91 || (id >= 10 && id <= 14)
+          || id == 20))
         return ("EoS " + std::to_string(id) + " is not on the device yet");
     if (DATA.viscosity_flag == 0) return ("");
     if (DATA.viscosity_flag != 1)
@@ -312,7 +339,7 @@ std::string DeviceHydro::unsupportedReason(bool hasHydroSource) const {
         return ("baryon diffusion is not on the device yet");
     if (DATA.turn_on_bulk_chem == 1)
         return ("the chemical bulk pressure is not on the device yet");
-    if (!(id == 0 || id == 9 || id == 91))
+    if (!(id == 0 || id == 9 || id == 91 || id == 20))
         return ("viscous hydro with EoS " + std::to_string(id)
                 + " is not on the device yet");
     if (DATA.FlagCausalityMethod == 1)
@@ -330,8 +357,72 @@ void fillEos(
     EosDesc<Real> d;
     std::memset(&d, 0, sizeof(d));
     const int id = eos.get_eos_id();
-    d.type = (id == 0 ? 0 : (id == 9 || id == 91 ? 1 : 2));
+    d.type = (id == 0 ? 0 : (id == 9 || id == 91 ? 1 : (id == 20 ? 3 : 2)));
     std::vector<Real> table;
+    if (d.type == 3) {
+        // EOS_4D: T5diff_ in Real, then the float tables, written straight
+        // into tableOut (P alone is 73 MB)
+        const EOS_4D *e4 = dynamic_cast<const EOS_4D *>(&eos.get_eos_base());
+        if (e4 == nullptr) {
+            err = "EoS 20 is not EOS_4D";
+            return;
+        }
+        float x0[4], dx[4], xMax[4];
+        int nn[4];
+        e4->get_grid(x0, dx, nn, xMax);
+        d.T04 = x0[0];
+        d.mub04 = x0[1];
+        d.muq04 = x0[2];
+        d.mus04 = x0[3];
+        d.dT4 = dx[0];
+        d.dmub4 = dx[1];
+        d.dmuq4 = dx[2];
+        d.dmus4 = dx[3];
+        d.nT4 = nn[0];
+        d.nMub4 = nn[1];
+        d.nMuq4 = nn[2];
+        d.nMus4 = nn[3];
+        d.Tmax4 = xMax[0];
+        d.mubMax4 = xMax[1];
+        d.muqMax4 = xMax[2];
+        d.musMax4 = xMax[3];
+        d.TrefDilute4 = EOS_4D::get_Ttilde_dilute();
+        d.alphaNf4 = Real(e4->get_alphaNf());
+        d.oneOverAlphaNf4 = Real(e4->get_one_over_alphaNf());
+        const std::vector<double> &t5 = e4->get_T5diff();
+        const size_t size = e4->get_table(0).size();
+        const size_t nTab = (withThermal ? 5 : 1);
+        if (size != static_cast<size_t>(nn[0]) * nn[1] * nn[2] * nn[3]
+            || nTab * size > static_cast<size_t>(INT_MAX)) {
+            err = "the 4D EoS tables do not fit the device index";
+            return;
+        }
+        for (size_t k = 1; k < nTab; k++) {
+            if (e4->get_table(static_cast<int>(k)).size() != size) {
+                err = "the 4D EoS tables differ in size";
+                return;
+            }
+        }
+        d.t5Offset = 0;
+        d.f4Offset = static_cast<int>(t5.size());
+        d.f4Size = static_cast<int>(size);
+        d.f4NTables = static_cast<int>(nTab);
+        const size_t floatBytes = nTab * size * sizeof(float);
+        const size_t floatReals = (floatBytes + sizeof(Real) - 1) / sizeof(Real);
+        tableOut.assign((t5.size() + floatReals) * sizeof(Real), 0);
+        Real *out = reinterpret_cast<Real *>(tableOut.data());
+        for (size_t k = 0; k < t5.size(); k++) out[k] = Real(t5[k]);
+        unsigned char *f = tableOut.data() + t5.size() * sizeof(Real);
+        for (size_t k = 0; k < nTab; k++) {
+            std::memcpy(
+                f + k * size * sizeof(float),
+                e4->get_table(static_cast<int>(k)).data(),
+                size * sizeof(float));
+        }
+        descOut.resize(sizeof(d));
+        std::memcpy(descOut.data(), &d, sizeof(d));
+        return;
+    }
     if (d.type != 0) {
         const EOS_base &b = eos.get_eos_base();
         d.nTables = b.get_number_of_tables();
@@ -389,15 +480,17 @@ bool DeviceHydro::buildEos(std::string &err) {
         fillEos<double>(eos_, viscous_, eosDesc_, eosTable_, err);
     }
     if (!err.empty()) return (false);
-    return (backend_->setEos(
+    const bool ok = backend_->setEos(
         eosDesc_.data(), eosDesc_.size(),
-        eosTable_.empty() ? nullptr : eosTable_.data(), eosTable_.size(),
-        err));
+        eosTable_.empty() ? nullptr : eosTable_.data(), eosTable_.size(), err);
+    // the backend keeps its own copy
+    std::vector<unsigned char>().swap(eosTable_);
+    return (ok);
 }
 
 template <typename Real>
 void DeviceHydro::fillParams(
-    double tau, std::vector<unsigned char> &out) const {
+    double tau, bool hasSource, std::vector<unsigned char> &out) const {
     StepParams<Real> P;
     std::memset(&P, 0, sizeof(P));
     P.nx = nx_;
@@ -429,6 +522,7 @@ void DeviceHydro::fillParams(
     P.sinhDeta = Real(sinhDeta);
     P.nComp = (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
     if (viscous_) fillViscParams(P);
+    P.hasSource = (hasSource ? 1 : 0);
     out.resize(sizeof(P));
     std::memcpy(out.data(), &P, sizeof(P));
 }
@@ -546,6 +640,56 @@ void DeviceHydro::downloadT(Fields &arena, const Real *s) const {
             }
 }
 
+template <typename Real>
+bool DeviceHydro::computeSource(const Real *s, double tauRk) {
+    const int n = nx_ * ny_ * neta_;
+    Real *out = static_cast<Real *>(backend_->source());
+    const HydroSourceBase &src = *source_;
+    bool any = false;
+    bool isNan = false;
+#pragma omp parallel for collapse(2) reduction(|| : any, isNan)
+    for (int ieta = 0; ieta < neta_; ieta++)
+        for (int iy = 0; iy < ny_; iy++)
+            for (int ix = 0; ix < nx_; ix++) {
+                const int i = ix + nx_ * (iy + ny_ * ieta);
+                // as in Advance::AdvanceIt and FirstRKStepT
+                double eta_s_local =
+                    -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+                double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
+                double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
+                double qi_source[music_device::kNTJ] = {0.};
+                EnergyFlowVec j_mu = {0};
+                FlowVec u_local;
+                for (int ii = 0; ii < 4; ii++)
+                    u_local[ii] = s[(4 + ii) * n + i];
+                src.get_hydro_energy_source(
+                    tauRk, x_local, y_local, eta_s_local, u_local, j_mu);
+                for (int ii = 0; ii < 4; ii++) {
+                    qi_source[ii] = tauRk * j_mu[ii];
+                    if (std::isnan(qi_source[ii])) isNan = true;
+                }
+                if (DATA.turn_on_rhob == 1) {
+                    qi_source[4] =
+                        (tauRk
+                         * src.get_hydro_rhob_source(
+                             tauRk, x_local, y_local, eta_s_local, u_local));
+                }
+                if (DATA.turn_on_QS == 1) {
+                    qi_source[5] =
+                        (tauRk
+                         * src.get_hydro_rhoQ_source(
+                             tauRk, x_local, y_local, eta_s_local, u_local));
+                }
+                for (int a = 0; a < music_device::kNTJ; a++) {
+                    out[a * n + i] = Real(qi_source[a]);
+                    if (qi_source[a] != 0.) any = true;
+                }
+            }
+    // Advance::FirstRKStepT exits here
+    if (isNan) fail("qi_source is nan");
+    return (any);
+}
+
 void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
     std::string err;
     if (curr.nX() != nx_ || curr.nY() != ny_ || curr.nEta() != neta_) {
@@ -590,16 +734,43 @@ void DeviceHydro::advanceStep(
         }
         upload(*fpCurr, *fpPrev, tau);
     }
-    std::vector<unsigned char> params;
-    if (float_) {
-        fillParams<float>(tau, params);
-    } else {
-        fillParams<double>(tau, params);
-    }
     int flags = 0;
     std::string err;
+    double sourceSeconds = 0.;
     const auto t0 = std::chrono::steady_clock::now();
-    if (!backend_->step(params.data(), params.size(), flags, err)) fail(err);
+    for (int rk = 0; rk < 2; rk++) {
+        // the sources at tau_rk from the u of the stage's slice: tau_n, then
+        // the predictor
+        bool hasSource = false;
+        if (source_) {
+            const auto s0 = std::chrono::steady_clock::now();
+            const int which = (rk == 0 ? 0 : 2);
+            if (rk == 1 && !backend_->fetch(which, 4, 4, err)) fail(err);
+            const double tauRk = tau + rk * DATA.delta_tau;
+            if (float_) {
+                hasSource = computeSource(
+                    static_cast<const float *>(backend_->state(which)), tauRk);
+            } else {
+                hasSource = computeSource(
+                    static_cast<const double *>(backend_->state(which)),
+                    tauRk);
+            }
+            if (hasSource && !backend_->uploadSource(err)) fail(err);
+            sourceSeconds += std::chrono::duration<double>(
+                                 std::chrono::steady_clock::now() - s0)
+                                 .count();
+        }
+        std::vector<unsigned char> params;
+        if (float_) {
+            fillParams<float>(tau, hasSource, params);
+        } else {
+            fillParams<double>(tau, hasSource, params);
+        }
+        int f = 0;
+        if (!backend_->stage(params.data(), params.size(), rk, f, err))
+            fail(err);
+        flags |= f;
+    }
     const auto t1 = std::chrono::steady_clock::now();
     if (flags & music_device::kFatalFlags) {
         fail("MaxSpeed: the signal speed of a KT face is out of range "
@@ -624,7 +795,9 @@ void DeviceHydro::advanceStep(
     lastPrev_ = fpPrev;
     valid_ = true;
     const auto t2 = std::chrono::steady_clock::now();
-    stepSeconds_ += std::chrono::duration<double>(t1 - t0).count();
+    stepSeconds_ +=
+        std::chrono::duration<double>(t1 - t0).count() - sourceSeconds;
+    sourceSeconds_ += sourceSeconds;
     downloadSeconds_ += std::chrono::duration<double>(t2 - t1).count();
     nSteps_++;
 }

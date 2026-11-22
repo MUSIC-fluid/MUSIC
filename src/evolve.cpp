@@ -41,7 +41,7 @@ Evolve::Evolve(
         deviceHydro_.reset(new DeviceHydro(
             DATA, eos, rec.get_abs_err(), rec.get_rel_err(),
             rec.get_max_iter(), rec.get_v_critical(),
-            advance.hasHydroSource()));
+            (advance.hasHydroSource() ? hydro_source_terms_ptr : nullptr)));
     }
 }
 

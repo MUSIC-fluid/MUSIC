@@ -1045,7 +1045,7 @@ def test_gpu_backend(r):
     # the device kernels on the CPU (gpu_backend = 1, double) and, in a
     # build with metal=ON, on the GPU (2, float) against the CPU code of
     # Advance on the lumpy 3D event with n_B: conformal EoS, hotQCD (9) and
-    # NEOS (14) when their tables are installed.
+    # NEOS (14) and the 4D EoS (20) when their tables are installed.
     # Backend 1: with clang identical bit for bit (0 for all three EoSs).
     # g++ contracts multiply-adds across statements, differently in the two
     # code paths: 1e-16 for EoS 0 and 9; with NEOS the 1e-19 noise grows to
@@ -1059,7 +1059,8 @@ def test_gpu_backend(r):
                            "..", "..", "EOS")
     limits = {1: 1e-6, 2: 1e-4}
     have = {1: True, 2: True}
-    for eos, table in [(0, None), (9, "hotQCD"), (14, "neos_bqs")]:
+    for eos, table in [(0, None), (9, "hotQCD"), (14, "neos_bqs"),
+                       (20, "neos4D")]:
         if table and not os.path.isdir(os.path.join(eos_dir, table)):
             print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
             continue
@@ -1134,7 +1135,8 @@ def test_gpu_backend_viscous(r):
     # conformal EoS and hotQCD (9). Backend 1 against the CPU code as in
     # gpu_backend (bit for bit with clang, g++ contracts differently);
     # Metal in float: 8e-7 of E, and W / (e + P) and Pi in the cells above
-    # 0.1 GeV/fm^3 to 2e-6 (L1) at tau = 2 fm/c.
+    # 0.1 GeV/fm^3 to 2e-6 (L1) at tau = 2 fm/c. Also the 4D EoS (20), whose
+    # tables are float on the host too.
     n, size = 41, 12.0
     ncell = n * n * 17
 
@@ -1150,7 +1152,7 @@ def test_gpu_backend_viscous(r):
                            "..", "..", "EOS")
     limits = {1: 1e-6, 2: 1e-4}
     have = {1: True, 2: True}
-    for eos, table in [(0, None), (9, "hotQCD")]:
+    for eos, table in [(0, None), (9, "hotQCD"), (20, "neos4D")]:
         if table and not os.path.isdir(os.path.join(eos_dir, table)):
             print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
             continue
@@ -1211,6 +1213,121 @@ def test_gpu_backend_viscous(r):
                 / np.sum(np.abs(Pi0[hot])), {1: 1e-5, 2: 1e-4}[backend])
 
 
+def _write_strings_event(path, ncopy=40, seed=11):
+    """a strings event (Initial_profile 13) from the three strings of
+    tests/test_source_terms: copies moved in the transverse plane and
+    boosted in eta (positions and rapidities together, so each stays a
+    valid string), with collision times tau_0 in [0, 0.4] fm/c so that the
+    string ends deposit over the whole run. The first string carries its
+    baryon number at eta_s = -0.4 (fraction 1 at the left end) so that n_B
+    is deposited at mid-rapidity during the run."""
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                       "test_source_terms", "strings_event_0.dat")
+    with open(src) as f:
+        head = [f.readline(), f.readline()]
+    rows = np.loadtxt(src, ndmin=2)
+    rows[0, 23] = 1.  # baryon_fraction_l
+    rng = np.random.default_rng(seed)
+    # columns: 5-10 transverse positions, eta_s/rapidity columns below
+    xcols, ycols = (5, 7, 9), (6, 8, 10)
+    etacols = (4, 11, 12, 13, 14, 17, 18, 19, 20, 21, 22, 27, 28)
+    out = []
+    for _ in range(ncopy):
+        r = rows[rng.integers(len(rows))].copy()
+        dx, dy = rng.normal(0., 1.2, size=2)
+        r[list(xcols)] += dx
+        r[list(ycols)] += dy
+        # a baryon or charge eta of 0 marks no baryon or charge at that end
+        keep = [c for c in etacols if c in (4, 11, 12, 13, 14, 17, 18)
+                or r[c] != 0.]
+        r[keep] += rng.uniform(-0.8, 0.8)
+        r[3] = rng.uniform(0., 0.4)
+        out.append(r)
+    with open(path, "w") as f:
+        f.writelines(head)
+        for r in out:
+            f.write("  ".join("{:.8e}".format(v) for v in r) + "\n")
+
+
+def test_gpu_backend_sources(r):
+    # the source terms with the update on the device: the host evaluates
+    # them for each RK stage from the u of the device slice (the predictor
+    # in the second stage), the device adds them to qi. The lumpy TATB
+    # source (112, ideal and viscous) and a strings event (13, viscous with
+    # n_B; its n_B source depends on u). Backend 1 against the CPU code:
+    # bit for bit with clang (unit test), g++ contracts differently. Metal
+    # in float. The difference of E, P and N_B is taken relative to the
+    # largest E of the run: the strings run starts from an empty grid.
+    n, size = 41, 12.0
+    have = {1: True, 2: True}
+    cases = []
+    visc = {"Viscosity_Flag_Yes_1_No_0": 1, "Include_Shear_Visc_Yes_1_No_0": 1,
+            "Shear_to_S_ratio": 0.12, "Include_Bulk_Visc_Yes_1_No_0": 1,
+            "Include_second_order_terms": 1}
+    for viscous in (0, 1):
+        def tatb(wd, backend, viscous=viscous):
+            _write_lumpy_TATB(wd, n, size)
+            p = tatb_params(n, size, 17, 10.0, 1.0, Initial_profile=112,
+                            gpu_backend=backend)
+            if viscous:
+                p.update(visc)
+            return p
+        cases.append(("TATB source" + (" viscous" if viscous else ""), tatb))
+
+    def strings(wd, backend):
+        _write_strings_event(os.path.join(wd, "strings.dat"))
+        p = base_params(
+            Initial_profile=13,
+            Initial_Distribution_input_filename="strings.dat",
+            string_source_sigma_x=0.5, string_source_sigma_eta=0.5,
+            stringPreEqFlowFactor=1.0, Include_Rhob_Yes_1_No_0=1,
+            boost_invariant=0, Initial_time_tau_0=0.4,
+            Total_evolution_time_tau=2.0, Delta_Tau=0.02,
+            Eta_grid_size=12.0, Grid_size_in_eta=49,
+            X_grid_size_in_fm=size, Y_grid_size_in_fm=size,
+            Grid_size_in_x=n, Grid_size_in_y=n, gpu_backend=backend)
+        p.update(visc)
+        p["Include_Bulk_Visc_Yes_1_No_0"] = 0
+        return p
+    cases.append(("strings viscous", strings))
+    limits = {1: 1e-6, 2: 1e-4}
+    for name, make in cases:
+        res = {}
+        for backend in (0, 1, 2):
+            if backend and not have[backend]:
+                continue
+            wd = r.workdir("gpu_sources_{}_{}".format(
+                name.replace(" ", "_"), backend))
+            log, _, t = r.run(wd, make(wd, backend))
+            if backend > 0 and "built without" in log:
+                print("    gpu_backend = {}: not in this build, skipped"
+                      .format(backend))
+                have[backend] = False
+                continue
+            if backend > 0:
+                check("source terms from the host" in log,
+                      "gpu_backend = {} fell back to the CPU code ({})"
+                      .format(backend, name))
+            res[backend] = (read_conservation(wd), t)
+        a = res[0][0]
+        for backend in sorted(res):
+            c = res[backend][0]
+            print("    {} gpu_backend {}: {:.1f} s, E {:.4g} -> {:.4g} GeV, "
+                  "N_B {:.4g}".format(name, backend, res[backend][1],
+                                      c[0, 1], c[-1, 1], c[-1, 5]))
+            if backend == 0:
+                continue
+            check(len(c) == len(a), "backend {} wrote {} rows, the CPU code "
+                  "{}".format(backend, len(c), len(a)))
+            diff = np.max(np.abs(a[:, 1:] - c[:, 1:])) / np.max(np.abs(a[:, 1]))
+            report("{} backend {} max |conservation diff| / E_max".format(
+                name, backend), diff, limits[backend])
+            if np.max(a[:, 5]) > 0.:
+                report("{} backend {} max |N_B diff| / N_B".format(
+                    name, backend), np.max(np.abs(a[:, 5] - c[:, 5]))
+                    / np.max(a[:, 5]), limits[backend])
+
+
 TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
@@ -1233,6 +1350,7 @@ TESTS = [
     ("memory_history", test_memory_history),
     ("gpu_backend", test_gpu_backend),
     ("gpu_backend_viscous", test_gpu_backend_viscous),
+    ("gpu_backend_sources", test_gpu_backend_sources),
 ]
 
 

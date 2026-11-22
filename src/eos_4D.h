@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "eos_base.h"
+#include "util.h"
 
 class EOS_4D : public EOS_base {
   private:
@@ -135,6 +136,43 @@ class EOS_4D : public EOS_base {
         ThermalVec &thermalVec) const;
 
     bool has_QS_densities() const { return (true); }
+
+    // the tables and their grid, for the device kernels (device_eos.h)
+    //! which: 0 P, 1 T, 2 mu_B, 3 mu_Q, 4 mu_S
+    const std::vector<float> &get_table(int which) const {
+        return (which == 0   ? pressure_vec
+                : which == 1 ? temp_vec
+                : which == 2 ? mub_vec
+                : which == 3 ? muq_vec
+                             : mus_vec);
+    }
+    const std::vector<double> &get_T5diff() const { return (T5diff_); }
+    //! origin, spacing, size and maximum of Ttilde, mubtilde, muqtilde,
+    //! mustilde
+    void get_grid(float *x0, float *dx, int *n, float *xMax) const {
+        x0[0] = Ttilde0;
+        x0[1] = mubtilde0;
+        x0[2] = muqtilde0;
+        x0[3] = mustilde0;
+        dx[0] = dTtilde;
+        dx[1] = dmubtilde;
+        dx[2] = dmuqtilde;
+        dx[3] = dmustilde;
+        n[0] = N_T;
+        n[1] = N_mub;
+        n[2] = N_muq;
+        n[3] = N_mus;
+        xMax[0] = T_tilde_max;
+        xMax[1] = mub_tilde_max;
+        xMax[2] = muq_tilde_max;
+        xMax[3] = mus_tilde_max;
+    }
+    double get_alphaNf() const { return (alphaNf); }
+    double get_one_over_alphaNf() const { return (OneoveralphaNf); }
+    //! Tref of diluteScale
+    static float get_Ttilde_dilute() {
+        return (Ttilde_dilute_GeV_ / Util::hbarc);
+    }
 
     void check_eos() const { check_4D_eos(); }
 };

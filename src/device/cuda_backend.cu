@@ -4,12 +4,13 @@
 // double (default) or float (gpu_float = 1), behind the C interface of
 // device_api.h (built by nvcc with CMake option cuda=ON).
 //
-// The state stays in device memory; state(0) and state(1) are pinned host
-// copies of the current and (viscous update) the previous slice, which
-// upload() sends to the device; download() fills state(0) after a step.
-// One Heun step is ten kernel launches on the default stream (pressure,
-// three face directions and the cells, for both stages), sixteen with the
-// viscous update (also the W faces of the three directions).
+// The state stays in device memory; state(0), state(1) and state(2) are
+// pinned host copies of the current, the previous (viscous update) and the
+// predictor slice. upload() sends the first two to the device; download()
+// fills state(0) after a step, fetch() components of a slice between the
+// stages. One RK stage is five kernel launches on the default stream
+// (pressure, three face directions and the cells), eight with the viscous
+// update (also the W faces of the three directions).
 //
 // nvcc contracts multiply-adds by default (--fmad=true), as g++ does on
 // the host: in double the CUDA backend agrees with MUSIC to rounding
@@ -117,12 +118,12 @@ __global__ void cudaCell(
     const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
     const Real *sCurr, const Real *sPrev, const Real *pCurr,
     const Real *pPrev, const Real *fluxX, const Real *fluxY,
-    const Real *fluxEta, Real *sNext, int *flags) {
+    const Real *fluxEta, const Real *src, Real *sNext, int *flags) {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= P.nx * P.ny * P.neta) return;
     music_device::kernelCell(
-        P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta, sNext,
-        i, flags);
+        P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta, src,
+        sNext, i, flags);
 }
 
 template <typename Real>
@@ -139,12 +140,12 @@ __global__ void cudaCellVisc(
     const Real *sCurr, const Real *sPrev, const Real *pCurr,
     const Real *pPrev, const Real *fluxX, const Real *fluxY,
     const Real *fluxEta, const Real *wFaceX, const Real *wFaceY,
-    const Real *wFaceEta, Real *sNext, int *flags) {
+    const Real *wFaceEta, const Real *src, Real *sNext, int *flags) {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= P.nx * P.ny * P.neta) return;
     music_device::kernelCellVisc(
         P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta, wFaceX,
-        wFaceY, wFaceEta, sNext, i, flags);
+        wFaceY, wFaceEta, src, sNext, i, flags);
 }
 
 const int kBlock = 128;
@@ -169,8 +170,13 @@ struct DeviceBase {
         size_t tableBytes, char *err, int len) = 0;
     virtual void *state(int which) = 0;
     virtual int upload(char *err, int len) = 0;
-    virtual int step(
-        const void *params, size_t bytes, int *flags, char *err, int len) = 0;
+    virtual int stage(
+        const void *params, size_t bytes, int rk, int *flags, char *err,
+        int len) = 0;
+    virtual void *source() = 0;
+    virtual int uploadSource(char *err, int len) = 0;
+    virtual int fetch(
+        int which, int firstComp, int nComp, char *err, int len) = 0;
     virtual int download(char *err, int len) = 0;
 };
 
@@ -180,9 +186,10 @@ struct Device : public DeviceBase {
     Real *pCur = NULL, *pPred = NULL;
     Real *flux[3] = {NULL, NULL, NULL};
     Real *wFace[3] = {NULL, NULL, NULL};  // viscous update only
+    Real *src = NULL, *srcHost = NULL;   // the source terms
     Real *table = NULL;
-    // pinned copies of the current and the previous slice
-    Real *host[2] = {NULL, NULL};
+    // pinned copies of the current, the previous and the predictor slice
+    Real *host[3] = {NULL, NULL, NULL};
     int *flags = NULL;
     EosDesc<Real> desc;
     // next holds tau_{n-1} at the start of a step
@@ -199,9 +206,13 @@ struct Device : public DeviceBase {
         }
         cudaFree(pCur);
         cudaFree(pPred);
-        cudaFreeHost(host[0]);
-        cudaFreeHost(host[1]);
-        pCur = pPred = host[0] = host[1] = NULL;
+        cudaFree(src);
+        cudaFreeHost(srcHost);
+        for (int k = 0; k < 3; k++) {
+            cudaFreeHost(host[k]);
+            host[k] = NULL;
+        }
+        pCur = pPred = src = srcHost = NULL;
     }
     ~Device() {
         release();
@@ -240,13 +251,19 @@ struct Device : public DeviceBase {
                 err, len)
             || !ok(cudaMalloc((void **)&pPred, sizeof(Real) * n),
                    "cudaMalloc", err, len)
-            || !ok(cudaMallocHost((void **)&host[0], sliceBytes),
-                   "cudaMallocHost", err, len)
-            || !ok(cudaMallocHost((void **)&host[1], sliceBytes),
+            || !ok(cudaMalloc((void **)&src, sizeof(Real) * kNTJ * n),
+                   "cudaMalloc", err, len)
+            || !ok(cudaMemset(src, 0, sizeof(Real) * kNTJ * n),
+                   "cudaMemset", err, len)
+            || !ok(cudaMallocHost((void **)&srcHost, sizeof(Real) * kNTJ * n),
                    "cudaMallocHost", err, len))
             return 1;
-        memset(host[0], 0, sliceBytes);
-        memset(host[1], 0, sliceBytes);
+        for (int k = 0; k < 3; k++) {
+            if (!ok(cudaMallocHost((void **)&host[k], sliceBytes),
+                    "cudaMallocHost", err, len))
+                return 1;
+            memset(host[k], 0, sliceBytes);
+        }
         cur = 0;
         pred = 1;
         next = 2;
@@ -273,7 +290,29 @@ struct Device : public DeviceBase {
         return 0;
     }
 
-    void *state(int which) { return host[which == 0 ? 0 : 1]; }
+    void *state(int which) { return host[which < 0 || which > 2 ? 0 : which]; }
+
+    void *source() { return srcHost; }
+
+    int uploadSource(char *err, int len) {
+        const size_t bytes = sizeof(Real) * kNTJ * nx * ny * neta;
+        return ok(cudaMemcpy(src, srcHost, bytes, cudaMemcpyHostToDevice),
+                  "uploadSource", err, len)
+                   ? 0
+                   : 1;
+    }
+
+    int fetch(int which, int firstComp, int nComp_, char *err, int len) {
+        const size_t n = (size_t)nx * ny * neta;
+        const Real *from = slice[which == 0 ? cur : (which == 1 ? next : pred)];
+        Real *to = host[which < 0 || which > 2 ? 0 : which];
+        return ok(cudaMemcpy(to + firstComp * n, from + firstComp * n,
+                             sizeof(Real) * nComp_ * n,
+                             cudaMemcpyDeviceToHost),
+                  "fetch", err, len)
+                   ? 0
+                   : 1;
+    }
 
     int upload(char *err, int len) {
         if (!ok(cudaMemcpy(slice[cur], host[0], sliceBytes,
@@ -296,8 +335,8 @@ struct Device : public DeviceBase {
                    : 1;
     }
 
-    int step(const void *params, size_t bytes, int *flagsOut, char *err,
-             int len) {
+    int stage(const void *params, size_t bytes, int rk, int *flagsOut,
+              char *err, int len) {
         if (bytes != sizeof(StepParams<Real>)) {
             if (err) snprintf(err, len, "CUDA: StepParams size mismatch");
             return 1;
@@ -313,7 +352,7 @@ struct Device : public DeviceBase {
         if (!ok(cudaMemset(flags, 0, sizeof(int)), "cudaMemset", err, len))
             return 1;
         const int n = nx * ny * neta;
-        for (int rk = 0; rk < 2; rk++) {
+        {
             P.rkFlag = rk;
             const Real *sIn = slice[rk == 0 ? cur : pred];
             const Real *sPrev = slice[rk == 0 && viscous ? next : cur];
@@ -332,11 +371,11 @@ struct Device : public DeviceBase {
             if (viscous) {
                 cudaCellVisc<Real><<<blocks(n), kBlock>>>(
                     P, desc, table, sIn, sPrev, pIn, pCur, flux[0], flux[1],
-                    flux[2], wFace[0], wFace[1], wFace[2], sOut, flags);
+                    flux[2], wFace[0], wFace[1], wFace[2], src, sOut, flags);
             } else {
                 cudaCell<Real><<<blocks(n), kBlock>>>(
                     P, desc, table, sIn, sPrev, pIn, pCur, flux[0], flux[1],
-                    flux[2], sOut, flags);
+                    flux[2], src, sOut, flags);
             }
         }
         if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
@@ -344,9 +383,11 @@ struct Device : public DeviceBase {
         if (!ok(cudaMemcpy(&f, flags, sizeof(int), cudaMemcpyDeviceToHost),
                 "the step", err, len))
             return 1;
-        const int t = cur;
-        cur = next;
-        next = t;
+        if (rk == 1) {
+            const int t = cur;
+            cur = next;
+            next = t;
+        }
         *flagsOut = f;
         return 0;
     }
@@ -400,18 +441,27 @@ void *cudaState(void *dev, int which) { return get(dev)->state(which); }
 int cudaUpload(void *dev, char *err, int len) {
     return get(dev)->upload(err, len);
 }
-int cudaStep(
-    void *dev, const void *params, size_t bytes, int *flags, char *err,
-    int len) {
-    return get(dev)->step(params, bytes, flags, err, len);
+int cudaStage(
+    void *dev, const void *params, size_t bytes, int rk, int *flags,
+    char *err, int len) {
+    return get(dev)->stage(params, bytes, rk, flags, err, len);
+}
+void *cudaSource(void *dev) { return get(dev)->source(); }
+int cudaUploadSource(void *dev, char *err, int len) {
+    return get(dev)->uploadSource(err, len);
+}
+int cudaFetch(
+    void *dev, int which, int firstComp, int nComp, char *err, int len) {
+    return get(dev)->fetch(which, firstComp, nComp, err, len);
 }
 int cudaDownload(void *dev, char *err, int len) {
     return get(dev)->download(err, len);
 }
 
 const MusicDeviceApi kCudaApi = {
-    cudaCreate, cudaDestroy, cudaName, cudaResize, cudaSetEos,
-    cudaState,  cudaUpload,  cudaStep, cudaDownload,
+    cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
+    cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
+    cudaFetch,  cudaDownload,
 };
 
 }  // namespace

@@ -63,6 +63,9 @@ struct StepParams {
     Real bulk3Max, bulk3Width, bulk3TPeak, bulk3Lambda;
     Real bulk10Max, bulk10MaxMuB0p2, bulk10MaxMuB0p4, bulk10Tpeak,
         bulk10TpeakMuBCurv, bulk10WidthLow, bulk10WidthHigh;
+    // the stage adds the source terms qi_source (kNTJ components of the
+    // cells, computed by the host as in Advance::FirstRKStepT)
+    int hasSource;
 };
 
 template <typename Real>
@@ -145,9 +148,14 @@ struct Solver {
     MD_CONST const StepParams<Real> *P_;
     MD_CONST const EosDesc<Real> *d_;
     MD_GLOBAL const Real *tab;
+    // J^0 of the electric charge and the strangeness of the cell solved
+    // (set in velocityNewton): the 4D EoS depends on n_Q, n_S
+    Real J0Q_, J0S_;
 
-    MD_FN Real pressure(Real e, Real rhob) const {
-        return eosPressure(*d_, tab, e, rhob);
+    //! the pressure at e, n_B = rhob and n_{Q,S} = J0{Q,S} f, as the
+    //! solves of Reconst compute them
+    MD_FN Real pressure(Real e, Real rhob, Real f) const {
+        return eosPressure(*d_, tab, e, rhob, J0Q_ * f, J0S_ * f);
     }
 
     // Reconst::reconst_velocity_f
@@ -155,7 +163,7 @@ struct Solver {
         const Real epsilon = T00 - v * M;
         const Real temp = sqrt(Real(1) - v * v);
         const Real rhob = J0B * temp;
-        const Real p = pressure(epsilon, rhob);
+        const Real p = pressure(epsilon, rhob, temp);
         return v - M / (T00 + p);
     }
 
@@ -287,7 +295,7 @@ struct Solver {
         const Real v = sqrt(Real(1) - u0_inv * u0_inv);
         const Real epsilon = T00 - v * M;
         const Real rhob = J0B * u0_inv;
-        const Real p = pressure(epsilon, rhob);
+        const Real p = pressure(epsilon, rhob, u0_inv);
         const Real temp1 = Real(1) - K00 / ((T00 + p) * (T00 + p));
         return u0 - Real(1) / sqrt(temp1);
     }
@@ -370,13 +378,16 @@ struct Solver {
         const Real M = sqrt(K00);
         const Real T00 = q[0];
         const Real J0B = q[4], J0Q = q[5], J0S = q[6];
+        Solver<Real> s = *this;
+        s.J0Q_ = J0Q;
+        s.J0S_ = J0S;
         if (T00 < P_->absErr) return -2;
         if (T00 < M) return -1;
         Real vGuess = sqrt(Real(1) - Real(1) / (gpt.u[0] * gpt.u[0] + P_->absErr));
         if (pGuess > Real(0)) vGuess = M / (T00 + pGuess);
         Real v = Real(0);
-        int st = solveVFromGuess(vGuess, T00, M, J0B, v);
-        if (st == 0) st = solveVHybrid(vGuess, T00, M, J0B, v, flag);
+        int st = s.solveVFromGuess(vGuess, T00, M, J0B, v);
+        if (st == 0) st = s.solveVHybrid(vGuess, T00, M, J0B, v, flag);
         if (st == 0) return -1;
         Real u[4];
         u[0] = Real(1) / (sqrt(Real(1) - v * v) + v * P_->absErr);
@@ -386,7 +397,7 @@ struct Solver {
         Real rhos = J0S / u[0];
         if (v > P_->vCritical && epsilon > Real(1e-6)) {
             Real u0Sol = u[0];
-            if (solveU0Hybrid(u[0], T00, K00, M, J0B, u0Sol) == 1) {
+            if (s.solveU0Hybrid(u[0], T00, K00, M, J0B, u0Sol) == 1) {
                 u[0] = u0Sol;
                 epsilon =
                     T00 - sqrt((Real(1) - Real(1) / (u0Sol * u0Sol)) * K00);
@@ -406,7 +417,7 @@ struct Solver {
             eosOut->valid = true;
             p = eosOut->g.p;
         } else {
-            p = pressure(epsilon, rhob);
+            p = eosPressure(*d_, tab, epsilon, rhob, rhoq, rhos);
         }
         const Real fac = u[0] / (T00 + p);
         u[1] = q[1] * fac;
@@ -522,7 +533,7 @@ MD_FN void kernelPressure(
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *s, MD_GLOBAL Real *p,
     int i) {
     const int n = P.nx * P.ny * P.neta;
-    p[i] = eosPressure(d, tab, s[i], s[n + i]);
+    p[i] = eosPressure(d, tab, s[i], s[n + i], s[2 * n + i], s[3 * n + i]);
 }
 
 MD_FN int faceCount(int nx, int ny, int neta, int direction) {
@@ -699,8 +710,18 @@ MD_FN void cellRkAverage(
     }
 }
 
-//! Advance::FirstRKStepT (no sources, no viscous terms) with MakeDeltaQI
-//! and reconstructAndStore, for cell i
+//! the source part of Advance::FirstRKStepT: qi += qi_source dtau
+template <typename Real>
+MD_FN void cellAddSource(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *src, int i,
+    MD_THREAD Real *qi) {
+    if (!P.hasSource) return;
+    const int n = P.nx * P.ny * P.neta;
+    for (int a = 0; a < 7; a++) qi[a] += src[a * n + i] * P.dtau;
+}
+
+//! Advance::FirstRKStepT (no viscous terms) with MakeDeltaQI and
+//! reconstructAndStore, for cell i
 template <typename Real>
 MD_FN void kernelCell(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
@@ -708,12 +729,13 @@ MD_FN void kernelCell(
     MD_GLOBAL const Real *sPrev, MD_GLOBAL const Real *pCurr,
     MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *fluxX,
     MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta,
-    MD_GLOBAL Real *sNext, int i, MD_FLAGS flags) {
+    MD_GLOBAL const Real *src, MD_GLOBAL Real *sNext, int i, MD_FLAGS flags) {
     const int n = P.nx * P.ny * P.neta;
     const Cell<Real> cellCurr = loadCell(sCurr, n, i);
     const Real pressure = pCurr[i];
     Real qi[7];
     cellQiFlux(P, sCurr, pCurr, fluxX, fluxY, fluxEta, i, qi);
+    cellAddSource(P, src, i, qi);
     cellRkAverage(P, sPrev, pPrev, i, qi);
     const Solver<Real> solver = {&P, &d, tab};
     int flag = 0;
@@ -726,7 +748,9 @@ MD_FN void kernelCell(
         const bool changed =
             (flag & (kFlagMomentumCap | kFlagRegulate | kFlagRevert)) != 0;
         const Real tauNext = P.tau + P.dtau;
-        const Real pOut = (changed ? eosPressure(d, tab, out.e, out.rhob) : Real(0));
+        const Real pOut =
+            (changed ? eosPressure(d, tab, out.e, out.rhob, out.rhoq, out.rhos)
+                     : Real(0));
         for (int a = 0; a < 7; a++) {
             sNext[(kNPrim + a) * n + i] =
                 (changed ? TJb(out, a, 0, pOut) * tauNext : qi[a]);

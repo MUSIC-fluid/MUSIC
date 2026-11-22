@@ -42,10 +42,11 @@ kernel void musicCell(
     device const float *fluxEta [[buffer(9)]],
     device float *sNext [[buffer(10)]],
     device metal::atomic_int *flags [[buffer(11)]],
+    device const float *src [[buffer(15)]],
     uint gid [[thread_position_in_grid]]) {
     if (int(gid) >= P.nx * P.ny * P.neta) return;
     kernelCell(P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta,
-               sNext, int(gid), flags);
+               src, sNext, int(gid), flags);
 }
 
 kernel void musicWFace(
@@ -71,8 +72,10 @@ kernel void musicCellVisc(
     device const float *wFaceX [[buffer(12)]],
     device const float *wFaceY [[buffer(13)]],
     device const float *wFaceEta [[buffer(14)]],
+    device const float *src [[buffer(15)]],
     uint gid [[thread_position_in_grid]]) {
     if (int(gid) >= P.nx * P.ny * P.neta) return;
     kernelCellVisc(P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY,
-                   fluxEta, wFaceX, wFaceY, wFaceEta, sNext, int(gid), flags);
+                   fluxEta, wFaceX, wFaceY, wFaceEta, src, sNext, int(gid),
+                   flags);
 }

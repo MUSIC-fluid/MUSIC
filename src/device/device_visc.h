@@ -1057,7 +1057,8 @@ struct ViscSolver {
              + Real(2.) * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
         Real pi_local = grid_pt.pi;
         Real bulksize = Real(3.) * pi_local * pi_local;
-        Real p_local = eosPressure(*d_, tab, e_local, rhob);
+        Real p_local =
+            eosPressure(*d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
         Real eq_size = e_local * e_local + Real(3.) * p_local * p_local;
         Real rho_shear = sqrt(pisize / eq_size) / factor;
         Real rho_bulk = sqrt(bulksize / eq_size) / factor_bulk;
@@ -1088,7 +1089,8 @@ struct ViscSolver {
     MD_FN void questRevertResummed(MD_THREAD VCell<Real> &grid_pt) const {
         Real e_local = grid_pt.c.e;
         Real rhob = grid_pt.c.rhob;
-        Real p_local = eosPressure(*d_, tab, e_local, rhob);
+        Real p_local =
+            eosPressure(*d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
         Real pi_00 = grid_pt.W[0];
         Real pi_01 = grid_pt.W[1];
         Real pi_02 = grid_pt.W[2];
@@ -1205,7 +1207,8 @@ struct ViscSolver {
 //! the cell loop of Advance::AdvanceIt (viscosity_flag = 1) for cell i.
 //! sCurr: the stage's slice; sPrev: arenaFieldsPrev (tau_{n-1} in the
 //! first stage, tau_n in the second); pCurr, pPrev their pressures; flux*:
-//! the ideal KT fluxes; wFace*: kernelWFace of the three directions
+//! the ideal KT fluxes; wFace*: kernelWFace of the three directions; src:
+//! the source terms (if P.hasSource)
 template <typename Real>
 MD_FN void kernelCellVisc(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
@@ -1214,8 +1217,8 @@ MD_FN void kernelCellVisc(
     MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *fluxX,
     MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta,
     MD_GLOBAL const Real *wFaceX, MD_GLOBAL const Real *wFaceY,
-    MD_GLOBAL const Real *wFaceEta, MD_GLOBAL Real *sNext, int i,
-    MD_FLAGS flags) {
+    MD_GLOBAL const Real *wFaceEta, MD_GLOBAL const Real *src,
+    MD_GLOBAL Real *sNext, int i, MD_FLAGS flags) {
     const int nx = P.nx, ny = P.ny, neta = P.neta;
     const int n = nx * ny * neta;
     const int ix = i % nx;
@@ -1313,6 +1316,7 @@ MD_FN void kernelCellVisc(
     for (int alpha = 0; alpha < 7; alpha++) {
         qi[alpha] -= dwmn[alpha] * (P.dtau);
     }
+    cellAddSource(P, src, i, qi);
     cellRkAverage(P, sPrev, pPrev, i, qi);
     const Solver<Real> solver = {&P, &d, tab};
     const Real pressure = pCurr[i];
@@ -1459,7 +1463,10 @@ MD_FN void kernelCellVisc(
         const bool changed =
             (flagUsed & (kFlagMomentumCap | kFlagRegulate | kFlagRevert)) != 0;
         const Real pOut =
-            (changed ? eosPressure(d, tab, next.c.e, next.c.rhob) : Real(0));
+            (changed ? eosPressure(
+                           d, tab, next.c.e, next.c.rhob, next.c.rhoq,
+                           next.c.rhos)
+                     : Real(0));
         for (int a = 0; a < 7; a++) {
             sNext[(kNPrim + a) * n + i] =
                 (changed ? TJb(next.c, a, 0, pOut) * tauNext : qiUsed[a]);

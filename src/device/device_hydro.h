@@ -20,7 +20,8 @@
 // Evolve calls when it changes the fields itself (beastMode regrid,
 // change of delta_tau).
 //
-// Supported, without source terms:
+// Supported, with or without source terms (evaluated on the host for each
+// RK stage from the u of the device slice, added on the device):
 //   ideal hydro (viscosity_flag 0) with EoS 0, 9, 91 and 10 - 14;
 //   viscous hydro (viscosity_flag 1) with shear and bulk, EoS 0, 9 and 91,
 //   without baryon diffusion, chemical bulk, FlagCausalityMethod = 1 and
@@ -39,6 +40,7 @@
 
 class EOS;
 class Fields;
+class HydroSourceBase;
 namespace music_device {
 template <typename Real>
 struct StepParams;
@@ -59,12 +61,20 @@ class Backend {
         const void *desc, size_t descBytes, const void *table,
         size_t tableBytes, std::string &err) = 0;
     //! which = 0: the current slice; 1: the previous one (tau_{n-1}, read
-    //! by the viscous update)
+    //! by the viscous update); 2: the predictor
     virtual void *state(int which) = 0;
     virtual bool upload(std::string &err) = 0;
-    virtual bool step(
-        const void *params, size_t paramBytes, int &flags,
+    //! one RK stage (rk = 0, 1) of the Heun step: see device_api.h
+    virtual bool stage(
+        const void *params, size_t paramBytes, int rk, int &flags,
         std::string &err) = 0;
+    //! the source terms of the next stage: kNTJ components of the cells
+    virtual void *source() = 0;
+    virtual bool uploadSource(std::string &err) = 0;
+    //! makes components [firstComp, firstComp + nComp) of slice which
+    //! current in state(which)
+    virtual bool fetch(
+        int which, int firstComp, int nComp, std::string &err) = 0;
     virtual bool download(std::string &err) = 0;
 };
 
@@ -72,10 +82,12 @@ class Backend {
 
 class DeviceHydro {
   public:
-    //! hasHydroSource: Advance adds source terms (not on the device)
+    //! source: the source terms Advance adds (null if none); the host
+    //! evaluates them for each RK stage, the device adds them
     DeviceHydro(
         const InitData &DATA, const EOS &eos, double absErr, double relErr,
-        int maxIter, double vCritical, bool hasHydroSource);
+        int maxIter, double vCritical,
+        std::shared_ptr<HydroSourceBase> source);
     ~DeviceHydro();
 
     //! the device advances the fluid
@@ -94,6 +106,7 @@ class DeviceHydro {
     const EOS &eos_;
     mutable pretty_ostream music_message;
     std::unique_ptr<music_device::Backend> backend_;
+    std::shared_ptr<HydroSourceBase> source_;
     bool float_ = false;
     bool viscous_ = false;
     bool storeQ_ = false;
@@ -105,13 +118,17 @@ class DeviceHydro {
     const Fields *lastPrev_ = nullptr;
     int nx_ = 0, ny_ = 0, neta_ = 0;
     int nSteps_ = 0;
-    double stepSeconds_ = 0., downloadSeconds_ = 0.;
+    double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
 
     // the EoS descriptor and pressure table, in the backend's precision
     std::vector<unsigned char> eosDesc_;
     std::vector<unsigned char> eosTable_;
 
-    std::string unsupportedReason(bool hasHydroSource) const;
+    std::string unsupportedReason() const;
+    //! qi_source of Advance::FirstRKStepT for every cell of the slice s at
+    //! tau_rk, into the backend's source buffer; false if all are zero
+    template <typename Real>
+    bool computeSource(const Real *s, double tauRk);
     bool buildEos(std::string &err);
     void upload(const Fields &curr, const Fields &prev, double tau);
     void download(Fields &arena) const;
@@ -122,7 +139,8 @@ class DeviceHydro {
     template <typename Real>
     void downloadT(Fields &arena, const Real *s) const;
     template <typename Real>
-    void fillParams(double tau, std::vector<unsigned char> &out) const;
+    void fillParams(
+        double tau, bool hasSource, std::vector<unsigned char> &out) const;
     [[noreturn]] void fail(const std::string &what) const;
 };
 

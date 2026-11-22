@@ -1670,8 +1670,11 @@ TEST_CASE("the 4D EoS pressure gradients match finite differences of P") {
 // ---------------------------------------------------------------------------
 
 namespace {
-//! a lumpy state with fast transverse and longitudinal flow, n_B, and a few
-//! nearly empty cells
+//! fillLumpyIdeal sets n_Q and n_S (for the 4D EoS) when true
+bool gLumpyQS = false;
+
+//! a lumpy state with fast transverse and longitudinal flow, n_B (and n_Q,
+//! n_S if gLumpyQS), and a few nearly empty cells
 void fillLumpyIdeal(Fields &arena) {
     for (int ieta = 0; ieta < arena.nEta(); ieta++)
         for (int iy = 0; iy < arena.nY(); iy++)
@@ -1682,8 +1685,9 @@ void fillLumpyIdeal(Fields &arena) {
                 arena.e_[idx] = 2. + 1.5 * s * c;
                 if ((ix + 2 * iy + ieta) % 11 == 0) arena.e_[idx] = 1e-7;
                 arena.rhob_[idx] = 0.3 + 0.2 * c;
-                arena.rhoq_[idx] = 0.;
-                arena.rhos_[idx] = 0.;
+                arena.rhoq_[idx] =
+                    (gLumpyQS ? 0.4 * arena.rhob_[idx] * (1. + 0.3 * s) : 0.);
+                arena.rhos_[idx] = (gLumpyQS ? 0.1 * arena.rhob_[idx] * c : 0.);
                 arena.u_[1][idx] = 1.6 * s;
                 arena.u_[2][idx] = -1.2 * c;
                 arena.u_[3][idx] = (arena.nEta() > 1 ? 0.4 * s * c : 0.);
@@ -1698,13 +1702,38 @@ void fillLumpyIdeal(Fields &arena) {
     arena.updateGhosts();
 }
 
+//! a smooth energy-momentum and n_B source that depends on the flow, as
+//! the string and AMPT sources do: on the device the host evaluates it
+//! with the u of each stage's slice (the predictor in the second)
+class FlowDependentSource : public HydroSourceBase {
+  public:
+    int get_number_of_sources() const { return (1); }
+    void get_hydro_energy_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+        const double g = 0.8 * std::exp(-0.3 * (x * x + y * y) - eta_s * eta_s)
+                         / tau;
+        j_mu[0] = g * (1. + 0.2 * u_mu[1] * u_mu[1]);
+        j_mu[1] = 0.3 * g * (u_mu[1] - 0.1 * x);
+        j_mu[2] = 0.3 * g * (u_mu[2] + 0.2 * y);
+        j_mu[3] = 0.1 * g * u_mu[3];
+    }
+    double get_hydro_rhob_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const {
+        return (0.05 * std::exp(-0.4 * (x * x + y * y)) * u_mu[0] / tau
+                * std::cos(eta_s));
+    }
+};
+
 //! steps Heun steps of the ideal update with gpu_backend = backend
 std::vector<double> runIdealSteps(
-    InitData DATA, int backend, int gpuFloat, int steps) {
+    InitData DATA, int backend, int gpuFloat, int steps,
+    std::shared_ptr<HydroSourceBase> source = nullptr, int eosId = 0) {
     DATA.gpu_backend = backend;
     DATA.gpu_float = gpuFloat;
-    EOS eos(0);
-    Evolve evolve(eos, DATA, nullptr);
+    EOS eos(eosId);
+    Evolve evolve(eos, DATA, source);
     Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
     fillLumpyIdeal(a);
     b = a;
@@ -1845,11 +1874,12 @@ void fillLumpyViscous(Fields &arena, bool prev) {
 
 //! e, n_B, u, W and Pi after steps Heun steps with gpu_backend = backend
 std::vector<double> runViscousSteps(
-    InitData DATA, int eosId, int backend, int gpuFloat, int steps) {
+    InitData DATA, int eosId, int backend, int gpuFloat, int steps,
+    std::shared_ptr<HydroSourceBase> source = nullptr) {
     DATA.gpu_backend = backend;
     DATA.gpu_float = gpuFloat;
     EOS eos(eosId);
-    Evolve evolve(eos, DATA, nullptr);
+    Evolve evolve(eos, DATA, source);
     Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
     fillLumpyViscous(a, false);
     fillLumpyViscous(b, true);
@@ -1980,4 +2010,100 @@ TEST_CASE("Device kernels reproduce the viscous update of Advance") {
             CHECK(relW < 1e-3);
         }
     }
+}
+
+TEST_CASE("Device kernels reproduce the update of Advance with sources") {
+    // the host evaluates the sources for each RK stage from the u of the
+    // device slice, the device adds them where FirstRKStepT does
+    auto source = std::make_shared<FlowDependentSource>();
+    for (int viscous = 0; viscous < 2; viscous++) {
+        for (int bi = 0; bi < 2; bi++) {
+            CAPTURE(viscous);
+            CAPTURE(bi);
+            InitData DATA = (viscous ? viscousDeviceParameters(bi == 1 ? 1 : 0)
+                                     : idealDeviceParameters(bi == 1, bi));
+            const auto run = [&](int backend, int gpuFloat,
+                                 std::shared_ptr<HydroSourceBase> src) {
+                return (viscous
+                            ? runViscousSteps(DATA, 0, backend, gpuFloat, 4, src)
+                            : runIdealSteps(DATA, backend, gpuFloat, 4, src));
+            };
+            const auto host = run(0, 0, source);
+            const auto dev = run(1, 0, source);
+            const auto noSource = run(0, 0, nullptr);
+            REQUIRE(host.size() == dev.size());
+            double maxDiff = 0., effect = 0.;
+            for (size_t i = 0; i < host.size(); i++) {
+                REQUIRE(std::isfinite(dev[i]));
+                maxDiff = std::max(maxDiff, std::abs(host[i] - dev[i]));
+                effect = std::max(effect, std::abs(host[i] - noSource[i]));
+            }
+            CAPTURE(maxDiff);
+            CAPTURE(effect);
+            CHECK(effect > 1e-3);  // the source changes the state
+            CHECK(maxDiff == 0.);
+            const auto devF = run(1, 1, source);
+            const size_t stride = (viscous ? 22 : 6);
+            double l1 = 0., norm = 0.;
+            for (size_t i = 0; i < host.size(); i += stride) {
+                l1 += std::abs(devF[i] - host[i]);
+                norm += std::abs(host[i]);
+            }
+            const double relL1 = l1 / norm;
+            CAPTURE(relL1);
+            CHECK(relL1 < 1e-5);
+        }
+    }
+}
+
+TEST_CASE("Device kernels reproduce the update of Advance with the 4D EoS") {
+    // EoS 20 on the device: the quadrilinear tables in float, as on the
+    // host, with n_Q and n_S in the state and a few dilute cells
+    const char *envPath = std::getenv("HYDROPROGRAMPATH");
+    const std::string table =
+        std::string(envPath ? envPath : ".") + "/EOS/neos4D/neos4d_p_b.dat";
+    if (!std::ifstream(table).good()) {
+        MESSAGE("skipped: no 4D EoS table at " << table);
+        return;
+    }
+    gLumpyQS = true;
+    for (int viscous = 0; viscous < 2; viscous++) {
+        for (int config = 0; config < 2; config++) {
+            CAPTURE(viscous);
+            CAPTURE(config);
+            const InitData DATA =
+                (viscous ? viscousDeviceParameters(config == 0 ? 0 : 3)
+                         : idealDeviceParameters(config == 1, config));
+            const auto run = [&](int backend, int gpuFloat) {
+                return (viscous
+                            ? runViscousSteps(DATA, 20, backend, gpuFloat, 4)
+                            : runIdealSteps(
+                                  DATA, backend, gpuFloat, 4, nullptr, 20));
+            };
+            const auto host = run(0, 0);
+            const auto dev = run(1, 0);
+            REQUIRE(host.size() == dev.size());
+            int nDiff = 0;
+            double maxDiff = 0.;
+            for (size_t i = 0; i < host.size(); i++) {
+                REQUIRE(std::isfinite(dev[i]));
+                if (host[i] != dev[i]) nDiff++;
+                maxDiff = std::max(maxDiff, std::abs(host[i] - dev[i]));
+            }
+            CAPTURE(nDiff);
+            CAPTURE(maxDiff);
+            CHECK(nDiff == 0);
+            const auto devF = run(1, 1);
+            const size_t stride = (viscous ? 22 : 6);
+            double l1 = 0., norm = 0.;
+            for (size_t i = 0; i < host.size(); i += stride) {
+                l1 += std::abs(devF[i] - host[i]);
+                norm += std::abs(host[i]);
+            }
+            const double relE = l1 / norm;
+            CAPTURE(relE);
+            CHECK(relE < 1e-5);
+        }
+    }
+    gLumpyQS = false;
 }

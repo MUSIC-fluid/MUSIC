@@ -14,9 +14,14 @@
 // nComp components of nx ny neta cells: kNComp (device_ideal.h), or
 // kNCompVisc with the viscous update (device_visc.h), which also needs the
 // W face values. state(0) is a host-visible copy of the current slice,
-// state(1) of the previous one (read by the viscous update only):
-// upload() makes them the device state, step() advances it by one Heun
-// step (two RK stages), download() makes state(0) the new current slice. On Apple's unified
+// state(1) of the previous one (read by the viscous update only) and
+// state(2) of the predictor: upload() makes the first two the device
+// state; stage(0) and stage(1) are the two RK stages of a Heun step, after
+// which the new slice is the current one; download() makes state(0) the
+// new current slice. Between the stages fetch() makes components of a
+// slice visible in its state() copy (the host reads u of the predictor
+// for the source terms), and the host may fill source() (kNTJ components
+// of the cells) and send it with uploadSource() for the next stage. On Apple's unified
 // memory state() is the device buffer itself and upload/download copy
 // nothing. Functions returning int return 0 on success; on failure they
 // write a message to err.
@@ -45,12 +50,17 @@ typedef struct MusicDeviceApi {
         size_t tableBytes, char *err, int errLen);
     void *(*state)(void *dev, int which);
     int (*upload)(void *dev, char *err, int errLen);
-    // params: StepParams<Real> of the first stage (rkFlag is set inside;
-    // nComp selects the ideal or the viscous update); flags: the OR of the
-    // DeviceFlags of both stages
-    int (*step)(
-        void *dev, const void *params, size_t paramBytes, int *flags,
+    // params: StepParams<Real> (rkFlag is set to rk inside; nComp selects
+    // the ideal or the viscous update, hasSource the source terms); flags:
+    // the DeviceFlags of the stage
+    int (*stage)(
+        void *dev, const void *params, size_t paramBytes, int rk, int *flags,
         char *err, int errLen);
+    void *(*source)(void *dev);
+    int (*uploadSource)(void *dev, char *err, int errLen);
+    int (*fetch)(
+        void *dev, int which, int firstComp, int nComp, char *err,
+        int errLen);
     int (*download)(void *dev, char *err, int errLen);
 } MusicDeviceApi;
 

@@ -11,10 +11,9 @@
 //
 // The buffers are in shared storage: on Apple's unified memory state(0)
 // and state(1) are the device buffers of the current and the previous
-// slice, and upload/download copy nothing. One Heun step (two stages of
-// pressure, three face (and with the viscous update three W face) and one
-// cell dispatch) is one command buffer; a serial compute encoder orders
-// the dispatches.
+// slice, and upload/download copy nothing. One RK stage (pressure, three
+// face (and with the viscous update three W face) and one cell dispatch)
+// is one command buffer; a serial compute encoder orders the dispatches.
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -44,6 +43,8 @@ enum {
     id<MTLBuffer> pCur, pPred;
     id<MTLBuffer> flux[3];
     id<MTLBuffer> wFace[3];  // viscous update only
+    id<MTLBuffer> src;       // the source terms, kNTJ components
+    id<MTLCommandBuffer> pending;  // the first stage, in flight
     id<MTLBuffer> eosDesc, eosTable, flags;
     int cur, pred, next;
     int nx, ny, neta, nComp;
@@ -177,6 +178,14 @@ static int metalResize(
             }
             memset([m->slice[k] contents], 0, sizeof(float) * nComp * n);
         }
+        m->pending = nil;
+        m->src = [m->dev newBufferWithLength:sizeof(float) * kMetalNTJ * n
+                                     options:shared];
+        if (m->src == nil) {
+            setErr(err, errLen, "out of device memory", nil);
+            return 1;
+        }
+        memset([m->src contents], 0, sizeof(float) * kMetalNTJ * n);
         m->pCur = [m->dev newBufferWithLength:sizeof(float) * n options:shared];
         m->pPred = [m->dev newBufferWithLength:sizeof(float) * n
                                        options:shared];
@@ -222,7 +231,8 @@ static int metalSetEos(
 
 static void *metalState(void *dev, int which) {
     MusicMetalDevice *m = get(dev);
-    return [m->slice[which == 0 ? m->cur : m->next] contents];
+    const int k = (which == 0 ? m->cur : (which == 1 ? m->next : m->pred));
+    return [m->slice[k] contents];
 }
 
 static int metalNoCopy(void *dev, char *err, int errLen) {
@@ -242,75 +252,93 @@ static void dispatch(
         threadsPerThreadgroup:MTLSizeMake(tg, 1, 1)];
 }
 
-static int metalStep(
-    void *dev, const void *params, size_t paramBytes, int *flags, char *err,
-    int errLen) {
+//! waits for the stage in flight (if any)
+static int waitPending(MusicMetalDevice *m, char *err, int errLen) {
+    if (m->pending == nil) return 0;
+    id<MTLCommandBuffer> cb = m->pending;
+    m->pending = nil;
+    [cb waitUntilCompleted];
+    if (cb.error != nil) {
+        setErr(err, errLen, "the step failed", cb.error);
+        return 1;
+    }
+    return 0;
+}
+
+//! one RK stage as one command buffer. The first stage is committed
+//! without waiting (the queue runs the second after it); fetch() and the
+//! second stage wait.
+static int metalStage(
+    void *dev, const void *params, size_t paramBytes, int rk, int *flags,
+    char *err, int errLen) {
     @autoreleasepool {
         MusicMetalDevice *m = get(dev);
         if (paramBytes > 1024) {
             setErr(err, errLen, "StepParams too large", nil);
             return 1;
         }
-        unsigned char P[2][1024];
-        for (int rk = 0; rk < 2; rk++) {
-            memcpy(P[rk], params, paramBytes);
-            memcpy(P[rk] + MUSIC_DEVICE_RKFLAG_OFFSET, &rk, sizeof(int));
-        }
+        unsigned char P[1024];
+        memcpy(P, params, paramBytes);
+        memcpy(P + MUSIC_DEVICE_RKFLAG_OFFSET, &rk, sizeof(int));
         const bool viscous = (m->nComp == kMetalNCompVisc);
-        memset([m->flags contents], 0, sizeof(int));
+        if (rk == 0) {
+            if (waitPending(m, err, errLen)) return 1;
+            memset([m->flags contents], 0, sizeof(int));
+        }
         const int n = m->nx * m->ny * m->neta;
         id<MTLCommandBuffer> cb = [m->queue commandBuffer];
         id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
         [enc setBuffer:m->eosDesc offset:0 atIndex:1];
         [enc setBuffer:m->eosTable offset:0 atIndex:2];
-        for (int rk = 0; rk < 2; rk++) {
-            id<MTLBuffer> sIn = m->slice[rk == 0 ? m->cur : m->pred];
-            // the second stage averages with tau_n; the viscous update of
-            // the first stage takes its time derivatives against tau_{n-1}
-            id<MTLBuffer> sPrev =
-                m->slice[rk == 0 && viscous ? m->next : m->cur];
-            id<MTLBuffer> sOut = m->slice[rk == 0 ? m->pred : m->next];
-            id<MTLBuffer> pIn = (rk == 0 ? m->pCur : m->pPred);
-            [enc setBytes:P[rk] length:paramBytes atIndex:0];
-            // the pressure of the stage's input slice
-            [enc setBuffer:sIn offset:0 atIndex:3];
-            [enc setBuffer:pIn offset:0 atIndex:4];
-            dispatch(enc, m->psPressure, n);
-            // the faces
-            [enc setBuffer:m->flags offset:0 atIndex:6];
-            for (int d = 1; d <= 3; d++) {
-                const int nf = faceCount(m->nx, m->ny, m->neta, d);
-                [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
-                [enc setBytes:&d length:sizeof(int) atIndex:7];
-                dispatch(enc, m->psFace, nf);
-                if (viscous) {
-                    [enc setBuffer:m->wFace[d - 1] offset:0 atIndex:5];
-                    dispatch(enc, m->psWFace, nf);
-                }
-            }
-            // the cells
-            [enc setBuffer:sPrev offset:0 atIndex:4];
-            [enc setBuffer:pIn offset:0 atIndex:5];
-            [enc setBuffer:m->pCur offset:0 atIndex:6];
-            for (int d = 0; d < 3; d++)
-                [enc setBuffer:m->flux[d] offset:0 atIndex:7 + d];
-            [enc setBuffer:sOut offset:0 atIndex:10];
-            [enc setBuffer:m->flags offset:0 atIndex:11];
+        id<MTLBuffer> sIn = m->slice[rk == 0 ? m->cur : m->pred];
+        // the second stage averages with tau_n; the viscous update of the
+        // first stage takes its time derivatives against tau_{n-1}
+        id<MTLBuffer> sPrev = m->slice[rk == 0 && viscous ? m->next : m->cur];
+        id<MTLBuffer> sOut = m->slice[rk == 0 ? m->pred : m->next];
+        id<MTLBuffer> pIn = (rk == 0 ? m->pCur : m->pPred);
+        [enc setBytes:P length:paramBytes atIndex:0];
+        // the pressure of the stage's input slice
+        [enc setBuffer:sIn offset:0 atIndex:3];
+        [enc setBuffer:pIn offset:0 atIndex:4];
+        dispatch(enc, m->psPressure, n);
+        // the faces
+        [enc setBuffer:m->flags offset:0 atIndex:6];
+        for (int d = 1; d <= 3; d++) {
+            const int nf = faceCount(m->nx, m->ny, m->neta, d);
+            [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
+            [enc setBytes:&d length:sizeof(int) atIndex:7];
+            dispatch(enc, m->psFace, nf);
             if (viscous) {
-                for (int d = 0; d < 3; d++)
-                    [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
-                dispatch(enc, m->psCellVisc, n);
-            } else {
-                dispatch(enc, m->psCell, n);
+                [enc setBuffer:m->wFace[d - 1] offset:0 atIndex:5];
+                dispatch(enc, m->psWFace, nf);
             }
+        }
+        // the cells
+        [enc setBuffer:sPrev offset:0 atIndex:4];
+        [enc setBuffer:pIn offset:0 atIndex:5];
+        [enc setBuffer:m->pCur offset:0 atIndex:6];
+        for (int d = 0; d < 3; d++)
+            [enc setBuffer:m->flux[d] offset:0 atIndex:7 + d];
+        [enc setBuffer:sOut offset:0 atIndex:10];
+        [enc setBuffer:m->flags offset:0 atIndex:11];
+        [enc setBuffer:m->src offset:0 atIndex:15];
+        if (viscous) {
+            for (int d = 0; d < 3; d++)
+                [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
+            dispatch(enc, m->psCellVisc, n);
+        } else {
+            dispatch(enc, m->psCell, n);
         }
         [enc endEncoding];
         [cb commit];
-        [cb waitUntilCompleted];
-        if (cb.error != nil) {
-            setErr(err, errLen, "the step failed", cb.error);
-            return 1;
+        *flags = 0;
+        if (rk == 0) {
+            m->pending = cb;
+            return 0;
         }
+        // the second stage: wait for both, then the new slice is current
+        m->pending = cb;
+        if (waitPending(m, err, errLen)) return 1;
         const int t = m->cur;
         m->cur = m->next;
         m->next = t;
@@ -319,9 +347,21 @@ static int metalStep(
     }
 }
 
+static void *metalSource(void *dev) { return [get(dev)->src contents]; }
+
+static int metalFetch(
+    void *dev, int which, int firstComp, int nComp, char *err, int errLen) {
+    (void)which;
+    (void)firstComp;
+    (void)nComp;
+    // shared memory: only wait for the stage in flight
+    return waitPending(get(dev), err, errLen);
+}
+
 static const MusicDeviceApi kMetalApi = {
     metalCreate, metalDestroy, metalName,   metalResize, metalSetEos,
-    metalState,  metalNoCopy,  metalStep,   metalNoCopy,
+    metalState,  metalNoCopy,  metalStage,  metalSource, metalNoCopy,
+    metalFetch,  metalNoCopy,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

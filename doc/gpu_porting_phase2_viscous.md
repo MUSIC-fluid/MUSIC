@@ -166,6 +166,6 @@ The CPU code ran on 10 threads (g++-15 -O3). Metal repeated to 1%.
 
 1. Baryon diffusion (`Make_uqSource`, QuestRevert_qmu, the μ_B/T gradients) and the chemical bulk pressure.
 2. Viscous hydro with NEOS: μ_B, μ_Q, μ_S and the table densities in `eosThermal`.
-3. Source terms (TATB, strings) as per-step device input.
+3. Source terms (TATB, strings) as per-step device input. Done, with the 4D EoS: see [gpu_porting_phase3_sources_eos4d.md](gpu_porting_phase3_sources_eos4d.md).
 4. Fewer host copies: download only on output and freeze-out steps (W makes the copy 2× larger).
 5. CUDA validation and timing on NVIDIA hardware.
