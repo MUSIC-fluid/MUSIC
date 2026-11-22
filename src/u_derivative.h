@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <iostream>
+#include <vector>
 
 #include "cell.h"
 #include "data.h"
@@ -36,9 +37,17 @@ class U_derivative {
     //! energy density eps [1/fm^4]: 1 below Du_from_ideal_EoM_e_dilute, 0
     //! above 5 times it (backward time difference), linear in log(eps)
     static double idealEoMWeight(const InitData &DATA, const double eps);
+    //! pressure (optional): the pressure of every cell of arenaFieldsCurr,
+    //! ghost cells included, as get_pressure gives it; used for the
+    //! gradient of P (Du_from_ideal_EoM = 1) instead of new EoS lookups.
+    //! withMuDerivative = false skips D^tau(mu_B/T) (and T) when neither
+    //! baryon diffusion nor the vorticity outputs use them: then
+    //! get_DmuMuBoverTVec returns zero for its tau component
     void MakedU(
         const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-        const int fieldIdx, const int ix, const int iy, const int ieta);
+        const int fieldIdx, const int ix, const int iy, const int ieta,
+        const std::vector<double> *pressure = nullptr,
+        const bool withMuDerivative = true);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(
@@ -79,11 +88,13 @@ class U_derivative {
 
     int MakeDSpatial(
         const double tau, Fields &arena, const int fieldIdx, const int ix,
-        const int iy, const int ieta);
+        const int iy, const int ieta,
+        const std::vector<double> *pressure = nullptr);
 
     int MakeDTau(
         const double tau, const Fields &arenaFieldsPrev,
-        const Fields &arenaFieldsCurr, const int fieldIdx);
+        const Fields &arenaFieldsCurr, const int fieldIdx,
+        const bool withMuDerivative = true);
 
     //! this function computes the thermal shear tensor
     void calculate_thermal_shear_tensor(

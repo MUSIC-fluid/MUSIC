@@ -100,6 +100,11 @@ int Evolve::EvolveIt(
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
     int NtauBlock = 192;
+    // the ghost cells of all fields follow from their interiors. AdvanceIt
+    // updates them for every slice it writes, and the others are copies
+    // or older slices, so they only need an update after the initial state
+    // and after the fields are remapped (beastMode)
+    bool ghostsStale = true;
     while (tau < tauMax) {
         const std::vector<Fields *> allFields = {
             fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
@@ -124,6 +129,7 @@ int Evolve::EvolveIt(
                 if (coarsenGrid) {
                     regridTransverse(allFields, 0., true);
                 }
+                ghostsStale = true;
                 // the previous slices are one old time step behind; shift
                 // them to tau - delta_tau_new so that backward time
                 // derivatives (curr - prev)/delta_tau stay consistent
@@ -155,6 +161,7 @@ int Evolve::EvolveIt(
             const double padding = std::max(
                 DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
             regridTransverse(allFields, padding, false);
+            ghostsStale = true;
             music_message << "BeastMode: enlarged the grid by " << padding
                           << " fm on each side, nx = " << DATA.nx
                           << ", ny = " << DATA.ny
@@ -163,7 +170,10 @@ int Evolve::EvolveIt(
             music_message.flush("info");
         }
         // the freeze-out and output stencils read past the grid edge
-        for (Fields *field : allFields) field->updateGhosts();
+        if (ghostsStale) {
+            for (Fields *field : allFields) field->updateGhosts();
+            ghostsStale = false;
+        }
 
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
@@ -778,7 +788,9 @@ void Evolve::AdvanceRK(
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        advance.AdvanceIt(tau, *fpPrev, *fpCurr, *fpNext, rk_flag);
+        // fpCurr is up to date: from the ghost update of EvolveIt or as
+        // the slice the previous AdvanceIt wrote
+        advance.AdvanceIt(tau, *fpPrev, *fpCurr, *fpNext, rk_flag, true);
         if (rk_flag == 0) {
             Fields *temp2 = fpPrev;
             fpPrev = fpCurr;

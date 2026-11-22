@@ -60,8 +60,8 @@ class Advance {
         const double theta_local, const DumuVec &a_local,
         const VelocityShearVec &sigma_local, const VorticityVec &omega_local,
         const DmuMuBoverTVec &baryon_diffusion_vector,
-        const std::array<double, 10> &w_rhs, const int ieta, const int ix,
-        const int iy, const int fieldIdx);
+        const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
+        const int ieta, const int ix, const int iy, const int fieldIdx);
 
     //! the viscous part of T^{tau alpha} (alpha < 4) and J^tau (alpha = 4)
     //! that enters the time derivative in Diss::MakeWSource
@@ -78,9 +78,13 @@ class Advance {
         const EOS &eosIn, const InitData &DATA_in,
         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
+    //! currGhostsValid: the ghost cells of arenaFieldsCurr are already up
+    //! to date (Evolve keeps them so), else AdvanceIt updates them first.
+    //! AdvanceIt always updates the ghost cells of arenaFieldsNext.
     void AdvanceIt(
         const double tau_init, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-        Fields &arenaFieldsNext, const int rk_flag);
+        Fields &arenaFieldsNext, const int rk_flag,
+        const bool currGhostsValid = false);
 
     void FirstRKStepT(
         const double tau, const double x_local, const double y_local,
@@ -99,8 +103,8 @@ class Advance {
         const DumuVec &a_local, const VelocityShearVec &sigma_local,
         const VorticityVec &omega_local,
         const DmuMuBoverTVec &baryon_diffusion_vector,
-        const std::array<double, 10> &w_rhs, const int ieta, const int ix,
-        const int iy, const int fieldIdx);
+        const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
+        const int ieta, const int ix, const int iy, const int fieldIdx);
 
     void QuestRevertResummedTransCoeff(Cell_small &grid_pt);
     void QuestRevert(

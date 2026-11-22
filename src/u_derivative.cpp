@@ -18,16 +18,17 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn)
 //! This function is a shell function to calculate parital^\nu u^\mu
 void U_derivative::MakedU(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-    const int fieldIdx, const int ix, const int iy, const int ieta) {
+    const int fieldIdx, const int ix, const int iy, const int ieta,
+    const std::vector<double> *pressure, const bool withMuDerivative) {
     dUsup = {{{0.0}}};
     dUoverTsup = {{{0.0}}};
     dUTsup = {{{0.0}}};
     dPsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
-    MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta);
+    MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta, pressure);
     // this calculates du/dtau
-    MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx);
+    MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, withMuDerivative);
     if (DATA.Du_from_ideal_EoM == 1) {
         MakeDTauIdealEoM(tau, arenaFieldsCurr, fieldIdx);
     }
@@ -465,7 +466,7 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 
 int U_derivative::MakeDSpatial(
     const double tau, Fields &arena, const int fieldIdx, const int ix,
-    const int iy, const int ieta) {
+    const int iy, const int ieta, const std::vector<double> *pressure) {
     // taken care of the tau factor
     const double delta[4] = {
         0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
@@ -512,6 +513,7 @@ int U_derivative::MakeDSpatial(
 
             if (DATA.Du_from_ideal_EoM == 1) {
                 auto pressureAt = [&](const int I) {
+                    if (pressure != nullptr) return ((*pressure)[I]);
                     return (eos.get_pressure(
                         arena.e_[I], arena.rhob_[I], arena.rhoq_[I],
                         arena.rhos_[I]));
@@ -643,7 +645,8 @@ void U_derivative::MakeDTauIdealEoM(
 
 int U_derivative::MakeDTau(
     const double tau, const Fields &arenaFieldsPrev,
-    const Fields &arenaFieldsCurr, const int fieldIdx) {
+    const Fields &arenaFieldsCurr, const int fieldIdx,
+    const bool withMuDerivative) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
 
@@ -657,9 +660,12 @@ int U_derivative::MakeDTau(
     const double rhoq_prev = arenaFieldsPrev.rhoq_[fieldIdx];
     const double rhos_prev = arenaFieldsPrev.rhos_[fieldIdx];
 
-    const double T = eos.get_temperature(eps, rhob, rhoq, rhos);
+    // T is only needed for the vorticity outputs and D^tau(mu_B/T)
+    const bool needT = (withMuDerivative || DATA.output_vorticity == 1);
+    const double T = needT ? eos.get_temperature(eps, rhob, rhoq, rhos) : 0.;
     const double T_prev =
-        eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
+        needT ? eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev)
+              : 0.;
 
     for (int m = 0; m < 4; m++) {
         // first order is more stable
@@ -695,6 +701,7 @@ int U_derivative::MakeDTau(
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)
+    if (!withMuDerivative) return 1;  // dUsup[4][0] stays zero
     int m = 4;
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob, rhoq, rhos);

@@ -50,12 +50,12 @@ Advance::Advance(
 //! this function evolves one Runge-Kutta step in tau
 void Advance::AdvanceIt(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-    Fields &arenaFieldsNext, const int rk_flag) {
+    Fields &arenaFieldsNext, const int rk_flag, const bool currGhostsValid) {
     const int grid_neta = arenaFieldsCurr.nEta();
     const int grid_nx = arenaFieldsCurr.nX();
     const int grid_ny = arenaFieldsCurr.nY();
 
-    arenaFieldsCurr.updateGhosts();
+    if (!currGhostsValid) arenaFieldsCurr.updateGhosts();
     computePressure(arenaFieldsCurr, pressureCurr_);
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
@@ -89,9 +89,11 @@ void Advance::AdvanceIt(
                     // Christoffel terms, tau delta_eta)
                     const double tau_rk = tau + rk_flag * DATA.delta_tau;
                     U_derivative u_derivative_helper(DATA, eos);
+                    // the pressure of arenaFieldsCurr is in pressureCurr_;
+                    // D^tau(mu_B/T) only enters the baryon diffusion
                     u_derivative_helper.MakedU(
                         tau_rk, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix,
-                        iy, ieta);
+                        iy, ieta, &pressureCurr_, DATA.turn_on_diff == 1);
                     double theta_local =
                         u_derivative_helper.calculate_expansion_rate(
                             tau_rk, arenaFieldsCurr, fieldIdx);
@@ -122,17 +124,28 @@ void Advance::AdvanceIt(
                         tau_rk, arenaFieldsCurr, fieldIdx, wFluxDiv_, w_rhs,
                         theta_local, a_local);
 
+                    // the W sources are evaluated at the stage's own state
+                    // (arenaFieldsCurr), which the stage-2 fixed point does
+                    // not change: look its thermal variables up once
+                    ThermalVec thermalVec;
+                    eos.getThermalVariables(
+                        arenaFieldsCurr.e_[fieldIdx],
+                        arenaFieldsCurr.rhob_[fieldIdx],
+                        arenaFieldsCurr.rhoq_[fieldIdx],
+                        arenaFieldsCurr.rhos_[fieldIdx], thermalVec);
+
                     FirstRKStepW(
                         tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
                         rk_flag, theta_local, a_local, sigma_local, omega_local,
-                        baryon_diffusion_vector, w_rhs, ieta, ix, iy, fieldIdx);
+                        baryon_diffusion_vector, w_rhs, thermalVec, ieta, ix,
+                        iy, fieldIdx);
 
                     if (rk_flag == 1) {
                         stage2ViscousFixedPoint(
                             tau, arenaFieldsPrev, arenaFieldsCurr,
                             arenaFieldsNext, qiFinal, theta_local, a_local,
                             sigma_local, omega_local, baryon_diffusion_vector,
-                            w_rhs, ieta, ix, iy, fieldIdx);
+                            w_rhs, thermalVec, ieta, ix, iy, fieldIdx);
                     }
                 }
             }
@@ -165,8 +178,8 @@ void Advance::stage2ViscousFixedPoint(
     const DumuVec &a_local, const VelocityShearVec &sigma_local,
     const VorticityVec &omega_local,
     const DmuMuBoverTVec &baryon_diffusion_vector,
-    const std::array<double, 10> &w_rhs, const int ieta, const int ix,
-    const int iy, const int fieldIdx) {
+    const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
+    const int ieta, const int ix, const int iy, const int fieldIdx) {
     const double tau_next = tau + DATA.delta_tau;
     const double tau_np2 = tau + 2. * DATA.delta_tau;
     const auto guess = arenaFieldsCurr.getCellIdeal(fieldIdx);
@@ -180,7 +193,7 @@ void Advance::stage2ViscousFixedPoint(
         FirstRKStepW(
             tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext, 1,
             theta_local, a_local, sigma_local, omega_local,
-            baryon_diffusion_vector, w_rhs, ieta, ix, iy, fieldIdx);
+            baryon_diffusion_vector, w_rhs, thermalVec, ieta, ix, iy, fieldIdx);
     };
 
     TJbVec shift = {0.};  // the state in arenaFieldsNext has this shift
@@ -367,8 +380,8 @@ void Advance::FirstRKStepW(
     const DumuVec &a_local, const VelocityShearVec &sigma_local,
     const VorticityVec &omega_local,
     const DmuMuBoverTVec &baryon_diffusion_vector,
-    const std::array<double, 10> &w_rhs, const int ieta, const int ix,
-    const int iy, const int fieldIdx) {
+    const std::array<double, 10> &w_rhs, const ThermalVec &thermalVec,
+    const int ieta, const int ix, const int iy, const int fieldIdx) {
     auto grid_c = arenaFieldsCurr.getCell(fieldIdx);
     auto grid_f = arenaFieldsNext.getCell(fieldIdx);
 
@@ -389,10 +402,8 @@ void Advance::FirstRKStepW(
 
     // the sources are evaluated at the stage's own state (the predictor in
     // the second RK stage), like theta, sigma and Du; the transport
-    // coefficients of tau_n there made the scheme first order in dtau
-    ThermalVec thermalVec;
-    eos.getThermalVariables(
-        grid_c.epsilon, grid_c.rhob, grid_c.rhoq, grid_c.rhos, thermalVec);
+    // coefficients of tau_n there made the scheme first order in dtau.
+    // thermalVec: the thermal variables of grid_c, from the caller
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
