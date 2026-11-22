@@ -20,8 +20,12 @@
 // Evolve calls when it changes the fields itself (beastMode regrid,
 // change of delta_tau).
 //
-// Supported: ideal hydro (viscosity_flag 0) without source terms, EoS 0,
-// 9, 91 and 10 - 14. Otherwise the CPU code runs and a warning says why.
+// Supported, without source terms:
+//   ideal hydro (viscosity_flag 0) with EoS 0, 9, 91 and 10 - 14;
+//   viscous hydro (viscosity_flag 1) with shear and bulk, EoS 0, 9 and 91,
+//   without baryon diffusion, chemical bulk, FlagCausalityMethod = 1 and
+//   the transport coefficients from files (type 23).
+// Otherwise the CPU code runs and a warning says why.
 
 #ifndef SRC_DEVICE_DEVICE_HYDRO_H_
 #define SRC_DEVICE_DEVICE_HYDRO_H_
@@ -35,6 +39,10 @@
 
 class EOS;
 class Fields;
+namespace music_device {
+template <typename Real>
+struct StepParams;
+}
 
 namespace music_device {
 
@@ -44,11 +52,15 @@ class Backend {
     virtual ~Backend() {}
     virtual std::string name() const = 0;
     virtual int realSize() const = 0;
-    virtual bool resize(int nx, int ny, int neta, std::string &err) = 0;
+    //! nComp: kNComp, or kNCompVisc for the viscous update
+    virtual bool resize(
+        int nx, int ny, int neta, int nComp, std::string &err) = 0;
     virtual bool setEos(
         const void *desc, size_t descBytes, const void *table,
         size_t tableBytes, std::string &err) = 0;
-    virtual void *state() = 0;
+    //! which = 0: the current slice; 1: the previous one (tau_{n-1}, read
+    //! by the viscous update)
+    virtual void *state(int which) = 0;
     virtual bool upload(std::string &err) = 0;
     virtual bool step(
         const void *params, size_t paramBytes, int &flags,
@@ -83,12 +95,14 @@ class DeviceHydro {
     mutable pretty_ostream music_message;
     std::unique_ptr<music_device::Backend> backend_;
     bool float_ = false;
+    bool viscous_ = false;
     bool storeQ_ = false;
     double absErr_, relErr_, vCritical_;
     int maxIter_;
 
     bool valid_ = false;
     const Fields *lastCurr_ = nullptr;
+    const Fields *lastPrev_ = nullptr;
     int nx_ = 0, ny_ = 0, neta_ = 0;
     int nSteps_ = 0;
     double stepSeconds_ = 0., downloadSeconds_ = 0.;
@@ -99,10 +113,12 @@ class DeviceHydro {
 
     std::string unsupportedReason(bool hasHydroSource) const;
     bool buildEos(std::string &err);
-    void upload(const Fields &arena, double tau);
+    void upload(const Fields &curr, const Fields &prev, double tau);
     void download(Fields &arena) const;
     template <typename Real>
     void uploadT(const Fields &arena, double tau, Real *s) const;
+    template <typename Real>
+    void fillViscParams(music_device::StepParams<Real> &P) const;
     template <typename Real>
     void downloadT(Fields &arena, const Real *s) const;
     template <typename Real>

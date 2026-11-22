@@ -1128,6 +1128,89 @@ def test_gpu_backend(r):
         report("Gubser Metal / CPU L1 error of " + name + " - 1",
                abs(errors[2][i] / errors[0][i] - 1.), 1e-2)
 
+def test_gpu_backend_viscous(r):
+    # the viscous update on the device: the lumpy 3D event with n_B, shear
+    # and bulk with the second-order terms (as lumpy_second_order), for the
+    # conformal EoS and hotQCD (9). Backend 1 against the CPU code as in
+    # gpu_backend (bit for bit with clang, g++ contracts differently);
+    # Metal in float: 8e-7 of E, and W / (e + P) and Pi in the cells above
+    # 0.1 GeV/fm^3 to 2e-6 (L1) at tau = 2 fm/c.
+    n, size = 41, 12.0
+    ncell = n * n * 17
+
+    def fields(wd):
+        e = np.loadtxt(os.path.join(wd, "evolution_xyeta.dat"))[-ncell:, 0]
+        W = np.loadtxt(os.path.join(
+            wd, "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat"))[-ncell:]
+        Pi = np.loadtxt(os.path.join(
+            wd, "evolution_bulk_pressure_xyeta.dat"))[-ncell:, 1]
+        return e, W, Pi
+
+    eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "..", "EOS")
+    limits = {1: 1e-6, 2: 1e-4}
+    have = {1: True, 2: True}
+    for eos, table in [(0, None), (9, "hotQCD")]:
+        if table and not os.path.isdir(os.path.join(eos_dir, table)):
+            print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
+            continue
+        res = {}
+        for backend in (0, 1, 2):
+            if not have.get(backend, True):
+                continue
+            wd = r.workdir("gpu_viscous_eos{}_{}".format(eos, backend))
+            _write_lumpy_TATB(wd, n, size)
+            if table:
+                os.symlink(eos_dir, os.path.join(wd, "EOS"))
+            params = tatb_params(n, size, 17, 10.0, 1.0, EOS_to_use=eos,
+                                 gpu_backend=backend)
+            params.update({
+                "Viscosity_Flag_Yes_1_No_0": 1,
+                "Include_Shear_Visc_Yes_1_No_0": 1,
+                "Shear_to_S_ratio": 0.12,
+                "Include_Bulk_Visc_Yes_1_No_0": 1,
+                "Include_second_order_terms": 1,
+                "output_evolution_data": 1,
+                "outputBinaryEvolution": 0,
+                "output_evolution_every_N_timesteps": 10,
+            })
+            log, _, t = r.run(wd, params)
+            if backend > 0 and "built without" in log:
+                print("    gpu_backend = {}: not in this build, skipped"
+                      .format(backend))
+                have[backend] = False
+                continue
+            if backend > 0:
+                check("hydro on the device" in log and "viscous" in log,
+                      "gpu_backend = {} fell back to the CPU code (EoS {})"
+                      .format(backend, eos))
+            res[backend] = (read_conservation(wd), t, fields(wd))
+        a = res[0][0]
+        e0, W0, Pi0 = res[0][2]
+        hot = e0 > 0.1  # GeV/fm^3
+        for backend in sorted(res):
+            c = res[backend][0]
+            print("    EoS {} gpu_backend {}: {:.1f} s, max |E/E0 - 1| "
+                  "{:.2e}".format(eos, backend, res[backend][1],
+                                  np.max(np.abs(c[:, 1] / c[0, 1] - 1))))
+            if backend == 0:
+                continue
+            check(len(c) == len(a), "backend {} wrote {} rows, the CPU code "
+                  "{}".format(backend, len(c), len(a)))
+            diff = np.max(np.abs(a[:, 1:] - c[:, 1:]) / np.abs(a[:, 1:2]))
+            report("EoS {} backend {} max |conservation diff| / E".format(
+                eos, backend), diff, limits[backend])
+            report("EoS {} backend {} max |E/E0 - 1|".format(eos, backend),
+                   np.max(np.abs(c[:, 1] / c[0, 1] - 1)), 2e-5)
+            _, W, Pi = res[backend][2]
+            report("EoS {} backend {} L1 |W/(e+P) diff| (hot cells)".format(
+                eos, backend), np.sum(np.abs(W[hot] - W0[hot]))
+                / np.sum(np.abs(W0[hot])), {1: 1e-5, 2: 1e-4}[backend])
+            report("EoS {} backend {} L1 |Pi diff| (hot cells)".format(
+                eos, backend), np.sum(np.abs(Pi[hot] - Pi0[hot]))
+                / np.sum(np.abs(Pi0[hot])), {1: 1e-5, 2: 1e-4}[backend])
+
+
 TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
@@ -1149,6 +1232,7 @@ TESTS = [
     ("tatb_source", test_tatb_source),
     ("memory_history", test_memory_history),
     ("gpu_backend", test_gpu_backend),
+    ("gpu_backend_viscous", test_gpu_backend_viscous),
 ]
 
 

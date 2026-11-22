@@ -1789,3 +1789,195 @@ TEST_CASE("Device kernels reproduce the ideal update of Advance") {
     }
 }
 
+
+namespace {
+//! the lumpy state of fillLumpyIdeal with a traceless, transverse
+//! W^{mu nu} and Pi of 10% of e; prev: the same with W, Pi and u changed
+//! by a few %, as the slice of the previous time step
+void fillLumpyViscous(Fields &arena, bool prev) {
+    fillLumpyIdeal(arena);
+    const double f = (prev ? 0.9 : 1.);
+    for (int ieta = 0; ieta < arena.nEta(); ieta++)
+        for (int iy = 0; iy < arena.nY(); iy++)
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, ieta);
+                const double s = std::sin(0.6 * ix - 0.9 * iy + 1.7 * ieta);
+                const double c = std::cos(1.4 * ix + 0.3 * iy - 0.8 * ieta);
+                const double e = arena.e_[idx];
+                double *u[4];
+                for (int k = 0; k < 4; k++) u[k] = &arena.u_[k][idx];
+                if (prev) {
+                    *u[1] *= 0.97;
+                    *u[2] *= 1.02;
+                    *u[3] *= 0.95;
+                    *u[0] = std::sqrt(
+                        1. + (*u[1]) * (*u[1]) + (*u[2]) * (*u[2])
+                        + (*u[3]) * (*u[3]));
+                }
+                double W[14] = {0.};
+                W[4] = 0.08 * e * s * f;
+                W[5] = 0.05 * e * c * f;
+                W[6] = 0.03 * e * s * c * f;
+                W[7] = -0.06 * e * c * f;
+                W[8] = 0.02 * e * s * f;
+                const double u0sq = (*u[0]) * (*u[0]);
+                W[9] = ((2.
+                             * ((*u[1]) * (*u[2]) * W[5]
+                                + (*u[1]) * (*u[3]) * W[6]
+                                + (*u[2]) * (*u[3]) * W[8])
+                         - (u0sq - (*u[1]) * (*u[1])) * W[4]
+                         - (u0sq - (*u[2]) * (*u[2])) * W[7])
+                        / (u0sq - (*u[3]) * (*u[3])));
+                const int ij[3][3] = {{4, 5, 6}, {5, 7, 8}, {6, 8, 9}};
+                for (int m = 1; m < 4; m++) {
+                    double t = 0.;
+                    for (int n = 1; n < 4; n++) t += W[ij[m - 1][n - 1]] * (*u[n]);
+                    W[m] = t / (*u[0]);
+                }
+                double t = 0.;
+                for (int n = 1; n < 4; n++) t += W[n] * (*u[n]);
+                W[0] = t / (*u[0]);
+                for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = W[k];
+                arena.piBulk_[idx] = -0.1 * e * (1. + 0.5 * s) / f;
+            }
+    arena.updateGhosts();
+}
+
+//! e, n_B, u, W and Pi after steps Heun steps with gpu_backend = backend
+std::vector<double> runViscousSteps(
+    InitData DATA, int eosId, int backend, int gpuFloat, int steps) {
+    DATA.gpu_backend = backend;
+    DATA.gpu_float = gpuFloat;
+    EOS eos(eosId);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+    fillLumpyViscous(a, false);
+    fillLumpyViscous(b, true);
+    fillLumpyViscous(c, false);
+    Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+    double tau = DATA.tau0;
+    for (int it = 0; it < steps; it++) {
+        evolve.preparePressure(*fpCurr);
+        evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+        tau += DATA.delta_tau;
+    }
+    std::vector<double> out;
+    for (int ieta = 0; ieta < DATA.neta; ieta++)
+        for (int iy = 0; iy < DATA.ny; iy++)
+            for (int ix = 0; ix < DATA.nx; ix++) {
+                const int idx = fpCurr->getFieldIdx(ix, iy, ieta);
+                out.push_back(fpCurr->e_[idx]);
+                out.push_back(fpCurr->rhob_[idx]);
+                for (int k = 0; k < 4; k++) out.push_back(fpCurr->u_[k][idx]);
+                for (int k = 0; k < 14; k++)
+                    out.push_back(fpCurr->Wmunu_[k][idx]);
+                out.push_back(fpCurr->piBulk_[idx]);
+                out.push_back(fpCurr->piBulkChem_[idx]);
+            }
+    return out;
+}
+
+//! the viscous update in several configurations of its options
+InitData viscousDeviceParameters(int config) {
+    InitData DATA = idealDeviceParameters(config == 1, config % 2);
+    DATA.viscosity_flag = 1;
+    DATA.turn_on_shear = 1;
+    DATA.turn_on_bulk = (config == 3 ? 0 : 1);
+    DATA.turn_on_diff = 0;
+    DATA.shear_to_s = 0.12;
+    DATA.Du_from_ideal_EoM = 1;
+    // a few dilute cells take Du from the ideal equations of motion
+    DATA.Du_from_ideal_EoM_e_dilute = 0.003;
+    if (config == 0 || config == 2) {
+        DATA.include_second_order_terms = 1;
+        DATA.include_vorticity_terms = true;
+        DATA.FlagResumTransportCoeff = true;
+        DATA.Initial_profile = 13;  // QuestRevert
+        DATA.T_dependent_shear_to_s = (config == 0 ? 3 : 2);
+        DATA.muB_dependent_shear_to_s = (config == 0 ? 7 : 0);
+        DATA.T_dependent_bulk_to_s = (config == 0 ? 10 : 3);
+        DATA.bulk_relaxation_type = (config == 0 ? 0 : 1);
+    } else {
+        DATA.include_second_order_terms = 0;
+        DATA.include_vorticity_terms = false;
+        DATA.FlagResumTransportCoeff = false;
+        DATA.Initial_profile = 1;
+        DATA.T_dependent_shear_to_s = 1;
+        DATA.muB_dependent_shear_to_s = 0;
+        DATA.T_dependent_bulk_to_s = (config == 1 ? 1 : 8);
+        DATA.bulk_relaxation_type = 2;
+        DATA.Du_from_ideal_EoM = (config == 1 ? 0 : 1);
+    }
+    return DATA;
+}
+
+bool hotQCDTablesFound() {
+    const char *p = getenv("HYDROPROGRAMPATH");
+    const std::string dir = std::string(p ? p : ".") + "/EOS/hotQCD";
+    struct stat st;
+    return (stat(dir.c_str(), &st) == 0);
+}
+}  // namespace
+
+TEST_CASE("Device kernels reproduce the viscous update of Advance") {
+    std::vector<int> eosIds = {0};
+    if (hotQCDTablesFound()) {
+        eosIds.push_back(9);
+    } else {
+        MESSAGE("EoS 9 skipped: set HYDROPROGRAMPATH to the MUSIC directory");
+    }
+    const int nPerCell = 22;  // e, n_B, u, W, Pi, Pi_chem
+    for (const int eosId : eosIds) {
+        for (int config = 0; config < 4; config++) {
+            CAPTURE(eosId);
+            CAPTURE(config);
+            const InitData DATA = viscousDeviceParameters(config);
+            const auto host = runViscousSteps(DATA, eosId, 0, 0, 4);
+            const auto dev = runViscousSteps(DATA, eosId, 1, 0, 4);
+            REQUIRE(host.size() == dev.size());
+            double maxDiff = 0.;
+            int nDiff = 0;
+            double wNorm = 0.;
+            for (size_t i = 0; i < host.size(); i++) {
+                REQUIRE(std::isfinite(host[i]));
+                REQUIRE(std::isfinite(dev[i]));
+                const double d = std::abs(host[i] - dev[i]);
+                if (d > 0.) nDiff++;
+                maxDiff = std::max(maxDiff, d);
+                if (i % nPerCell >= 6) wNorm += std::abs(host[i]);
+            }
+            CAPTURE(nDiff);
+            CAPTURE(maxDiff);
+            CHECK(wNorm > 0.);
+            CHECK(maxDiff == 0.);
+            // float with stored tau T^{tau mu}
+            const auto devF = runViscousSteps(DATA, eosId, 1, 1, 4);
+            double l1E = 0., normE = 0., l1W = 0., normW = 0.;
+            for (size_t i = 0; i < host.size(); i++) {
+                REQUIRE(std::isfinite(devF[i]));
+                const size_t k = i % nPerCell;
+                if (k == 0) {
+                    l1E += std::abs(devF[i] - host[i]);
+                    normE += std::abs(host[i]);
+                } else if (k >= 6) {
+                    l1W += std::abs(devF[i] - host[i]);
+                    normW += std::abs(host[i]);
+                }
+            }
+            const double relE = l1E / normE, relW = l1W / normW;
+            CAPTURE(relE);
+            CAPTURE(relW);
+            MESSAGE(
+                "float: EoS " << eosId << " config " << config << ": L1(e) "
+                              << l1E / normE << ", L1(W, Pi) " << l1W / normW);
+            CHECK(relE < 1e-5);
+            // configs 0 and 2 (QuestRevert): 3e-4 of the L1 of W and Pi,
+            // nearly all of it from the cells that start nearly empty
+            // (e = 1e-7) next to e ~ 2 and fill within the four steps:
+            // QuestRevert caps their W at |W| ~ e with u^tau up to 18, where
+            // pi:pi cancels ~(u^tau)^4 of float's digits; without
+            // QuestRevert W agrees to 5e-6
+            CHECK(relW < 1e-3);
+        }
+    }
+}

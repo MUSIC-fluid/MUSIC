@@ -38,8 +38,14 @@
 namespace music_device {
 
 #if defined(__METAL_VERSION__)
+using metal::atanh;
+using metal::copysign;
+using metal::exp;
 using metal::fabs;
 using metal::isfinite;
+using metal::isnan;
+using metal::log;
+using metal::pow;
 using metal::sqrt;
 MD_FN void flagOr(MD_FLAGS f, int v) {
     metal::atomic_fetch_or_explicit(f, v, metal::memory_order_relaxed);
@@ -47,13 +53,41 @@ MD_FN void flagOr(MD_FLAGS f, int v) {
 #elif defined(__CUDACC__)
 __device__ inline void flagOr(MD_FLAGS f, int v) { atomicOr(f, v); }
 #else
+using std::atanh;
+using std::copysign;
+using std::exp;
 using std::fabs;
 using std::isfinite;
+using std::isnan;
+using std::log;
+using std::pow;
 using std::sqrt;
 inline void flagOr(MD_FLAGS f, int v) {
     __atomic_fetch_or(f, v, __ATOMIC_RELAXED);
 }
 #endif
+
+//! std::numeric_limits<Real>::max(); MSL has no double literals
+template <typename Real>
+MD_FN Real realMax() {
+#if defined(__METAL_VERSION__)
+    return (FLT_MAX);
+#else
+    return (sizeof(Real) == 8 ? Real(1.7976931348623157e308)
+                              : Real(3.40282346638528859812e38f));
+#endif
+}
+
+//! exp(y) - 1 without the cancellation at small y (MSL has no expm1):
+//! Kahan's (u - 1) y / log(u), u = exp(y)
+template <typename Real>
+MD_FN Real dexpm1(Real y) {
+    const Real u = exp(y);
+    if (u == Real(1)) return (y);
+    const Real um1 = u - Real(1);
+    if (um1 == Real(-1)) return (Real(-1));
+    return (um1 * y / log(u));
+}
 
 // std::max / std::min semantics (the second argument wins only if it is
 // strictly larger / smaller), so that NaNs and ties propagate as on the host
@@ -80,6 +114,15 @@ enum { kFatalFlags = kFlagMaxSpeedFatal };
 //! u^tau, u^x, u^y, u^eta, and (with storeQ) tau T^{tau mu}, tau J^tau_{B,Q,S}
 // enums: Metal allows no const variables at program scope
 enum { kNPrim = 8, kNComp = 15, kNTJ = 7 };
+
+//! viscous runs append W^{mu nu} (14 components, as Fields::Wmunu_), Pi and
+//! Pi_chem to the slice: kNCompVisc components
+enum { kOffW = 15, kOffPi = 29, kOffPiChem = 30, kNCompVisc = 31 };
+
+//! values per face of the W kernel (Diss::computeWDivergences): the KT
+//! fluxes of the up to 10 evolved W components, the face averages of
+//! tau W^{d alpha} (alpha < 5) and of the bulk part (alpha < 4)
+enum { kNWFlux = 10, kNWFaceVals = 19 };
 
 }  // namespace music_device
 

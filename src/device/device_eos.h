@@ -31,6 +31,11 @@ struct EosDesc {
     Real eSpacing[kMaxEosTables];
     Real nbBounds[kMaxEosTables];
     Real nbSpacing[kMaxEosTables];
+    // the thermal variables of the viscous update (eosThermal)
+    int tOffset;          // type 1: T^5 on the e grid of table 0
+    int xOffset, xLength;  // type 0: mu_B / T on a grid in rho
+    Real coeffA, coeffB;  // type 0: P = T^4 D(x), D = a + b (...)
+    Real rCap, xMax;      // type 0: n_B / e^{3/4} at the cap, the cap
 };
 
 template <typename Real>
@@ -193,6 +198,172 @@ MD_FN void eosInterp2DGrad(
     p2 = temp4 * (Real(1) - frac_e) + temp3 * frac_e;
     dpdrhob = nbClamped ? Real(0) : (p2 - p1) / dnb;
     p = p1 * (Real(1) - frac_rhob) + p2 * frac_rhob;
+}
+
+//! EOS_base::interpolate1D of the table at offset off on the e grid of
+//! table 0
+template <typename Real>
+MD_FN Real eosInterp1DAt(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, int off,
+    Real e) {
+    const Real e0 = d.eBounds[0];
+    const Real de = d.eSpacing[0];
+    const int Ne = d.eLength[0];
+    int idx = int((e - e0) / de);
+    idx = dmax(0, idx);
+    idx = dmin(Ne - 2, idx);
+    if (e < e0) return tab[off] * e / e0;
+    const Real frac = (e - (Real(idx) * de + e0)) / de;
+    const Real t1 = tab[off + idx];
+    const Real t2 = tab[off + idx + 1];
+    return t1 * (Real(1) - frac) + t2 * frac;
+}
+
+// ----- EOS_idealgas: x = mu_B / T at (e, n_B) -------------------------------
+
+template <typename Real>
+MD_FN Real idealD(MD_CONST const EosDesc<Real> &d, Real x) {
+    const Real x2 = x * x;
+    return (d.coeffA
+            + d.coeffB
+                  * (x2 / Real(54.)
+                     + x2 * x2
+                           / (Real(972.) * Real(3.14159265358979323846)
+                              * Real(3.14159265358979323846))));
+}
+
+template <typename Real>
+MD_FN Real idealN(MD_CONST const EosDesc<Real> &d, Real x) {
+    return (d.coeffB
+            * (x / Real(27.)
+               + x * x * x
+                     / (Real(243.) * Real(3.14159265358979323846)
+                        * Real(3.14159265358979323846))));
+}
+
+template <typename Real>
+MD_FN Real idealS(MD_CONST const EosDesc<Real> &d, Real x) {
+    return (Real(4.) * d.coeffA + d.coeffB * x * x / Real(27.));
+}
+
+template <typename Real>
+MD_FN Real idealTofEX(MD_CONST const EosDesc<Real> &d, Real e, Real x) {
+    return (sqrt(sqrt(dmax(Real(0.), e) / (Real(3.) * idealD(d, x)))));
+}
+
+template <typename Real>
+MD_FN Real idealDN(MD_CONST const EosDesc<Real> &d, Real x) {
+    return (d.coeffB
+            * (Real(1.) / Real(27.)
+               + x * x
+                     / (Real(81.) * Real(3.14159265358979323846)
+                        * Real(3.14159265358979323846))));
+}
+
+//! EOS_idealgas::x_of_rho
+template <typename Real>
+MD_FN Real idealXofRho(MD_CONST const EosDesc<Real> &d, Real rho, Real xGuess) {
+    const Real target = log(rho * d.rCap) + Real(0.75) * log(Real(3.));
+    const Real xMax = d.xMax;
+    // 1e-300 as on the host; the smallest normal float in float
+#if defined(__METAL_VERSION__)
+    const Real xMin = Real(1.2e-38);
+#else
+    const Real xMin = (sizeof(Real) == 8 ? Real(1e-300) : Real(1.2e-38));
+#endif
+    Real x = dmax(xMin, dmin(xMax, xGuess));
+    for (int iter = 0; iter < 60; iter++) {
+        const Real N = idealN(d, x);
+        const Real dN = idealDN(d, x);
+        const Real h = log(N) - Real(0.75) * log(idealD(d, x)) - target;
+        const Real dhdu = x * (dN / N - Real(0.75) * N / idealD(d, x));
+        const Real du = -h / dhdu;
+        x = dmin(xMax, x * exp(dmax(Real(-2.), dmin(Real(2.), du))));
+        if (fabs(du) < Real(1e-13)) break;
+    }
+    return (x);
+}
+
+//! EOS_idealgas::get_muB_over_T
+template <typename Real>
+MD_FN Real idealMuBOverT(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
+    Real rhob) {
+    const Real n = fabs(rhob);
+    if (n <= Real(0.) || e <= Real(0.)) return (Real(0.));
+    const Real n2 = n * n;
+    const Real C = Real(27.) * n2 * n2 / (e * e * e);
+    const Real rc2 = d.rCap * d.rCap;
+    const Real rho = sqrt(sqrt(C / (Real(27.) * rc2 * rc2)));
+    if (rho >= Real(1.)) return (d.xMax);
+    const Real pos = rho * Real(d.xLength - 1);
+    const int i = dmin(int(pos), d.xLength - 2);
+    const Real f = pos - Real(i);
+    MD_GLOBAL const Real *xt = tab + d.xOffset;
+    Real x = xt[i] * (Real(1.) - f) + xt[i + 1] * f;
+    if (x <= Real(0.)) return (idealXofRho(d, rho, x));
+    const Real b = d.coeffB;
+    for (int iter = 0; iter < 8; iter++) {
+        const Real N = idealN(d, x), D = idealD(d, x);
+        const Real dN =
+            b
+            * (Real(1.) / Real(27.)
+               + x * x
+                     / (Real(81.) * Real(3.14159265358979323846)
+                        * Real(3.14159265358979323846)));
+        const Real N3 = N * N * N, D2 = D * D;
+        const Real dx =
+            -(N3 * N - C * D2 * D) / (Real(4.) * N3 * dN - Real(3.) * C * D2 * N);
+        x += dx;
+        if (fabs(dx) < Real(1e-13) * x) {
+            return (dmin(x, d.xMax));
+        }
+    }
+    return (idealXofRho(d, rho, xt[i] * (Real(1.) - f) + xt[i + 1] * f));
+}
+
+//! EOS::getThermalVariables, the entries the viscous update reads
+template <typename Real>
+struct Thermal {
+    Real e, rhob, p, dpde, dpdrhob, cs2, T, muB, s;
+};
+
+template <typename Real>
+MD_FN Thermal<Real> eosThermal(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
+    Real rhob, Real rhoq, Real rhos) {
+    const Real smallEps = Real(1e-16);
+    Thermal<Real> t;
+    t.e = e;
+    t.rhob = rhob;
+    if (d.type == 0) {
+        // EOS_idealgas::getThermalVariables
+        const Real x = idealMuBOverT(d, tab, e, rhob);
+        const Real T = idealTofEX(d, e, x);
+        t.p = e / Real(3.);
+        t.dpde = Real(1.) / Real(3.);
+        t.dpdrhob = Real(0.);
+        t.cs2 = Real(1.) / Real(3.);
+        t.T = T;
+        t.muB = copysign(x * T, rhob);
+        t.s = dmax(smallEps, T * T * T * idealS(d, x));
+        return (t);
+    }
+    // EOS_base::getThermalVariables with EOS_hotQCD: mu = 0
+    const EosGrad<Real> g = eosPressureGrad(d, tab, e, rhob, rhoq, rhos);
+    t.p = g.p;
+    t.dpde = g.dpde;
+    t.dpdrhob = g.dpdrhob;
+    t.cs2 = g.cs2;
+    const Real T5 = eosInterp1DAt(d, tab, d.tOffset, e);
+    t.T = dmax(smallEps, Real(pow(T5, Real(0.2))));
+    t.muB = Real(0.);
+    const Real muS = Real(0.), muQ = Real(0.);
+    const Real rhobT = rhob, rhoS = Real(0.), rhoQ = Real(0.4) * rhob;
+    Real entropy = ((e + t.p - t.muB * rhobT - muS * rhoS - muQ * rhoQ)
+                    / (t.T + smallEps));
+    t.s = dmax(smallEps, entropy);
+    return (t);
 }
 
 //! EOS::get_pressure

@@ -39,6 +39,30 @@ struct StepParams {
     Real theta;  // minmod theta
     Real absErr, relErr, vCritical;
     Real coshDeta, sinhDeta;  // the eta terms of MakeDeltaQI
+    int nComp;  // components of a state slice: kNComp, or kNCompVisc
+    // ----- the viscous update (device_visc.h), viscosity_flag = 1 -----
+    int shear, bulk;    // turn_on_shear, turn_on_bulk
+    int secondOrder;    // include_second_order_terms
+    int vorticity;      // include_vorticity_terms
+    int duIdeal;        // Du_from_ideal_EoM
+    int resum;          // FlagResumTransportCoeff
+    int muBShear;       // muB_dependent_shear_to_s
+    int bulkRelaxType;  // bulk_relaxation_type
+    int questRevert;    // Initial_profile is neither 0 nor 1
+    int shearT, bulkT;  // T_dependent_shear_to_s, T_dependent_bulk_to_s
+    int nWComp;         // Diss::nWComponents
+    // DATA.gmunu, read at run time as on the host (see device_visc.h)
+    Real g[4][4];
+    Real duIdealEDilute, resumAlpha, questRevertStrength;
+    Real shearRelaxFactor, bulkRelaxFactor;
+    Real shearToS, shear2Min, shear2Slope, shear2Curv;
+    Real shear3TKink, shear3LowSlope, shear3HighSlope, shear3AtKink;
+    Real shearMuBf0p2, shearMuBf0p4, shearMuBAlpha, shearMuBSlope,
+        shearMuBScale;
+    Real bulk2Norm, bulk2Width, bulk2Peak;
+    Real bulk3Max, bulk3Width, bulk3TPeak, bulk3Lambda;
+    Real bulk10Max, bulk10MaxMuB0p2, bulk10MaxMuB0p4, bulk10Tpeak,
+        bulk10TpeakMuBCurv, bulk10WidthLow, bulk10WidthHigh;
 };
 
 template <typename Real>
@@ -595,16 +619,14 @@ MD_FN void kernelFace(
     if (flag) flagOr(flags, flag);
 }
 
-//! Advance::FirstRKStepT (no sources, no viscous terms) with MakeDeltaQI
-//! and reconstructAndStore, for cell i
+//! the first part of Advance::FirstRKStepT for cell i: tau T^{tau mu} of
+//! the stage's slice (or the stored one) plus MakeDeltaQI
 template <typename Real>
-MD_FN void kernelCell(
-    MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
-    MD_GLOBAL const Real *tab, MD_GLOBAL const Real *sCurr,
-    MD_GLOBAL const Real *sPrev, MD_GLOBAL const Real *pCurr,
-    MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *fluxX,
-    MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta,
-    MD_GLOBAL Real *sNext, int i, MD_FLAGS flags) {
+MD_FN void cellQiFlux(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *sCurr,
+    MD_GLOBAL const Real *pCurr, MD_GLOBAL const Real *fluxX,
+    MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta, int i,
+    MD_THREAD Real *qi) {
     const int nx = P.nx, ny = P.ny, neta = P.neta;
     const int n = nx * ny * neta;
     const int ix = i % nx;
@@ -613,7 +635,6 @@ MD_FN void kernelCell(
     const Real tau_rk = P.tau + Real(P.rkFlag) * P.dtau;
     const Cell<Real> cellCurr = loadCell(sCurr, n, i);
     const Real pressure = pCurr[i];
-    Real qi[7];
     for (int a = 0; a < 7; a++) {
         qi[a] = (P.storeQ ? sCurr[(kNPrim + a) * n + i]
                           : TJb(cellCurr, a, 0, pressure) * tau_rk);
@@ -653,21 +674,47 @@ MD_FN void kernelCell(
     rhs[3] += (((Tm[3] - Tp[3]) * P.coshDeta - (Tm[0] + Tp[0]) * P.sinhDeta)
                * P.dtau);
     for (int a = 0; a < 7; a++) qi[a] += rhs[a];
-    if (P.rkFlag == 1) {
-        const Cell<Real> cellPrev = loadCell(sPrev, n, i);
-        const Real pressurePrev = pPrev[i];
-        // one statement as in FirstRKStepT: compilers fuse the multiply-add
-        // within a statement (clang) or across them (gcc), and the device
-        // reproduces the host only with the same grouping
-        for (int a = 0; a < 7; a++) {
-            if (P.storeQ) {
-                qi[a] += sPrev[(kNPrim + a) * n + i];
-            } else {
-                qi[a] += Real(P.rkFlag) * TJb(cellPrev, a, 0, pressurePrev) * P.tau;
-            }
-            qi[a] *= Real(1) / (Real(1) + Real(P.rkFlag));
+}
+
+//! the RK average of Advance::FirstRKStepT: qi += q(tau_n), qi /= 2 in the
+//! second stage (sPrev, pPrev: the slice at tau_n)
+template <typename Real>
+MD_FN void cellRkAverage(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *sPrev,
+    MD_GLOBAL const Real *pPrev, int i, MD_THREAD Real *qi) {
+    if (P.rkFlag != 1) return;
+    const int n = P.nx * P.ny * P.neta;
+    const Cell<Real> cellPrev = loadCell(sPrev, n, i);
+    const Real pressurePrev = pPrev[i];
+    // one statement as in FirstRKStepT: compilers fuse the multiply-add
+    // within a statement (clang) or across them (gcc), and the device
+    // reproduces the host only with the same grouping
+    for (int a = 0; a < 7; a++) {
+        if (P.storeQ) {
+            qi[a] += sPrev[(kNPrim + a) * n + i];
+        } else {
+            qi[a] += Real(P.rkFlag) * TJb(cellPrev, a, 0, pressurePrev) * P.tau;
         }
+        qi[a] *= Real(1) / (Real(1) + Real(P.rkFlag));
     }
+}
+
+//! Advance::FirstRKStepT (no sources, no viscous terms) with MakeDeltaQI
+//! and reconstructAndStore, for cell i
+template <typename Real>
+MD_FN void kernelCell(
+    MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
+    MD_GLOBAL const Real *tab, MD_GLOBAL const Real *sCurr,
+    MD_GLOBAL const Real *sPrev, MD_GLOBAL const Real *pCurr,
+    MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *fluxX,
+    MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta,
+    MD_GLOBAL Real *sNext, int i, MD_FLAGS flags) {
+    const int n = P.nx * P.ny * P.neta;
+    const Cell<Real> cellCurr = loadCell(sCurr, n, i);
+    const Real pressure = pCurr[i];
+    Real qi[7];
+    cellQiFlux(P, sCurr, pCurr, fluxX, fluxY, fluxEta, i, qi);
+    cellRkAverage(P, sPrev, pPrev, i, qi);
     const Solver<Real> solver = {&P, &d, tab};
     int flag = 0;
     const Cell<Real> out = solver.reconstruct(

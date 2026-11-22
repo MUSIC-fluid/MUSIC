@@ -135,7 +135,7 @@ Lumpy 3D event with n_B, 161×161×49 = 1.27M cells, Δτ = 0.01, 100 steps, mod
 
 ## 7. Next steps
 
-1. Viscous hydro on the device: W fluxes, the `u_derivative` gradients, `Make_uWRHS`, the relaxation and the stage-2 fixed point. Test float precision there; it may need double for the W variables.
+1. Viscous hydro on the device: W fluxes, the `u_derivative` gradients, `Make_uWRHS`, the relaxation and the stage-2 fixed point. Done (shear and bulk, float is enough): see [gpu_porting_phase2_viscous.md](gpu_porting_phase2_viscous.md).
 2. Source terms (TATB, strings) as device input per step.
 3. Fewer host copies, and the conservation diagnostic on the device.
 4. CUDA validation and timing on NVIDIA hardware.

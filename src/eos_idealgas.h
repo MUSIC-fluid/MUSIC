@@ -50,6 +50,13 @@ class EOS_idealgas : public EOS_base {
     }
 
     void initialize_eos();
+
+    // the data of get_muB_over_T, for the device kernels (device_eos.h)
+    double get_coeff_a() const { return (coeff_a()); }
+    double get_coeff_b() const { return (coeff_b()); }
+    double get_r_cap() const { return (r_cap_); }
+    static double get_muB_over_T_max() { return (muB_over_T_max_); }
+    const std::vector<double> &get_x_table() const { return (x_table_); }
     // n_Q and n_S are carried by the fluid but do not enter this EoS:
     // mu_Q = mu_S = 0 and the state depends on (e, n_B) only
     double get_cs2(

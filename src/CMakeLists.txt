@@ -51,6 +51,7 @@ if (metal)
         ${CMAKE_CURRENT_SOURCE_DIR}/device/device_defs.h
         ${CMAKE_CURRENT_SOURCE_DIR}/device/device_eos.h
         ${CMAKE_CURRENT_SOURCE_DIR}/device/device_ideal.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/device_visc.h
         ${CMAKE_CURRENT_SOURCE_DIR}/device/metal_kernels.metal)
     set(MSL_BUNDLE ${CMAKE_CURRENT_BINARY_DIR}/metal_source.inc)
     string(REPLACE ";" "\\;" MSL_INPUTS_ARG "${MSL_INPUTS}")

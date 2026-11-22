@@ -2,16 +2,19 @@
 //
 // gpu_backend = 2: the device kernels on an Apple GPU through Metal, in
 // float (Metal has no double). The kernel source (device_defs.h,
-// device_eos.h, device_ideal.h and metal_kernels.metal, bundled by CMake
+// device_eos.h, device_ideal.h, device_visc.h and metal_kernels.metal,
+// bundled by CMake
 // into metal_source.inc) is compiled when the backend starts, so no offline
 // Metal compiler is needed. Plain Objective-C (ARC) behind the C interface
 // of device_api.h: this file is compiled by clang and linked into a MUSIC
 // built by any compiler.
 //
-// The buffers are in shared storage: on Apple's unified memory state() is
-// the device buffer of the current slice, and upload/download copy nothing.
-// One Heun step (two stages of pressure, three face and one cell dispatch)
-// is one command buffer; a serial compute encoder orders the dispatches.
+// The buffers are in shared storage: on Apple's unified memory state(0)
+// and state(1) are the device buffers of the current and the previous
+// slice, and upload/download copy nothing. One Heun step (two stages of
+// pressure, three face (and with the viscous update three W face) and one
+// cell dispatch) is one command buffer; a serial compute encoder orders
+// the dispatches.
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
@@ -22,20 +25,28 @@
 #include "device_api.h"
 #include "metal_source.inc"
 
-// device_defs.h: kNComp, kNTJ
-enum { kMetalNComp = 15, kMetalNTJ = 7 };
+// device_defs.h: kNComp, kNTJ, kNCompVisc, kNWFaceVals
+enum {
+    kMetalNComp = 15,
+    kMetalNTJ = 7,
+    kMetalNCompVisc = 31,
+    kMetalNWFaceVals = 19
+};
 
 @interface MusicMetalDevice : NSObject {
   @public
     id<MTLDevice> dev;
     id<MTLCommandQueue> queue;
     id<MTLComputePipelineState> psPressure, psFace, psCell;
+    id<MTLComputePipelineState> psWFace, psCellVisc;
+    // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
     id<MTLBuffer> pCur, pPred;
     id<MTLBuffer> flux[3];
+    id<MTLBuffer> wFace[3];  // viscous update only
     id<MTLBuffer> eosDesc, eosTable, flags;
     int cur, pred, next;
-    int nx, ny, neta;
+    int nx, ny, neta, nComp;
     char name[256];
 }
 @end
@@ -90,9 +101,10 @@ static void *metalCreate(int realSize, char *err, int errLen) {
             setErr(err, errLen, "kernel compilation failed", e);
             return NULL;
         }
-        const char *names[3] = {"musicPressure", "musicFace", "musicCell"};
-        id<MTLComputePipelineState> ps[3];
-        for (int k = 0; k < 3; k++) {
+        const char *names[5] = {"musicPressure", "musicFace", "musicCell",
+                                "musicWFace", "musicCellVisc"};
+        id<MTLComputePipelineState> ps[5];
+        for (int k = 0; k < 5; k++) {
             id<MTLFunction> f = [lib
                 newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
             if (f == nil) {
@@ -108,6 +120,8 @@ static void *metalCreate(int realSize, char *err, int errLen) {
         m->psPressure = ps[0];
         m->psFace = ps[1];
         m->psCell = ps[2];
+        m->psWFace = ps[3];
+        m->psCellVisc = ps[4];
         m->queue = [m->dev newCommandQueue];
         m->flags = [m->dev newBufferWithLength:sizeof(int)
                                        options:MTLResourceStorageModeShared];
@@ -129,24 +143,39 @@ static void metalDestroy(void *dev) {
 static const char *metalName(void *dev) { return get(dev)->name; }
 
 static int metalResize(
-    void *dev, int nx, int ny, int neta, char *err, int errLen) {
+    void *dev, int nx, int ny, int neta, int nComp, char *err, int errLen) {
     @autoreleasepool {
         MusicMetalDevice *m = get(dev);
+        if (nComp != kMetalNComp && nComp != kMetalNCompVisc) {
+            setErr(err, errLen, "unknown number of slice components", nil);
+            return 1;
+        }
         const size_t n = (size_t)nx * ny * neta;
         const MTLResourceOptions shared = MTLResourceStorageModeShared;
         for (int k = 0; k < 3; k++) {
             m->slice[k] = [m->dev
-                newBufferWithLength:sizeof(float) * kMetalNComp * n
+                newBufferWithLength:sizeof(float) * nComp * n
                             options:shared];
             m->flux[k] = [m->dev
                 newBufferWithLength:sizeof(float) * kMetalNTJ
                                     * faceCount(nx, ny, neta, k + 1)
                             options:MTLResourceStorageModePrivate];
+            m->wFace[k] = nil;
+            if (nComp == kMetalNCompVisc) {
+                m->wFace[k] = [m->dev
+                    newBufferWithLength:sizeof(float) * kMetalNWFaceVals
+                                        * faceCount(nx, ny, neta, k + 1)
+                                options:MTLResourceStorageModePrivate];
+                if (m->wFace[k] == nil) {
+                    setErr(err, errLen, "out of device memory", nil);
+                    return 1;
+                }
+            }
             if (m->slice[k] == nil || m->flux[k] == nil) {
                 setErr(err, errLen, "out of device memory", nil);
                 return 1;
             }
-            memset([m->slice[k] contents], 0, sizeof(float) * kMetalNComp * n);
+            memset([m->slice[k] contents], 0, sizeof(float) * nComp * n);
         }
         m->pCur = [m->dev newBufferWithLength:sizeof(float) * n options:shared];
         m->pPred = [m->dev newBufferWithLength:sizeof(float) * n
@@ -158,6 +187,7 @@ static int metalResize(
         m->nx = nx;
         m->ny = ny;
         m->neta = neta;
+        m->nComp = nComp;
         m->cur = 0;
         m->pred = 1;
         m->next = 2;
@@ -190,9 +220,9 @@ static int metalSetEos(
     }
 }
 
-static void *metalState(void *dev) {
+static void *metalState(void *dev, int which) {
     MusicMetalDevice *m = get(dev);
-    return [m->slice[m->cur] contents];
+    return [m->slice[which == 0 ? m->cur : m->next] contents];
 }
 
 static int metalNoCopy(void *dev, char *err, int errLen) {
@@ -226,6 +256,7 @@ static int metalStep(
             memcpy(P[rk], params, paramBytes);
             memcpy(P[rk] + MUSIC_DEVICE_RKFLAG_OFFSET, &rk, sizeof(int));
         }
+        const bool viscous = (m->nComp == kMetalNCompVisc);
         memset([m->flags contents], 0, sizeof(int));
         const int n = m->nx * m->ny * m->neta;
         id<MTLCommandBuffer> cb = [m->queue commandBuffer];
@@ -234,6 +265,10 @@ static int metalStep(
         [enc setBuffer:m->eosTable offset:0 atIndex:2];
         for (int rk = 0; rk < 2; rk++) {
             id<MTLBuffer> sIn = m->slice[rk == 0 ? m->cur : m->pred];
+            // the second stage averages with tau_n; the viscous update of
+            // the first stage takes its time derivatives against tau_{n-1}
+            id<MTLBuffer> sPrev =
+                m->slice[rk == 0 && viscous ? m->next : m->cur];
             id<MTLBuffer> sOut = m->slice[rk == 0 ? m->pred : m->next];
             id<MTLBuffer> pIn = (rk == 0 ? m->pCur : m->pPred);
             [enc setBytes:P[rk] length:paramBytes atIndex:0];
@@ -244,19 +279,30 @@ static int metalStep(
             // the faces
             [enc setBuffer:m->flags offset:0 atIndex:6];
             for (int d = 1; d <= 3; d++) {
+                const int nf = faceCount(m->nx, m->ny, m->neta, d);
                 [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
                 [enc setBytes:&d length:sizeof(int) atIndex:7];
-                dispatch(enc, m->psFace, faceCount(m->nx, m->ny, m->neta, d));
+                dispatch(enc, m->psFace, nf);
+                if (viscous) {
+                    [enc setBuffer:m->wFace[d - 1] offset:0 atIndex:5];
+                    dispatch(enc, m->psWFace, nf);
+                }
             }
             // the cells
-            [enc setBuffer:m->slice[m->cur] offset:0 atIndex:4];
+            [enc setBuffer:sPrev offset:0 atIndex:4];
             [enc setBuffer:pIn offset:0 atIndex:5];
             [enc setBuffer:m->pCur offset:0 atIndex:6];
             for (int d = 0; d < 3; d++)
                 [enc setBuffer:m->flux[d] offset:0 atIndex:7 + d];
             [enc setBuffer:sOut offset:0 atIndex:10];
             [enc setBuffer:m->flags offset:0 atIndex:11];
-            dispatch(enc, m->psCell, n);
+            if (viscous) {
+                for (int d = 0; d < 3; d++)
+                    [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
+                dispatch(enc, m->psCellVisc, n);
+            } else {
+                dispatch(enc, m->psCell, n);
+            }
         }
         [enc endEncoding];
         [cb commit];
