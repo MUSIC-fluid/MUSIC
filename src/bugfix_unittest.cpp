@@ -1510,6 +1510,81 @@ TEST_CASE("Evolve: coarsening a dilute, viscous edge gives physical cells") {
     CHECK(piMax < arena.e_[idx]);
 }
 
+TEST_CASE("Evolve: enlarging the grid conserves T^{tau mu}, J^tau") {
+    // padding cells were damped copies of the edge cells on top of them,
+    // which added their content (3e-4 of the energy per enlargement in a
+    // dense beastMode 3 run); the edge cell and its copies now share it
+    InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+    DATA.boost_invariant = true;
+    DATA.nx = 3;
+    DATA.ny = 3;
+    DATA.neta = 1;
+    DATA.delta_x = 0.5;
+    DATA.delta_y = 0.5;
+    DATA.x_size = 1.;
+    DATA.y_size = 1.;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields arena(3, 3, 1);
+    const double a = 0.01;
+    for (int iy = 0; iy < 3; iy++) {
+        for (int ix = 0; ix < 3; ix++) {
+            const int idx = arena.getFieldIdx(ix, iy, 0);
+            // a boost along x with rest-frame shear diag(0, 2a, -a, -a)
+            const double rap = 0.3 * (ix - 1) + 0.1 * iy;
+            const double ch = std::cosh(rap), sh = std::sinh(rap);
+            arena.e_[idx] = 1. + 0.2 * ix + 0.1 * iy;
+            arena.rhob_[idx] = 0.1 + 0.01 * iy;
+            arena.u_[0][idx] = ch;
+            arena.u_[1][idx] = sh;
+            arena.u_[2][idx] = 0.;
+            arena.u_[3][idx] = 0.;
+            for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+            arena.Wmunu_[0][idx] = 2. * a * sh * sh;
+            arena.Wmunu_[1][idx] = 2. * a * ch * sh;
+            arena.Wmunu_[4][idx] = 2. * a * ch * ch;
+            arena.Wmunu_[7][idx] = -a;
+            arena.Wmunu_[9][idx] = -a;
+            arena.piBulk_[idx] = -0.02;
+            arena.piBulkChem_[idx] = 0.;
+        }
+    }
+    double before[5], after[5];
+    gridContent(arena, eos, DATA.delta_x, DATA.delta_y, before);
+    evolve.regridTransverse({&arena}, 1., false);
+    REQUIRE(arena.nX() == 7);
+    REQUIRE(arena.nY() == 7);
+    gridContent(arena, eos, DATA.delta_x, DATA.delta_y, after);
+    for (int m = 0; m < 5; m++) {
+        CHECK(after[m] == doctest::Approx(before[m]).epsilon(1e-10).scale(1.));
+    }
+    // the interior is untouched; along a row the padding decays outwards
+    // and keeps the flow of its edge cell
+    CHECK(arena.e_[arena.getFieldIdx(3, 3, 0)] == doctest::Approx(1.3));
+    for (int ix = 4; ix < 6; ix++) {
+        const int idx = arena.getFieldIdx(ix, 3, 0);
+        const int idxOut = arena.getFieldIdx(ix + 1, 3, 0);
+        CHECK(arena.e_[idxOut] < arena.e_[idx]);
+        CHECK(arena.u_[1][idxOut] == doctest::Approx(arena.u_[1][idx]));
+    }
+    // pi^{mu nu} of every cell is transverse to u and traceless
+    const int widx[4][4] = {
+        {0, 1, 2, 3}, {1, 4, 5, 6}, {2, 5, 7, 8}, {3, 6, 8, 9}};
+    for (int idx = 0; idx < 49; idx++) {
+        const int i = arena.getFieldIdx(idx % 7, idx / 7, 0);
+        const double uLow[4] = {
+            -arena.u_[0][i], arena.u_[1][i], arena.u_[2][i], arena.u_[3][i]};
+        for (int n = 0; n < 4; n++) {
+            double uPi = 0.;
+            for (int m = 0; m < 4; m++)
+                uPi += uLow[m] * arena.Wmunu_[widx[m][n]][i];
+            CHECK(std::abs(uPi) < 1e-12);
+        }
+        CHECK(std::isfinite(arena.e_[i]));
+        CHECK(arena.e_[i] > 0.);
+    }
+}
+
 TEST_CASE("the 4D EoS pressure gradients match finite differences of P") {
     // dP/de at fixed n_B, n_Q, n_S needs the mu-tilde term: mu-tilde ~
     // n / sqrt(e) changes with e. Without it dP/de was biased by ~-8% at

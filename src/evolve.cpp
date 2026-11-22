@@ -127,6 +127,7 @@ int Evolve::EvolveIt(
                     1, static_cast<int>(
                            DATA.output_evolution_every_N_timesteps / 2)));
                 if (coarsenGrid) {
+                    grid_info.noteRegrid(*fpCurr, tau);
                     regridTransverse(allFields, 0., true);
                 }
                 ghostsStale = true;
@@ -160,6 +161,7 @@ int Evolve::EvolveIt(
             // would leave the grid unchanged and repeat this every step
             const double padding = std::max(
                 DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
+            grid_info.noteRegrid(*fpCurr, tau);
             regridTransverse(allFields, padding, false);
             ghostsStale = true;
             music_message << "BeastMode: enlarged the grid by " << padding
@@ -476,9 +478,13 @@ void Evolve::coarseGrainAndEnlargeGrid(
     //   respect to) the reconstructed u.
     // gridPadding > 0: gridPadding [fm] of padding cells is added on both
     // sides. Padding cells copy the nearest edge cell of the original fluid
-    // with e, rhob, and u^i damped by a Gaussian in the distance from that
-    // edge. They are set to local equilibrium (no dissipative fields), so
-    // that pi^{mu nu} stays transverse to u and traceless.
+    // with a weight damped by a Gaussian in the distance from that edge.
+    // The edge cell and its copies share its content: their weights are
+    // the damping factors divided by their sum, so the enlarged grid holds
+    // the same T^{tau mu} and J^tau (copying the full edge cell added the
+    // content of the padding, about 3e-4 of the total energy per
+    // enlargement in dense runs). The shares are remapped like the coarse
+    // cells, with u kept and pi^{mu nu}, q^mu projected onto it.
     Fields arenaCopy(arenaCurr.nX(), arenaCurr.nY(), arenaCurr.nEta());
     store_previous_step_for_freezeout(arenaCurr, arenaCopy);
     const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
@@ -491,6 +497,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
         double w[3];
         int n;
         double damp;
+        int base;  // the cell of the base (unpadded) grid this one copies
         bool isPadding;
     };
     // build the mapping from new to old indices along one direction
@@ -503,6 +510,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
             const int j = i - offset;
             const int jClamped = std::max(0, std::min(nBase - 1, j));
             st.isPadding = (jClamped != j);
+            st.base = jClamped;
             st.damp = 1.0;
             if (st.isPadding) {
                 double dis = std::abs(j - jClamped) * dx / sigma;
@@ -529,6 +537,13 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 st.w[0] = 0.5;
                 st.w[1] = 0.5;
             }
+        }
+        // a base cell and its padding copies share its content
+        std::vector<double> dampSum(nBase, 0.);
+        for (const Stencil &st : stencils) dampSum[st.base] += st.damp;
+        for (Stencil &st : stencils) {
+            const double share = st.damp / dampSum[st.base];
+            for (int k = 0; k < st.n; k++) st.w[k] *= share;
         }
         return stencils;
     };
@@ -587,7 +602,8 @@ void Evolve::coarseGrainAndEnlargeGrid(
             for (int ix = 0; ix < arenaCurr.nX(); ix++) {
                 const Stencil &sx = stencilX[ix];
                 // densities are filtered with the stencil weights (their sum
-                // is below 1 at an edge of an odd grid); u is averaged
+                // is below 1 at an edge of an odd grid and for the cells that
+                // share an edge cell with its padding); u is averaged
                 double e = 0., rhob = 0., rhoq = 0., rhos = 0., piB = 0.,
                        piBChem = 0., wSum = 0.;
                 double u[4] = {0., 0., 0., 0.};
@@ -665,29 +681,24 @@ void Evolve::coarseGrainAndEnlargeGrid(
                     }
                 }
                 const bool isPadding = sx.isPadding || sy.isPadding;
-                const double damp = sx.damp * sy.damp;
-                const double dissFactor = isPadding ? 0. : 1.;
 
                 int idxNew = arenaCurr.getFieldIdx(ix, iy, ieta);
-                arenaCurr.e_[idxNew] = e * damp;
-                if (isPadding) {
-                    arenaCurr.e_[idxNew] =
-                        std::max(Util::small_eps, arenaCurr.e_[idxNew]);
-                }
-                arenaCurr.rhob_[idxNew] = rhob * damp;
-                arenaCurr.rhoq_[idxNew] = rhoq * damp;
-                arenaCurr.rhos_[idxNew] = rhos * damp;
+                arenaCurr.e_[idxNew] = e;
+                arenaCurr.rhob_[idxNew] = rhob;
+                arenaCurr.rhoq_[idxNew] = rhoq;
+                arenaCurr.rhos_[idxNew] = rhos;
                 for (int nu = 1; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] = u[nu] / wSum * damp;
+                    arenaCurr.u_[nu][idxNew] = u[nu] / wSum;
                 }
                 arenaCurr.u_[0][idxNew] = sqrt(
                     1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
                     + arenaCurr.u_[2][idxNew] * arenaCurr.u_[2][idxNew]
                     + arenaCurr.u_[3][idxNew] * arenaCurr.u_[3][idxNew]);
                 for (int nu = 0; nu < 14; nu++) {
-                    arenaCurr.Wmunu_[nu][idxNew] = W[nu] * dissFactor;
+                    arenaCurr.Wmunu_[nu][idxNew] = W[nu];
                 }
-                if (coarsen && !isPadding && sx.n * sy.n > 1) {
+                // a plain copy (weight 1) needs no remap
+                if (sx.n * sy.n > 1 || std::abs(wSum - 1.) > 1e-14) {
                     // conservative remap: subtract the dissipative part of
                     // the averaged T^{tau mu}, J^tau at the coarse-cell u
                     // and reconstruct e, n_B, u from the ideal remainder;
@@ -783,13 +794,17 @@ void Evolve::coarseGrainAndEnlargeGrid(
                         arenaCurr.Wmunu_[nu][idxNew] = Wp[nu];
                     }
                 }
-                arenaCurr.piBulk_[idxNew] = piB * dissFactor;
-                arenaCurr.piBulkChem_[idxNew] = piBChem * dissFactor;
+                if (isPadding) {
+                    arenaCurr.e_[idxNew] =
+                        std::max(Util::small_eps, arenaCurr.e_[idxNew]);
+                }
+                arenaCurr.piBulk_[idxNew] = piB;
+                arenaCurr.piBulkChem_[idxNew] = piBChem;
             }
         }
     }
     if (nIdealRemap > 0 && DATA.echo_level > 1) {
-        music_message << "coarsening: " << nIdealRemap
+        music_message << "regrid: " << nIdealRemap
                       << " cells remapped conserving the ideal part only";
         music_message.flush("info");
     }

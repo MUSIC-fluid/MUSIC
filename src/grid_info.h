@@ -58,6 +58,10 @@ class Cell_info {
     // delta_tau in the step where beastMode changes delta_tau
     TJbVec outflowRateLast_;
     double outflowTauLast_ = -1.;
+    // the outflow rate at tau before beastMode remapped the grid: the fluid
+    // left through the old grid faces until then
+    TJbVec outflowRateBeforeRegrid_;
+    double regridTau_ = -1.;
 
   public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
@@ -160,6 +164,10 @@ class Cell_info {
     //! rate at which E, Px, Py, Pz [GeV] and N_B leave the grid faces
     void boundary_outflow_rate(
         Fields &arena, const double tau, TJbVec &rate) const;
+
+    //! records the outflow rate of arena at tau before the grid is remapped
+    //! (once per tau), for check_conservation_law
+    void noteRegrid(Fields &arena, const double tau);
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell

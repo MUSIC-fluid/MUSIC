@@ -1525,19 +1525,26 @@ void Cell_info::check_conservation_law(
     } else {
         TJbVec fluxCurr, fluxPrev;
         boundary_outflow_rate(arena, tau, fluxCurr);
+        // the grid was remapped at tau: the fluid left through the faces of
+        // the old grid, whose rate at tau was recorded before the remap
+        const bool regridded =
+            (regridTau_ > 0. && std::abs(tau - regridTau_) < 1e-10);
         // the interval since the previous record: delta_tau, except in the
         // step where beastMode changed it (arena_prev is then extrapolated
-        // to tau - delta_tau_new); use the rate stored at that record
+        // to tau - delta_tau_new) or remapped the grid; use the rate stored
+        // at that record
         double dt = DATA.delta_tau;
         if (outflowTauLast_ > 0.
-            && std::abs(tau - outflowTauLast_ - DATA.delta_tau) > 1e-8) {
+            && (regridded
+                || std::abs(tau - outflowTauLast_ - DATA.delta_tau) > 1e-8)) {
             dt = tau - outflowTauLast_;
             fluxPrev = outflowRateLast_;
         } else {
             boundary_outflow_rate(arena_prev, tau - DATA.delta_tau, fluxPrev);
         }
+        const TJbVec &fluxEnd = regridded ? outflowRateBeforeRegrid_ : fluxCurr;
         for (unsigned int i = 0; i < outflow_flux.size(); i++) {
-            outflow_flux[i] += 0.5 * dt * (fluxCurr[i] + fluxPrev[i]);
+            outflow_flux[i] += 0.5 * dt * (fluxEnd[i] + fluxPrev[i]);
         }
         outflowRateLast_ = fluxCurr;
         outflowTauLast_ = tau;
@@ -1570,6 +1577,12 @@ void Cell_info::check_conservation_law(
                 << "  " << T_tau_x << "  " << T_tau_y << "  " << T_tau_z << "  "
                 << N_B << "  " << N_Q << "  " << N_S << std::endl;
     output_file.close();
+}
+
+void Cell_info::noteRegrid(Fields &arena, const double tau) {
+    if (regridTau_ > 0. && std::abs(tau - regridTau_) < 1e-10) return;
+    boundary_outflow_rate(arena, tau, outflowRateBeforeRegrid_);
+    regridTau_ = tau;
 }
 
 //! Rate (per unit tau) at which E, Px, Py, Pz [GeV], N_B, N_Q and N_S leave
