@@ -16,8 +16,9 @@
 // Fields are not filled: Evolve asks for what it reads (syncHost for all
 // of the current and the previous slice on output and freeze-out steps,
 // syncEtaWindow and syncShell for the diagnostics that read part of the
-// grid), and takes the conservation sums and the grid maxima from the
-// device (conservationRows). Each filled cell holds what AdvanceRK would
+// grid), and takes the conservation sums and the grid maxima
+// (conservationRows) and the cells of the boundary outflow (outflowFaces)
+// from the device. Each filled cell holds what AdvanceRK would
 // have written. The host Fields are uploaded again only when the device
 // copy is stale: the first step, a new slice pointer or grid, and after
 // invalidate(), which Evolve calls when it changes the fields itself
@@ -146,6 +147,13 @@ class DeviceHydro {
     //! eta slices
     void syncShell(Fields &curr, Fields *prev, int bandX, int bandY,
                    int bandEta);
+    //! the values of the cells at the outflow faces of slice which (0:
+    //! the current one, whose host Fields are curr; 1: the previous one) in
+    //! the order of Cell_info::outflowFace, for boundary_outflow_rate:
+    //! what it would read from Fields holding the slice. The previous
+    //! slice's values are those of the current slice of the step before,
+    //! when they were taken then. Valid until the next step
+    const std::vector<double> &outflowFaces(const Fields &arena, int which);
     //! the rows of Cell_info::check_conservation_law (kConsVals per (eta,
     //! x) row, see device_diag.h) of the device state at tau
     void conservationRows(double tau, std::vector<double> &rows);
@@ -179,6 +187,14 @@ class DeviceHydro {
     double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
     double diagSeconds_ = 0.;
     int nFullSyncs_ = 0, nPartialSyncs_ = 0;
+    // outflowFaces of the current and the previous slice, and whether they
+    // hold the device state (after a step the current one becomes the
+    // previous one)
+    std::vector<double> outflow_[2];
+    bool outflowValid_[2] = {false, false};
+    // ideal update: outflow_ holds the Fields' Pi and W, which only the
+    // host changes (and then uploads)
+    bool outflowStatic_[2] = {false, false};
 
     // the EoS descriptor and pressure table, in the backend's precision
     std::vector<unsigned char> eosDesc_;

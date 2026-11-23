@@ -2294,6 +2294,78 @@ TEST_CASE("Device conservation sums reproduce check_conservation_law") {
     }
 }
 
+TEST_CASE("Device outflow faces reproduce boundary_outflow_rate") {
+    // boundary_outflow_rate from DeviceHydro::outflowFaces against the
+    // same from the Fields after syncHost, on backend 1: the face values
+    // are those the Fields would hold, so the rates agree bit for bit, in
+    // float as well. The faces of the current slice are taken before the
+    // last step, so the previous slice's come from the step before
+    for (int viscous = 0; viscous < 2; viscous++) {
+        for (int eosId : {0, 9}) {
+            for (int gpuFloat = 0; gpuFloat < 2; gpuFloat++) {
+                CAPTURE(viscous);
+                CAPTURE(eosId);
+                CAPTURE(gpuFloat);
+                InitData DATA = (viscous ? viscousDeviceParameters(0)
+                                         : idealDeviceParameters(false, 0));
+                DATA.gpu_backend = 1;
+                DATA.gpu_float = gpuFloat;
+                EOS eos(eosId);
+                Evolve evolve(eos, DATA, nullptr);
+                Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+                if (viscous) {
+                    fillLumpyViscous(a, false);
+                    fillLumpyViscous(b, true);
+                    fillLumpyViscous(c, false);
+                } else {
+                    fillLumpyIdeal(a);
+                    b = a;
+                    c = a;
+                }
+                Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+                double tau = DATA.tau0;
+                for (int it = 0; it < 3; it++) {
+                    if (it == 2) {
+                        // as Evolve takes them before the step
+                        evolve.deviceHydro()->outflowFaces(*fpCurr, 0);
+                    }
+                    evolve.preparePressure(*fpCurr);
+                    evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+                    tau += DATA.delta_tau;
+                }
+                REQUIRE(evolve.deviceHydro() != nullptr);
+                REQUIRE(evolve.deviceHydro()->active());
+                Cell_info info(DATA, eos);
+                const int nx = fpCurr->nX(), ny = fpCurr->nY(),
+                          neta = fpCurr->nEta();
+                const std::vector<double> facesCurr =
+                    evolve.deviceHydro()->outflowFaces(*fpCurr, 0);
+                const std::vector<double> facesPrev =
+                    evolve.deviceHydro()->outflowFaces(*fpPrev, 1);
+                REQUIRE(facesCurr.size()
+                        == static_cast<size_t>(Cell_info::kOutflowVals)
+                               * Cell_info::outflowFaceCount(nx, ny, neta));
+                TJbVec rCurr, rPrev, hCurr, hPrev;
+                info.boundary_outflow_rate(facesCurr, nx, ny, neta, tau, rCurr);
+                info.boundary_outflow_rate(
+                    facesPrev, nx, ny, neta, tau - DATA.delta_tau, rPrev);
+                evolve.syncHost(*fpCurr, *fpPrev);
+                info.boundary_outflow_rate(*fpCurr, tau, hCurr);
+                info.boundary_outflow_rate(
+                    *fpPrev, tau - DATA.delta_tau, hPrev);
+                bool anyNonZero = false;
+                for (size_t k = 0; k < rCurr.size(); k++) {
+                    CAPTURE(k);
+                    CHECK(rCurr[k] == hCurr[k]);
+                    CHECK(rPrev[k] == hPrev[k]);
+                    if (hCurr[k] != 0.) anyNonZero = true;
+                }
+                CHECK(anyNonZero);
+            }
+        }
+    }
+}
+
 TEST_CASE("Device kernels reproduce the update of Advance with the 4D EoS") {
     // EoS 20 on the device: the quadrilinear tables in float, as on the
     // host, with n_Q and n_S in the state and a few dilute cells

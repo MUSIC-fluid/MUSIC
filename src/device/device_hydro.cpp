@@ -16,6 +16,7 @@
 #include "../eos_4D.h"
 #include "../eos_idealgas.h"
 #include "../fields.h"
+#include "../grid_info.h"
 #include "../hydro_source_base.h"
 #include "../hydro_source_strings.h"
 #include "../util.h"
@@ -858,6 +859,8 @@ void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
         }
     }
     if (!backend_->upload(err)) fail(err);
+    outflowValid_[0] = outflowValid_[1] = false;
+    outflowStatic_[0] = outflowStatic_[1] = false;
 }
 
 template <typename Keep>
@@ -945,6 +948,72 @@ void DeviceHydro::syncShell(
     downloadSeconds_ += std::chrono::duration<double>(
                             std::chrono::steady_clock::now() - t0)
                             .count();
+}
+
+//! the cells of the outflow faces from the device slice s (see
+//! DeviceHydro::outflowFaces). In the ideal update the Fields' Pi and W
+//! stay as they are: hostStatic says out already holds them for arena
+template <typename Real>
+static void gatherOutflow(
+    const Real *s, const Fields &arena, bool viscous, bool hostStatic,
+    int nx, int ny, int neta, std::vector<double> &out) {
+    const int n = nx * ny * neta;
+    const int nFaces = Cell_info::outflowFaceCount(nx, ny, neta);
+    const int nv = Cell_info::kOutflowVals;
+    out.resize(static_cast<size_t>(nv) * nFaces);
+    // scattered reads: dynamic, for the slower efficiency cores
+#pragma omp parallel for schedule(dynamic, 512)
+    for (int j = 0; j < nFaces; j++) {
+        int ix, iy, ieta, mu, side;
+        Cell_info::outflowFace(j, nx, ny, neta, ix, iy, ieta, mu, side);
+        const int i = ix + nx * (iy + ny * ieta);
+        double *v = out.data() + static_cast<size_t>(nv) * j;
+        // as downloadT fills the Fields
+        for (int k = 0; k < 4; k++) v[k] = s[k * n + i];
+        for (int k = 0; k < 4; k++) v[6 + k] = s[(4 + k) * n + i];
+        if (viscous) {
+            v[4] = s[music_device::kOffPi * n + i];
+            v[5] = s[music_device::kOffPiChem * n + i];
+            for (int k = 0; k < 14; k++)
+                v[10 + k] = s[(music_device::kOffW + k) * n + i];
+        } else if (!hostStatic) {
+            const int idx = arena.getFieldIdx(ix, iy, ieta);
+            v[4] = arena.piBulk_[idx];
+            v[5] = arena.piBulkChem_[idx];
+            for (int k = 0; k < 14; k++) v[10 + k] = arena.Wmunu_[k][idx];
+        }
+    }
+}
+
+const std::vector<double> &DeviceHydro::outflowFaces(
+    const Fields &arena, int which) {
+    requireIdle("outflowFaces");
+    if (which != 0 && which != 1) fail("outflowFaces: which is 0 or 1");
+    if (&arena != (which == 0 ? lastCurr_ : lastPrev_))
+        fail("outflowFaces: not the slices of the last step");
+    if (outflowValid_[which]) return (outflow_[which]);
+    const auto t0 = std::chrono::steady_clock::now();
+    std::string err;
+    const int nComp =
+        (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+    if (!backend_->fetch(which, 0, nComp, err)) fail(err);
+    const bool hostStatic = outflowStatic_[which];
+    if (float_) {
+        gatherOutflow(
+            static_cast<const float *>(backend_->state(which)), arena,
+            viscous_, hostStatic, nx_, ny_, neta_, outflow_[which]);
+    } else {
+        gatherOutflow(
+            static_cast<const double *>(backend_->state(which)), arena,
+            viscous_, hostStatic, nx_, ny_, neta_, outflow_[which]);
+    }
+    outflowValid_[which] = true;
+    outflowStatic_[which] = true;
+    nPartialSyncs_++;
+    downloadSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+    return (outflow_[which]);
 }
 
 void DeviceHydro::conservationRows(double tau, std::vector<double> &rows) {
@@ -1133,6 +1202,12 @@ void DeviceHydro::advanceStep(
     lastPrev_ = fpPrev;
     valid_ = true;
     hostCurrent_ = false;
+    // the previous slice is the device buffer that was the current one
+    // (and fpPrev the Fields that were fpCurr: both rotate together)
+    outflow_[1].swap(outflow_[0]);
+    std::swap(outflowStatic_[0], outflowStatic_[1]);
+    outflowValid_[1] = outflowValid_[0];
+    outflowValid_[0] = false;
     nSteps_++;
 }
 

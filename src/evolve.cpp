@@ -271,6 +271,10 @@ int Evolve::EvolveIt(
         // runs while the host does the output, the diagnostics and the
         // freeze-out on its copies (AdvanceRK waits for it)
         bool haveDeviceRows = false;
+        // the cells of the outflow faces of fpCurr and fpPrev, from the
+        // device (check_conservation_law)
+        const std::vector<double> *outflowCurr = nullptr;
+        const std::vector<double> *outflowPrev = nullptr;
         if (onDevice) {
             if (!deviceHydro_->hostCurrent() && DATA.beastMode == 0) {
                 // output_momentum_anisotropy_vs_tau and the phase-diagram
@@ -278,13 +282,13 @@ int Evolve::EvolveIt(
                 deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
                 if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
                     deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
-                // the conservation sums and the grid maxima; the outflow
-                // reads the outermost cells
+                // the conservation sums and the grid maxima, and the cells
+                // of the outflow faces
                 deviceHydro_->conservationRows(tau, deviceRows);
                 haveDeviceRows = true;
                 if (!DATA.boost_invariant) {
-                    deviceHydro_->syncShell(
-                        *fpCurr, fpPrev, 1, 1, fpCurr->nEta() > 1 ? 1 : 0);
+                    outflowCurr = &deviceHydro_->outflowFaces(*fpCurr, 0);
+                    outflowPrev = &deviceHydro_->outflowFaces(*fpPrev, 1);
                 }
             }
             deviceHydro_->beginStep(tau, fpPrev, fpCurr);
@@ -370,11 +374,12 @@ int Evolve::EvolveIt(
             // check energy conservation
             if (!DATA.boost_invariant) {
                 if (haveDeviceRows) {
-                    // the sums from the device, the outflow from the
-                    // outermost cells
+                    // the sums and the cells of the outflow faces from the
+                    // device (with the full sync of an output step, from
+                    // the Fields)
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, nullptr, &gridMaxima,
-                        &deviceRows);
+                        &deviceRows, outflowCurr, outflowPrev);
                 } else {
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, pressureCurr, &gridMaxima);
