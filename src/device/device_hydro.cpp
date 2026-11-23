@@ -287,6 +287,21 @@ class CApiBackend : public Backend {
     bool download(std::string &err) {
         return (check(api_->download(dev_, err_, sizeof(err_)), err));
     }
+    bool fetchCells(
+        int which, const std::vector<int> &cells, const void *&out,
+        std::string &err) {
+        out = nullptr;
+        err.clear();
+        if (api_->fetchCells == nullptr) return (false);
+        void *g = nullptr;
+        if (!check(api_->fetchCells(dev_, which, cells.data(),
+                                    static_cast<int>(cells.size()), &g, err_,
+                                    sizeof(err_)),
+                   err))
+            return (false);
+        out = g;
+        return (true);
+    }
     bool setStrings(const void *data, size_t bytes, std::string &err) {
         return (check(
             api_->setStrings(dev_, data, bytes, err_, sizeof(err_)), err));
@@ -626,7 +641,8 @@ void DeviceHydro::fillParams(
     }
     P.coshDeta = Real(coshDeta);
     P.sinhDeta = Real(sinhDeta);
-    P.nComp = (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+    P.nComp = (viscous_ ? int(music_device::kNCompVisc)
+                        : int(music_device::kNComp));
     if (viscous_) fillViscParams(P);
     P.hasSource = (hasSource ? 1 : 0);
     P.stringSource = (hasSource && strings_ != nullptr ? 1 : 0);
@@ -769,21 +785,41 @@ void DeviceHydro::downloadT(
             const int nr = keep(iy, ieta, r);
             for (int k = 0; k < nr; k++)
             for (int ix = r[2 * k]; ix < r[2 * k + 1]; ix++) {
-                const int idx = arena.getFieldIdx(ix, iy, ieta);
                 const int i = ix + nx_ * (iy + ny_ * ieta);
-                arena.e_[idx] = s[i];
-                arena.rhob_[idx] = s[n + i];
-                arena.rhoq_[idx] = s[2 * n + i];
-                arena.rhos_[idx] = s[3 * n + i];
-                for (int k = 0; k < 4; k++) arena.u_[k][idx] = s[(4 + k) * n + i];
-                if (viscous_) {
-                    for (int k = 0; k < 14; k++)
-                        arena.Wmunu_[k][idx] = s[(music_device::kOffW + k) * n + i];
-                    arena.piBulk_[idx] = s[music_device::kOffPi * n + i];
-                    arena.piBulkChem_[idx] = s[music_device::kOffPiChem * n + i];
-                }
+                storeCell(arena, arena.getFieldIdx(ix, iy, ieta), s, n, i);
             }
         }
+}
+
+template <typename Real>
+void DeviceHydro::storeCell(
+    Fields &arena, int idx, const Real *s, size_t stride, size_t at) const {
+    const auto v = [s, stride, at](int c) { return (s[c * stride + at]); };
+    arena.e_[idx] = v(0);
+    arena.rhob_[idx] = v(1);
+    arena.rhoq_[idx] = v(2);
+    arena.rhos_[idx] = v(3);
+    for (int k = 0; k < 4; k++) arena.u_[k][idx] = v(4 + k);
+    if (viscous_) {
+        for (int k = 0; k < 14; k++)
+            arena.Wmunu_[k][idx] = v(music_device::kOffW + k);
+        arena.piBulk_[idx] = v(music_device::kOffPi);
+        arena.piBulkChem_[idx] = v(music_device::kOffPiChem);
+    }
+}
+
+template <typename Real>
+void DeviceHydro::downloadGathered(
+    Fields &arena, const Real *g, const std::vector<int> &cells) const {
+    const int nCells = static_cast<int>(cells.size());
+#pragma omp parallel for schedule(static)
+    for (int k = 0; k < nCells; k++) {
+        const int i = cells[k];
+        const int ix = i % nx_;
+        const int iy = (i / nx_) % ny_;
+        const int ieta = i / (nx_ * ny_);
+        storeCell(arena, arena.getFieldIdx(ix, iy, ieta), g, nCells, k);
+    }
 }
 
 template <typename Real>
@@ -843,7 +879,8 @@ void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
         ny_ = curr.nY();
         neta_ = curr.nEta();
         const int nComp =
-            (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+            (viscous_ ? int(music_device::kNCompVisc)
+                      : int(music_device::kNComp));
         if (!backend_->resize(nx_, ny_, neta_, nComp, err)) fail(err);
     }
     // the viscous update also reads the previous slice (tau_{n-1}): its tau
@@ -864,7 +901,31 @@ template <typename Keep>
 void DeviceHydro::downloadCells(Fields &arena, int which, const Keep &keep) {
     std::string err;
     const int nComp =
-        (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+        (viscous_ ? int(music_device::kNCompVisc)
+                  : int(music_device::kNComp));
+    // the listed cells only, where the backend can gather them (CUDA:
+    // the diagnostics read about a tenth of the slice)
+    cells_.clear();
+    for (int ieta = 0; ieta < neta_; ieta++)
+        for (int iy = 0; iy < ny_; iy++) {
+            int r[4] = {0, 0, 0, 0};
+            const int nr = keep(iy, ieta, r);
+            for (int k = 0; k < nr; k++)
+                for (int ix = r[2 * k]; ix < r[2 * k + 1]; ix++)
+                    cells_.push_back(ix + nx_ * (iy + ny_ * ieta));
+        }
+    if (cells_.size() < static_cast<size_t>(nx_) * ny_ * neta_) {
+        const void *g = nullptr;
+        if (backend_->fetchCells(which, cells_, g, err)) {
+            if (float_) {
+                downloadGathered(arena, static_cast<const float *>(g), cells_);
+            } else {
+                downloadGathered(arena, static_cast<const double *>(g), cells_);
+            }
+            return;
+        }
+        if (!err.empty()) fail(err);
+    }
     if (!backend_->fetch(which, 0, nComp, err)) fail(err);
     if (float_) {
         downloadT(arena, static_cast<const float *>(backend_->state(which)),
@@ -1183,7 +1244,11 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
         if (source_ && !strings_) {
             const auto s0 = std::chrono::steady_clock::now();
             const int which = (rk == 0 ? 0 : 2);
-            if (rk == 1 && !backend_->fetch(which, 4, 4, err)) fail(err);
+            // u of the slice, in both stages: with a copy of its own
+            // (CUDA) state(0) is only as recent as the last fetch, which
+            // the diagnostics do not make every step (on Metal and the CPU
+            // state() is the slice and fetch() copies nothing)
+            if (!backend_->fetch(which, 4, 4, err)) fail(err);
             const double tauRk = tau + rk * DATA.delta_tau;
             if (float_) {
                 hasSource = computeSource(

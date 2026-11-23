@@ -87,6 +87,15 @@ typedef struct MusicDeviceApi {
     // pointers rotate when stage() returns; every call that reads the
     // device state waits first
     int (*finish)(void *dev, int *flags, char *err, int errLen);
+    // optional (NULL: fetch() of the whole slice): all components of the
+    // listed cells (ix + nx (iy + ny ieta)) of slice which, gathered on
+    // the device into *out, component-major (component c of cells[k] at
+    // c nCells + k), valid until the next call. For a backend whose
+    // state() is a copy over PCIe (CUDA) this copies only what the host
+    // reads: the eta windows and edge shells of the diagnostics
+    int (*fetchCells)(
+        void *dev, int which, const int *cells, int nCells, void **out,
+        char *err, int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

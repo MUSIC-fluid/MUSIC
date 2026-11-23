@@ -57,6 +57,17 @@ cudaError_t cudaGetDevice(int *);
 cudaError_t cudaGetDeviceProperties(cudaDeviceProp *, int);
 cudaError_t cudaDeviceSynchronize();
 const char *cudaGetErrorString(cudaError_t);
+struct cudaFuncAttributes {
+    int maxThreadsPerBlock, numRegs;
+};
+template <class T>
+cudaError_t cudaFuncGetAttributes(cudaFuncAttributes *, T *);
+typedef struct CUevent_st *cudaEvent_t;
+cudaError_t cudaEventCreate(cudaEvent_t *);
+cudaError_t cudaEventDestroy(cudaEvent_t);
+cudaError_t cudaEventRecord(cudaEvent_t, cudaStream_t = 0);
+cudaError_t cudaEventSynchronize(cudaEvent_t);
+cudaError_t cudaEventElapsedTime(float *, cudaEvent_t, cudaEvent_t);
 __device__ int atomicOr(int *, int);
 #define MUSIC_CUDA_MATH(f)                \
     __host__ __device__ double f(double); \
@@ -91,6 +102,7 @@ __host__ __device__ bool isnan(float);
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "device_api.h"
@@ -169,6 +181,17 @@ __global__ void cudaStringSource(
     music_device::kernelStringSource(P, S, sIn, src, i, flags);
 }
 
+//! all nComp components of the listed cells, component-major
+template <typename Real>
+__global__ void cudaGather(
+    const Real *s, size_t n, const int *cells, int nCells, int nComp,
+    Real *out) {
+    const size_t t = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    if (t >= (size_t)nCells * nComp) return;
+    const size_t c = t / nCells;
+    out[t] = s[c * n + cells[t - c * nCells]];
+}
+
 template <typename Real>
 __global__ void cudaConservation(
     const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
@@ -178,9 +201,38 @@ __global__ void cudaConservation(
     music_device::kernelConservationRow(P, D, tab, sCurr, sPrev, out, row);
 }
 
-const int kBlock = 128;
+//! the kernels, for their block sizes and the profile
+enum {
+    kKStrings,
+    kKPressure,
+    kKFace,
+    kKWFace,
+    kKCell,
+    kKCellVisc,
+    kKConservation,
+    kNKernels
+};
+const char *const kKernelNames[kNKernels] = {
+    "strings", "pressure", "face", "wface", "cell", "cellVisc",
+    "conservation"};
 
-int blocks(int n) { return (n + kBlock - 1) / kBlock; }
+//! threads per block: MUSIC_CUDA_BLOCK (default 128; a multiple of 32),
+//! capped by what each kernel's register use allows
+int requestedBlock() {
+    const char *s = getenv("MUSIC_CUDA_BLOCK");
+    int b = (s != NULL ? atoi(s) : 128);
+    if (b < 32) b = 32;
+    if (b > 1024) b = 1024;
+    return b - b % 32;
+}
+
+template <typename F>
+int blockFor(F *kernel, int want) {
+    cudaFuncAttributes a;
+    if (cudaFuncGetAttributes(&a, kernel) != cudaSuccess) return 128;
+    const int most = a.maxThreadsPerBlock - a.maxThreadsPerBlock % 32;
+    return (want < most ? want : most);
+}
 
 bool ok(cudaError_t status, const char *what, char *err, int len) {
     if (status == cudaSuccess) return true;
@@ -212,6 +264,11 @@ struct DeviceBase {
     virtual int conservation(
         const void *params, size_t bytes, void *out, size_t outBytes,
         char *err, int len) = 0;
+    virtual int finish(int *flags, char *err, int len) = 0;
+    virtual int fetchCells(
+        int which, const int *cells, int nCells, void **out, char *err,
+        int len) = 0;
+    virtual int init(char *err, int len) = 0;
 };
 
 template <typename Real>
@@ -234,6 +291,146 @@ struct Device : public DeviceBase {
     int cur = 0, pred = 1, next = 2;
     int nComp = kNComp;
     size_t sliceBytes = 0;
+    // the second stage of a step is in flight: finish() reads its flags
+    bool pending = false;
+    int block[kNKernels];
+    // MUSIC_CUDA_PROFILE=1: the GPU time of each kernel (each launch is
+    // timed with events and waited for, so the stages do not overlap the
+    // host), printed at the end of the run
+    bool profile = false;
+    cudaEvent_t ev[2] = {NULL, NULL};
+    double profMs[kNKernels];
+    long profCalls[kNKernels];
+
+    int init(char *err, int len) {
+        const int want = requestedBlock();
+        block[kKStrings] = blockFor(cudaStringSource<Real>, want);
+        block[kKPressure] = blockFor(cudaPressure<Real>, want);
+        block[kKFace] = blockFor(cudaFace<Real>, want);
+        block[kKWFace] = blockFor(cudaWFace<Real>, want);
+        block[kKCell] = blockFor(cudaCell<Real>, want);
+        block[kKCellVisc] = blockFor(cudaCellVisc<Real>, want);
+        // one thread per (eta, x) row: few threads, small blocks
+        block[kKConservation] = 32;
+        const char *p = getenv("MUSIC_CUDA_PROFILE");
+        profile = (p != NULL && atoi(p) != 0);
+        for (int k = 0; k < kNKernels; k++) {
+            profMs[k] = 0.;
+            profCalls[k] = 0;
+        }
+        if (profile
+            && (!ok(cudaEventCreate(&ev[0]), "cudaEventCreate", err, len)
+                || !ok(cudaEventCreate(&ev[1]), "cudaEventCreate", err, len)))
+            return 1;
+        return 0;
+    }
+    int grid(int n, int k) const { return (n + block[k] - 1) / block[k]; }
+    void tic() {
+        if (profile) cudaEventRecord(ev[0]);
+    }
+    void toc(int k) {
+        if (!profile) return;
+        cudaEventRecord(ev[1]);
+        cudaEventSynchronize(ev[1]);
+        float ms = 0.f;
+        cudaEventElapsedTime(&ms, ev[0], ev[1]);
+        profMs[k] += ms;
+        profCalls[k]++;
+    }
+    void printProfile() const {
+        if (!profile) return;
+        double total = 0.;
+        for (int k = 0; k < kNKernels; k++) total += profMs[k];
+        fprintf(stderr, "[CUDA profile] %s, %d-byte reals\n", name,
+                (int)sizeof(Real));
+        for (int k = 0; k < kNKernels; k++) {
+            if (profCalls[k] == 0) continue;
+            fprintf(stderr,
+                    "[CUDA profile] %-12s %4d threads/block %8ld calls "
+                    "%9.3f s %5.1f%%\n",
+                    kKernelNames[k], block[k], profCalls[k],
+                    profMs[k] * 1e-3, 100. * profMs[k] / total);
+        }
+        fprintf(stderr, "[CUDA profile] total        %9.3f s\n",
+                total * 1e-3);
+    }
+
+    // fetchCells: the cell list on the device (re-sent when it changes),
+    // the gathered values on the device and in pinned host memory
+    int *dCells = NULL;
+    int *hCells = NULL;  // the list dCells holds
+    int nCellsCap = 0, nCellsHeld = -1;
+    Real *dGather = NULL, *hGather = NULL;
+    size_t gatherCap = 0;
+
+    int fetchCells(int which, const int *cells, int nCells, void **out,
+                   char *err, int len) {
+        if (nCells <= 0) {
+            *out = hGather;
+            return 0;
+        }
+        if (nCells > nCellsCap) {
+            cudaFree(dCells);
+            cudaFreeHost(hCells);
+            dCells = NULL;
+            hCells = NULL;
+            nCellsCap = nCellsHeld = 0;
+            if (!ok(cudaMalloc((void **)&dCells, sizeof(int) * nCells),
+                    "cudaMalloc", err, len)
+                || !ok(cudaMallocHost((void **)&hCells, sizeof(int) * nCells),
+                       "cudaMallocHost", err, len))
+                return 1;
+            nCellsCap = nCells;
+        }
+        if (nCells != nCellsHeld
+            || memcmp(hCells, cells, sizeof(int) * nCells) != 0) {
+            memcpy(hCells, cells, sizeof(int) * nCells);
+            if (!ok(cudaMemcpy(dCells, hCells, sizeof(int) * nCells,
+                               cudaMemcpyHostToDevice),
+                    "fetchCells", err, len))
+                return 1;
+            nCellsHeld = nCells;
+        }
+        const size_t nv = (size_t)nCells * nComp;
+        if (nv > gatherCap) {
+            cudaFree(dGather);
+            cudaFreeHost(hGather);
+            dGather = hGather = NULL;
+            gatherCap = 0;
+            if (!ok(cudaMalloc((void **)&dGather, sizeof(Real) * nv),
+                    "cudaMalloc", err, len)
+                || !ok(cudaMallocHost((void **)&hGather, sizeof(Real) * nv),
+                       "cudaMallocHost", err, len))
+                return 1;
+            gatherCap = nv;
+        }
+        const Real *from = slice[which == 0 ? cur : (which == 1 ? next : pred)];
+        const int b = 256;
+        cudaGather<Real><<<(unsigned)((nv + b - 1) / b), b>>>(
+            from, (size_t)nx * ny * neta, dCells, nCells, nComp, dGather);
+        if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
+        if (!ok(cudaMemcpy(hGather, dGather, sizeof(Real) * nv,
+                           cudaMemcpyDeviceToHost),
+                "fetchCells", err, len))
+            return 1;
+        *out = hGather;
+        return 0;
+    }
+
+    // waits for the step in flight (every read of the device state is a
+    // blocking copy on the default stream and waits as well)
+    int finish(int *flagsOut, char *err, int len) {
+        int f = 0;
+        if (pending) {
+            pending = false;
+            if (!ok(cudaMemcpy(&f, flags, sizeof(int),
+                               cudaMemcpyDeviceToHost),
+                    "the step", err, len))
+                return 1;
+        }
+        *flagsOut = f;
+        return 0;
+    }
 
     void release() {
         for (int k = 0; k < 3; k++) {
@@ -253,6 +450,14 @@ struct Device : public DeviceBase {
         pCur = pPred = src = srcHost = NULL;
     }
     ~Device() {
+        cudaDeviceSynchronize();
+        printProfile();
+        for (int k = 0; k < 2; k++)
+            if (ev[k] != NULL) cudaEventDestroy(ev[k]);
+        cudaFree(dCells);
+        cudaFreeHost(hCells);
+        cudaFree(dGather);
+        cudaFreeHost(hGather);
         release();
         cudaFree(table);
         cudaFree(flags);
@@ -294,9 +499,12 @@ struct Device : public DeviceBase {
                 return 1;
             consBytes = outBytes;
         }
-        cudaConservation<Real><<<blocks(nx * neta), kBlock>>>(
-            P, desc, table, slice[cur], slice[next], consOut);
+        tic();
+        cudaConservation<Real>
+            <<<grid(nx * neta, kKConservation), block[kKConservation]>>>(
+                P, desc, table, slice[cur], slice[next], consOut);
         if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
+        toc(kKConservation);
         return ok(cudaMemcpy(out, consOut, outBytes, cudaMemcpyDeviceToHost),
                   "conservation", err, len)
                    ? 0
@@ -432,8 +640,17 @@ struct Device : public DeviceBase {
             return 1;
         }
         const bool viscous = (nComp == kNCompVisc);
-        if (!ok(cudaMemset(flags, 0, sizeof(int)), "cudaMemset", err, len))
-            return 1;
+        // the flags of both stages add up; finish() reads them. The kernels
+        // are queued on the default stream: everything later on it (the
+        // copies of fetch, uploadSource, setStrings, download) runs after
+        // them, so neither stage waits here, and the host goes on while
+        // the step runs (DeviceHydro::beginStep / advanceStep)
+        if (rk == 0) {
+            pending = false;
+            if (!ok(cudaMemset(flags, 0, sizeof(int)), "cudaMemset", err,
+                    len))
+                return 1;
+        }
         const int n = nx * ny * neta;
         {
             P.rkFlag = rk;
@@ -446,40 +663,52 @@ struct Device : public DeviceBase {
                     if (err) snprintf(err, len, "CUDA: the strings were not set");
                     return 1;
                 }
-                cudaStringSource<Real><<<blocks(n), kBlock>>>(
-                    P, strings, sIn, src, flags);
+                tic();
+                cudaStringSource<Real>
+                    <<<grid(n, kKStrings), block[kKStrings]>>>(
+                        P, strings, sIn, src, flags);
+                toc(kKStrings);
             }
-            cudaPressure<Real><<<blocks(n), kBlock>>>(P, desc, table, sIn, pIn);
+            tic();
+            cudaPressure<Real><<<grid(n, kKPressure), block[kKPressure]>>>(
+                P, desc, table, sIn, pIn);
+            toc(kKPressure);
             for (int d = 1; d <= 3; d++) {
                 const int nf = faceCount(nx, ny, neta, d);
-                cudaFace<Real><<<blocks(nf), kBlock>>>(
+                tic();
+                cudaFace<Real><<<grid(nf, kKFace), block[kKFace]>>>(
                     P, desc, table, sIn, pIn, d, flux[d - 1], flags);
+                toc(kKFace);
                 if (viscous) {
-                    cudaWFace<Real><<<blocks(nf), kBlock>>>(
+                    tic();
+                    cudaWFace<Real><<<grid(nf, kKWFace), block[kKWFace]>>>(
                         P, sIn, d, wFace[d - 1]);
+                    toc(kKWFace);
                 }
             }
+            tic();
             if (viscous) {
-                cudaCellVisc<Real><<<blocks(n), kBlock>>>(
-                    P, desc, table, sIn, sPrev, pIn, pCur, flux[0], flux[1],
-                    flux[2], wFace[0], wFace[1], wFace[2], src, sOut, flags);
+                cudaCellVisc<Real>
+                    <<<grid(n, kKCellVisc), block[kKCellVisc]>>>(
+                        P, desc, table, sIn, sPrev, pIn, pCur, flux[0],
+                        flux[1], flux[2], wFace[0], wFace[1], wFace[2], src,
+                        sOut, flags);
+                toc(kKCellVisc);
             } else {
-                cudaCell<Real><<<blocks(n), kBlock>>>(
+                cudaCell<Real><<<grid(n, kKCell), block[kKCell]>>>(
                     P, desc, table, sIn, sPrev, pIn, pCur, flux[0], flux[1],
                     flux[2], src, sOut, flags);
+                toc(kKCell);
             }
         }
         if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
-        int f = 0;
-        if (!ok(cudaMemcpy(&f, flags, sizeof(int), cudaMemcpyDeviceToHost),
-                "the step", err, len))
-            return 1;
         if (rk == 1) {
+            pending = true;
             const int t = cur;
             cur = next;
             next = t;
         }
-        *flagsOut = f;
+        *flagsOut = 0;
         return 0;
     }
 };
@@ -511,6 +740,10 @@ void *cudaCreate(int realSize, char *err, int len) {
         static_cast<Device<double> *>(d)->flags = flags;
     } else {
         static_cast<Device<float> *>(d)->flags = flags;
+    }
+    if (d->init(err, len)) {
+        delete d;
+        return NULL;
     }
     return d;
 }
@@ -550,14 +783,18 @@ int cudaDownload(void *dev, char *err, int len) {
 }
 // the kernels read the switches at run time
 int cudaSpecialize(void *, const char *, char *, int) { return 0; }
-// the stages are synchronous and return their flags
-int cudaFinish(void *, int *flags, char *, int) {
-    *flags = 0;
-    return 0;
+// waits for the second stage and gives the flags of the step
+int cudaFinish(void *dev, int *flags, char *err, int len) {
+    return get(dev)->finish(flags, err, len);
 }
 int cudaSetStrings(
     void *dev, const void *data, size_t bytes, char *err, int len) {
     return get(dev)->setStrings(data, bytes, err, len);
+}
+int cudaFetchCells(
+    void *dev, int which, const int *cells, int nCells, void **out,
+    char *err, int len) {
+    return get(dev)->fetchCells(which, cells, nCells, out, err, len);
 }
 int cudaConservationRows(
     void *dev, const void *params, size_t bytes, void *out, size_t outBytes,
@@ -569,7 +806,7 @@ const MusicDeviceApi kCudaApi = {
     cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
-    cudaSpecialize, cudaFinish,
+    cudaSpecialize, cudaFinish, cudaFetchCells,
 };
 
 }  // namespace

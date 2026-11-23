@@ -30,6 +30,10 @@ if (Eigen3_FOUND)
 else()
     message(WARNING "System-wide Eigen3 not found, falling back to local version")
     include_directories(${CMAKE_SOURCE_DIR}/eigen-3.4.0)
+    # the sources link Eigen3::Eigen: provide it for the local copy
+    add_library(Eigen3::Eigen INTERFACE IMPORTED)
+    set_target_properties(Eigen3::Eigen PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/eigen-3.4.0)
 endif()
 include_directories(${EIGEN3_INCLUDE_DIR})
 

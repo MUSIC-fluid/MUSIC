@@ -73,7 +73,15 @@ MD_FN void flagOr(MD_FLAGS f, int v) {
     metal::atomic_fetch_or_explicit(f, v, metal::memory_order_relaxed);
 }
 #elif defined(__CUDACC__)
-__device__ inline void flagOr(MD_FLAGS f, int v) { atomicOr(f, v); }
+// host and device, as the MD_FN kernels that call it (nvcc rejects a call
+// of a __device__ function from a __host__ __device__ one)
+__host__ __device__ inline void flagOr(MD_FLAGS f, int v) {
+#ifdef __CUDA_ARCH__
+    atomicOr(f, v);
+#else
+    __atomic_fetch_or(f, v, __ATOMIC_RELAXED);
+#endif
+}
 #else
 using std::acos;
 using std::acosh;

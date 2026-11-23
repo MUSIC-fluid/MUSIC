@@ -87,6 +87,15 @@ class Backend {
     //! current in state(which)
     virtual bool fetch(
         int which, int firstComp, int nComp, std::string &err) = 0;
+    //! all components of the listed cells of slice which, gathered into
+    //! *out (component-major, see device_api.h). False with an empty err:
+    //! not supported, use fetch()
+    virtual bool fetchCells(
+        int, const std::vector<int> &, const void *&out, std::string &err) {
+        out = nullptr;
+        err.clear();
+        return (false);
+    }
     virtual bool download(std::string &err) = 0;
     //! the packed strings (device_strings.h) for the stages with
     //! StepParams::stringSource
@@ -208,6 +217,16 @@ class DeviceHydro {
     std::string specKey() const;
     template <typename Real, typename Keep>
     void downloadT(Fields &arena, const Real *s, const Keep &keep) const;
+    //! the cell at Fields index idx from s, component c at s[c stride + at]
+    template <typename Real>
+    void storeCell(
+        Fields &arena, int idx, const Real *s, size_t stride,
+        size_t at) const;
+    //! the cells gathered by Backend::fetchCells into arena
+    template <typename Real>
+    void downloadGathered(
+        Fields &arena, const Real *g, const std::vector<int> &cells) const;
+    std::vector<int> cells_;  // the cells of the last partial download
     template <typename Real>
     void fillParams(
         double tau, bool hasSource, std::vector<unsigned char> &out) const;

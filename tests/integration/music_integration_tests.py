@@ -154,6 +154,30 @@ def freeze_out_params(e_fo, every=5):
     }
 
 
+# the backends of the gpu_backend tests: 0 the CPU code, 1 the device
+# kernels on the CPU (double), 2 Metal (float), 3 CUDA (double) and 4 CUDA
+# in float (gpu_backend 3 with gpu_float 1). A backend that is not in the
+# build prints "built without" and is skipped. Limits relative to the CPU
+# code: double agrees to rounding (nvcc contracts multiply-adds), float to
+# float rounding.
+GPU_KEYS = (0, 1, 2, 3, 4)
+GPU_LIMITS = {1: 1e-6, 2: 1e-4, 3: 1e-6, 4: 1e-4}
+GPU_DEVICES = (2, 3, 4)  # the backends on a GPU
+
+
+def gpu(key):
+    """the input parameters of backend key"""
+    if key == 4:
+        return {"gpu_backend": 3, "gpu_float": 1}
+    return {"gpu_backend": key}
+
+
+def gpu_name(key):
+    return {0: "0 (CPU code)", 1: "1 (device kernels on the CPU)",
+            2: "2 (Metal)", 3: "3 (CUDA double)",
+            4: "3 (CUDA float)"}.get(key, str(key))
+
+
 def base_params(**kw):
     params = {
         "echo_level": 1,
@@ -1057,15 +1081,15 @@ def test_gpu_backend(r):
     n, size = 41, 12.0
     eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            "..", "..", "EOS")
-    limits = {1: 1e-6, 2: 1e-4}
-    have = {1: True, 2: True}
+    limits = dict(GPU_LIMITS)
+    have = {k: True for k in GPU_KEYS[1:]}
     for eos, table in [(0, None), (9, "hotQCD"), (14, "neos_bqs"),
                        (20, "neos4D")]:
         if table and not os.path.isdir(os.path.join(eos_dir, table)):
             print("    EoS {}: no tables in {}, skipped".format(eos, eos_dir))
             continue
         res = {}
-        for backend in (0, 1, 2):
+        for backend in GPU_KEYS:
             if not have.get(backend, True):
                 continue
             wd = r.workdir("gpu_backend_eos{}_{}".format(eos, backend))
@@ -1074,10 +1098,10 @@ def test_gpu_backend(r):
                 os.symlink(eos_dir, os.path.join(wd, "EOS"))
             log, _, t = r.run(wd, tatb_params(
                 n, size, 17, 10.0, 1.0, EOS_to_use=eos,
-                gpu_backend=backend))
+                **gpu(backend)))
             if backend > 0 and "built without" in log:
                 print("    gpu_backend = {}: not in this build, skipped"
-                      .format(backend))
+                      .format(gpu_name(backend)))
                 have[backend] = False
                 continue
             if backend > 0:
@@ -1095,12 +1119,13 @@ def test_gpu_backend(r):
             diff = np.max(np.abs(a[:, 1:] - b[:, 1:]) / np.abs(a[:, 1:2]))
             report("EoS {} backend {} max |conservation diff| / E".format(
                 eos, backend), diff, limits[backend])
-    if not have[2]:
+    devices = [k for k in GPU_DEVICES if have.get(k)]
+    if not devices:
         return
     hbarc = 0.19733
     tau_end = 1.5
     errors = {}
-    for backend in (0, 2):
+    for backend in [0] + devices:
         wd = r.workdir("gpu_backend_gubser_{}".format(backend))
         gdir = os.path.join(wd, "tests", "Gubser_flow")
         os.makedirs(gdir)
@@ -1115,7 +1140,7 @@ def test_gpu_backend(r):
             UseCFL_condition=0, X_grid_size_in_fm=10.0,
             Y_grid_size_in_fm=10.0, Grid_size_in_x=201, Grid_size_in_y=201,
             Include_Rhob_Yes_1_No_0=1, face_reconstruction=1,
-            gpu_backend=backend))
+            **gpu(backend)))
         d = np.loadtxt(os.path.join(
             wd, "Gubser_flow_check_tau_{:g}.dat".format(tau_end)))
         d = d[np.abs(d[:, 1]) < 1e-6]
@@ -1124,10 +1149,12 @@ def test_gpu_backend(r):
         errors[backend] = (l1(d[:, 2] / hbarc, e), l1(d[:, 3], nb),
                            l1(d[:, 5], ux))
     for i, name in enumerate(("e", "n_B", "u^x")):
-        print("    Gubser L1 error of {:4s} CPU code: {:.3e}, Metal: {:.3e}"
-              .format(name, errors[0][i], errors[2][i]))
-        report("Gubser Metal / CPU L1 error of " + name + " - 1",
-               abs(errors[2][i] / errors[0][i] - 1.), 1e-2)
+        for k in devices:
+            print("    Gubser L1 error of {:4s} CPU code: {:.3e}, backend "
+                  "{}: {:.3e}".format(name, errors[0][i], gpu_name(k),
+                                      errors[k][i]))
+            report("Gubser backend {} / CPU L1 error of {} - 1".format(
+                k, name), abs(errors[k][i] / errors[0][i] - 1.), 1e-2)
 
 def test_gpu_backend_viscous(r):
     # the viscous update on the device: the lumpy 3D event with n_B, shear
@@ -1153,8 +1180,8 @@ def test_gpu_backend_viscous(r):
 
     eos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            "..", "..", "EOS")
-    limits = {1: 1e-6, 2: 1e-4}
-    have = {1: True, 2: True}
+    limits = dict(GPU_LIMITS)
+    have = {k: True for k in GPU_KEYS[1:]}
     cases = [("EoS 0", 0, None, {}), ("EoS 9", 9, "hotQCD", {}),
              ("EoS 14", 14, "neos_bqs", {}), ("EoS 20", 20, "neos4D", {}),
              ("diffusion", 0, None, {"turn_on_baryon_diffusion": 1,
@@ -1165,7 +1192,7 @@ def test_gpu_backend_viscous(r):
             print("    {}: no tables in {}, skipped".format(name, eos_dir))
             continue
         res = {}
-        for backend in (0, 1, 2):
+        for backend in GPU_KEYS:
             if not have.get(backend, True):
                 continue
             wd = r.workdir("gpu_viscous_{}_{}".format(
@@ -1174,7 +1201,7 @@ def test_gpu_backend_viscous(r):
             if table:
                 os.symlink(eos_dir, os.path.join(wd, "EOS"))
             params = tatb_params(n, size, 17, 10.0, 1.0, EOS_to_use=eos,
-                                 gpu_backend=backend)
+                                 **gpu(backend))
             params.update({
                 "Viscosity_Flag_Yes_1_No_0": 1,
                 "Include_Shear_Visc_Yes_1_No_0": 1,
@@ -1189,7 +1216,7 @@ def test_gpu_backend_viscous(r):
             log, _, t = r.run(wd, params)
             if backend > 0 and "built without" in log:
                 print("    gpu_backend = {}: not in this build, skipped"
-                      .format(backend))
+                      .format(gpu_name(backend)))
                 have[backend] = False
                 continue
             if backend > 0:
@@ -1220,7 +1247,7 @@ def test_gpu_backend_viscous(r):
             report("{} backend {} max |E/E0 - 1|".format(name, backend),
                    np.max(np.abs(c[:, 1] / c[0, 1] - 1)), 2e-5)
             _, mu, W, Pi = res[backend][2]
-            lim = {1: 1e-5, 2: 1e-4}[backend]
+            lim = {1: 1e-5, 2: 1e-4, 3: 1e-5, 4: 1e-4}[backend]
             l1 = lambda x, x0: np.sum(np.abs(x - x0)) / np.sum(np.abs(x0))
             report("{} backend {} L1 |W/(e+P) diff| (hot cells)".format(
                 name, backend), l1(W[hot], W0[hot]), lim)
@@ -1249,7 +1276,7 @@ def test_gpu_backend_pi_chem(r):
     x, e, ux, uy, ueta = _ipglasma_state()
     eta = np.linspace(-0.8, 0.8, 9)
     res = {}
-    for backend in (0, 1, 2):
+    for backend in GPU_KEYS:
         wd = r.workdir("gpu_pi_chem_{}".format(backend))
         os.symlink(eos_dir, os.path.join(wd, "EOS"))
         write_ipglasma_file(os.path.join(wd, "ic.dat"), x, x, e, ux, uy, ueta,
@@ -1267,11 +1294,11 @@ def test_gpu_backend_pi_chem(r):
             T_dependent_Bulk_to_S_ratio=1, turn_on_bulk_chem=1,
             chem_rate_C=2.0, output_evolution_data=1,
             outputBinaryEvolution=0, output_evolution_every_N_timesteps=10,
-            gpu_backend=backend)
+            **gpu(backend))
         log, _, t = r.run(wd, params)
         if backend > 0 and "built without" in log:
             print("    gpu_backend = {}: not in this build, skipped"
-                  .format(backend))
+                  .format(gpu_name(backend)))
             continue
         if backend > 0:
             check("hydro on the device" in log and "viscous" in log,
@@ -1288,7 +1315,7 @@ def test_gpu_backend_pi_chem(r):
         if backend == 0:
             continue
         c, Pi, t = res[backend]
-        lim = {1: 1e-6, 2: 1e-4}[backend]
+        lim = GPU_LIMITS[backend]
         print("    gpu_backend {}: {:.1f} s (CPU {:.1f} s)".format(
             backend, t, res[0][2]))
         check(len(c) == len(a), "backend {} wrote {} rows, the CPU code "
@@ -1317,20 +1344,22 @@ def test_gpu_backend_gubser_viscous(r):
                 params[parts[0]] = parts[1]
     params.update({"output_evolution_data": 0, "Do_FreezeOut_Yes_1_No_0": 0})
     errors = {}
-    for backend in (0, 2):
+    for backend in (0,) + GPU_DEVICES:
         wd = r.workdir("gpu_gubser_viscous_{}".format(backend))
         os.makedirs(os.path.join(wd, "tests"))
         os.symlink(os.path.abspath(gsrc),
                    os.path.join(wd, "tests", "Gubser_flow"))
         p = dict(params)
-        p["gpu_backend"] = backend
+        p.update(gpu(backend))
         log, _, t = r.run(wd, p)
         if backend > 0 and "built without" in log:
-            print("    gpu_backend = 2: not in this build, skipped")
-            return
+            print("    gpu_backend = {}: not in this build, skipped".format(
+                gpu_name(backend)))
+            continue
         if backend > 0:
             check("hydro on the device" in log,
-                  "gpu_backend = 2 fell back to the CPU code")
+                  "gpu_backend = {} fell back to the CPU code".format(
+                      gpu_name(backend)))
         rows = []
         for line in log.splitlines():
             if "Autocheck:" in line:
@@ -1340,14 +1369,19 @@ def test_gpu_backend_gubser_viscous(r):
               .format(backend, len(rows)))
         errors[backend] = (np.array(rows), t)
     names = ("T", "u^x", "u^y", "pi^xx", "pi^xy", "pi^yy", "pi^etaeta")
-    for k, tau in enumerate((1.2, 1.5, 2.0)):
-        for i, name in enumerate(names):
-            e0, e2 = errors[0][0][k, i], errors[2][0][k, i]
-            print("    tau = {:3.1f} L1 error of {:9s} CPU {:.4e}, Metal "
-                  "{:.4e}".format(tau, name, e0, e2))
-            report("Gubser tau = {} {} Metal / CPU error - 1".format(
-                tau, name), abs(e2 / e0 - 1.), 1e-2)
-    print("    CPU {:.1f} s, Metal {:.1f} s".format(errors[0][1], errors[2][1]))
+    for b in sorted(errors):
+        if b == 0:
+            continue
+        for k, tau in enumerate((1.2, 1.5, 2.0)):
+            for i, name in enumerate(names):
+                e0, e2 = errors[0][0][k, i], errors[b][0][k, i]
+                print("    tau = {:3.1f} L1 error of {:9s} CPU {:.4e}, "
+                      "backend {} {:.4e}".format(tau, name, e0, gpu_name(b),
+                                                 e2))
+                report("Gubser tau = {} {} backend {} / CPU error - 1"
+                       .format(tau, name, b), abs(e2 / e0 - 1.), 1e-2)
+        print("    CPU {:.1f} s, backend {} {:.1f} s".format(
+            errors[0][1], gpu_name(b), errors[b][1]))
 
 
 def _write_strings_event(path, ncopy=40, seed=11):
@@ -1396,7 +1430,7 @@ def test_gpu_backend_sources(r):
     # in float. The difference of E, P and N_B is taken relative to the
     # largest E of the run: the strings run starts from an empty grid.
     n, size = 41, 12.0
-    have = {1: True, 2: True}
+    have = {k: True for k in GPU_KEYS[1:]}
     cases = []
     visc = {"Viscosity_Flag_Yes_1_No_0": 1, "Include_Shear_Visc_Yes_1_No_0": 1,
             "Shear_to_S_ratio": 0.12, "Include_Bulk_Visc_Yes_1_No_0": 1,
@@ -1405,7 +1439,7 @@ def test_gpu_backend_sources(r):
         def tatb(wd, backend, viscous=viscous):
             _write_lumpy_TATB(wd, n, size)
             p = tatb_params(n, size, 17, 10.0, 1.0, Initial_profile=112,
-                            gpu_backend=backend)
+                            **gpu(backend))
             if viscous:
                 p.update(visc)
             return p
@@ -1422,15 +1456,15 @@ def test_gpu_backend_sources(r):
             Total_evolution_time_tau=2.0, Delta_Tau=0.02,
             Eta_grid_size=12.0, Grid_size_in_eta=49,
             X_grid_size_in_fm=size, Y_grid_size_in_fm=size,
-            Grid_size_in_x=n, Grid_size_in_y=n, gpu_backend=backend)
+            Grid_size_in_x=n, Grid_size_in_y=n, **gpu(backend))
         p.update(visc)
         p["Include_Bulk_Visc_Yes_1_No_0"] = 0
         return p
     cases.append(("strings viscous", strings))
-    limits = {1: 1e-6, 2: 1e-4}
+    limits = dict(GPU_LIMITS)
     for name, make in cases:
         res = {}
-        for backend in (0, 1, 2):
+        for backend in GPU_KEYS:
             if backend and not have[backend]:
                 continue
             wd = r.workdir("gpu_sources_{}_{}".format(
@@ -1438,7 +1472,7 @@ def test_gpu_backend_sources(r):
             log, _, t = r.run(wd, make(wd, backend))
             if backend > 0 and "built without" in log:
                 print("    gpu_backend = {}: not in this build, skipped"
-                      .format(backend))
+                      .format(gpu_name(backend)))
                 have[backend] = False
                 continue
             if backend > 0:
@@ -1491,21 +1525,21 @@ def test_gpu_backend_freezeout(r):
             Eta_plateau_size=100., Viscosity_Flag_Yes_1_No_0=1,
             Include_Shear_Visc_Yes_1_No_0=1, Shear_to_S_ratio=0.12,
             output_evolution_data=2, output_evolution_every_N_timesteps=10,
-            output_evolution_e_cut=0.1, gpu_backend=backend,
+            output_evolution_e_cut=0.1, **gpu(backend),
             **freeze_out_params(e_fo))
     cases.append(("3D viscous fireball", fireball))
 
     def beast(wd, backend):
         x = _write_2d_fireball(wd, 45, 8.36, tau0)
         return _fireball_2d_params(x, tau0, e_fo, beastMode=3,
-                                   gridPadding=2.0, gpu_backend=backend)
+                                   gridPadding=2.0, **gpu(backend))
     cases.append(("beastMode 3", beast))
 
-    have = {1: True, 2: True}
-    limits = {1: 1e-6, 2: 1e-4}
+    have = {k: True for k in GPU_KEYS[1:]}
+    limits = dict(GPU_LIMITS)
     for name, make in cases:
         res = {}
-        for backend in (0, 1, 2):
+        for backend in GPU_KEYS:
             if backend and not have[backend]:
                 continue
             wd = r.workdir("gpu_freezeout_{}_{}".format(
@@ -1513,7 +1547,7 @@ def test_gpu_backend_freezeout(r):
             log, _, t = r.run(wd, make(wd, backend))
             if backend > 0 and "built without" in log:
                 print("    gpu_backend = {}: not in this build, skipped"
-                      .format(backend))
+                      .format(gpu_name(backend)))
                 have[backend] = False
                 continue
             if backend > 0:

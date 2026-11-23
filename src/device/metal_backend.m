@@ -605,6 +605,7 @@ static const MusicDeviceApi kMetalApi = {
     metalState,  metalNoCopy,  metalStage,  metalSource, metalNoCopy,
     metalFetch,  metalNoCopy,  metalSetStrings, metalConservation,
     metalSpecialize, metalFinish,
+    NULL,  // fetchCells: state() is the slice itself (unified memory)
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }
