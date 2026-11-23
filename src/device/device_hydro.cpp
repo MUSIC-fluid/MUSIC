@@ -542,6 +542,36 @@ void fillEos(
                 e4->get_table(static_cast<int>(k)).data(),
                 size * sizeof(float));
         }
+        // the fast division of the Metal kernels (mdDivF, device_defs.h)
+        // takes these divisors normal and below 2^126, and the tables
+        // finite: the 4D lookup divides by the grid spacings, Tref, T5diff
+        // and powers of the clamped T (device_eos.h, eos4DEval)
+        {
+            auto okDivisor = [](double x) {
+                const float f = static_cast<float>(x);
+                return (std::isnormal(f) && std::fabs(f) < 8.507059173023462e37f);
+            };
+            const double pi = 3.14159265358979323846;
+            const double TLo = std::max<double>(
+                d.T04, std::min<double>(d.Tmax4, d.TrefDilute4));
+            const double THi = std::max<double>(d.T04, d.Tmax4);
+            bool ok = okDivisor(d.dT4) && okDivisor(d.dmub4)
+                      && okDivisor(d.dmuq4) && okDivisor(d.dmus4)
+                      && okDivisor(d.TrefDilute4) && TLo > 0.
+                      && okDivisor(TLo * TLo)
+                      && okDivisor(19. * pi * pi * TLo * TLo * TLo)
+                      && okDivisor(19. * pi * pi * THi * THi * THi);
+            for (size_t k = 0; ok && k < t5.size(); k++)
+                ok = okDivisor(t5[k]);
+            const float *tf = reinterpret_cast<const float *>(f);
+            for (size_t k = 0; ok && k < nTab * size; k++)
+                ok = std::isfinite(tf[k]);
+            if (!ok) {
+                err = "the 4D EoS grid or tables are outside the range of "
+                      "the device division";
+                return;
+            }
+        }
         descOut.resize(sizeof(d));
         std::memcpy(descOut.data(), &d, sizeof(d));
         return;

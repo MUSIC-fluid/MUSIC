@@ -353,11 +353,22 @@ template <typename Real>
 MD_FN void eos4DTilde(
     MD_CONST const EosDesc<Real> &d, Real e, Real rhob, Real rhoq, Real rhos,
     MD_THREAD float *TildeVar) {
-    Real Ttilde_sq = sqrt(e / Real(3.0) * d.oneOverAlphaNf4);
+    Real Ttilde_sq = sqrt(mdDiv(e, Real(3.0)) * d.oneOverAlphaNf4);
     Real Ttilde = sqrt(Ttilde_sq);
-    Real mubtilde = (Real(5) * rhob - rhoq + Real(2) * rhos) / Ttilde_sq;
-    Real muqtilde = (-rhob + Real(2) * rhoq - rhos) / Ttilde_sq;
-    Real mustilde = (Real(2) * rhob - rhoq + Real(2) * rhos) / Ttilde_sq;
+    Real mubtilde, muqtilde, mustilde;
+    // the divisions (device_defs.h): mdDivF for finite densities over a
+    // normal Ttilde^2 (e > 0), mdDiv otherwise
+    if (Ttilde_sq >= Real(1.1754943508222875e-38)
+        && Ttilde_sq < Real(8.507059173023462e37)
+        && isfinite(rhob) && isfinite(rhoq) && isfinite(rhos)) {
+        mubtilde = mdDivF(Real(5) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+        muqtilde = mdDivF(-rhob + Real(2) * rhoq - rhos, Ttilde_sq);
+        mustilde = mdDivF(Real(2) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+    } else {
+        mubtilde = mdDiv(Real(5) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+        muqtilde = mdDiv(-rhob + Real(2) * rhoq - rhos, Ttilde_sq);
+        mustilde = mdDiv(Real(2) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+    }
     TildeVar[0] = float(Ttilde);
     TildeVar[1] = float(mubtilde);
     TildeVar[2] = float(muqtilde);
@@ -370,7 +381,8 @@ MD_FN float eos4DDilute(
     MD_CONST const EosDesc<Real> &d, MD_THREAD float *TildeVar) {
     const float Tref = d.TrefDilute4;
     if (TildeVar[0] >= Tref) return 1.f;
-    const float scale = TildeVar[0] / Tref;
+    // TildeVar[0] < Tref (or NaN); Tref checked at the upload
+    const float scale = mdDivF(TildeVar[0], Tref);
     TildeVar[0] = Tref;
     return scale;
 }
@@ -388,10 +400,21 @@ template <typename Real>
 MD_FN Eos4DCell eos4DSetup(
     MD_CONST const EosDesc<Real> &d, MD_THREAD const float *TildeVar) {
     Eos4DCell c;
-    Real Tfrac = Real((TildeVar[0] - d.T04) / d.dT4);
-    Real mubfrac = Real((TildeVar[1] - d.mub04) / d.dmub4);
-    Real muqfrac = Real((TildeVar[2] - d.muq04) / d.dmuq4);
-    Real musfrac = Real((TildeVar[3] - d.mus04) / d.dmus4);
+    // the grid spacings are checked at the upload; mdDivF needs finite
+    // tilde variables
+    Real Tfrac, mubfrac, muqfrac, musfrac;
+    if (isfinite(TildeVar[0]) && isfinite(TildeVar[1])
+        && isfinite(TildeVar[2]) && isfinite(TildeVar[3])) {
+        Tfrac = Real(mdDivF(TildeVar[0] - d.T04, d.dT4));
+        mubfrac = Real(mdDivF(TildeVar[1] - d.mub04, d.dmub4));
+        muqfrac = Real(mdDivF(TildeVar[2] - d.muq04, d.dmuq4));
+        musfrac = Real(mdDivF(TildeVar[3] - d.mus04, d.dmus4));
+    } else {
+        Tfrac = Real(mdDiv(TildeVar[0] - d.T04, d.dT4));
+        mubfrac = Real(mdDiv(TildeVar[1] - d.mub04, d.dmub4));
+        muqfrac = Real(mdDiv(TildeVar[2] - d.muq04, d.dmuq4));
+        musfrac = Real(mdDiv(TildeVar[3] - d.mus04, d.dmus4));
+    }
 
     int iT = int(Tfrac);
     iT = dmax(0, dmin(d.nT4 - 2, iT));
@@ -513,11 +536,15 @@ MD_FN void eos4DEval(
          + wT100 * data_1100 + wT010 * data_1010 + wT011 * data_1011
          + wT101 * data_1101 + wT110 * data_1110);
 
+    // after eos4DDilute TildeVar[0] >= Tref: T lies in
+    // [max(T04, min(Tmax4, Tref)), max(T04, Tmax4)], checked at the upload
+    // for the divisions by T (mdDivF), as are T5diff and the spacings; the
+    // tables are finite (checked), so are the numerators
     float T = dmax(d.T04, dmin(d.Tmax4, TildeVar[0]));
     const Real Tsq = Real(T) * Real(T);
     MD_GLOBAL const Real *T5diff = tab + d.t5Offset;
     float dXdTtilde =
-        float(Real(5 * (tempT2 - tempT1)) / T5diff[iT] * (Tsq * Tsq));
+        float(mdDivF(Real(5 * (tempT2 - tempT1)), T5diff[iT]) * (Tsq * Tsq));
 
     float wb000 = w0000 + w0100;
     float wb111 = w1011 + w1111;
@@ -538,7 +565,7 @@ MD_FN void eos4DEval(
          + wb100 * data_1100 + wb010 * data_0110 + wb011 * data_0111
          + wb101 * data_1101 + wb110 * data_1110);
 
-    float dXdmubtilde = (tempb2 - tempb1) / d.dmub4;
+    float dXdmubtilde = mdDivF(tempb2 - tempb1, d.dmub4);
 
     float wq000 = w0000 + w0010;
     float wq111 = w1101 + w1111;
@@ -559,7 +586,7 @@ MD_FN void eos4DEval(
          + wq100 * data_1010 + wq010 * data_0110 + wq011 * data_0111
          + wq101 * data_1011 + wq110 * data_1110);
 
-    float dXdmuqtilde = (tempq2 - tempq1) / d.dmuq4;
+    float dXdmuqtilde = mdDivF(tempq2 - tempq1, d.dmuq4);
 
     float ws000 = w0000 + w0001;
     float ws111 = w1110 + w1111;
@@ -580,7 +607,7 @@ MD_FN void eos4DEval(
          + ws010 * data_0101 + ws001 * data_0011 + ws011 * data_0111
          + ws101 * data_1011 + ws110 * data_1101);
 
-    float dXdmustilde = (temps2 - temps1) / d.dmus4;
+    float dXdmustilde = mdDivF(temps2 - temps1, d.dmus4);
 
     if (TildeVar[0] > d.Tmax4) dXdTtilde = 0.f;
     if (TildeVar[1] < d.mub04 || TildeVar[1] > d.mubMax4) dXdmubtilde = 0.f;
@@ -591,24 +618,26 @@ MD_FN void eos4DEval(
     const Real T0sq = Real(TildeVar[0]) * Real(TildeVar[0]);
     const Real eLocal = Real(3.) * d.alphaNf4 * (T0sq * T0sq);
     ResArr[1] = float(
-        Real(3.0) / (Real(19.0) * pi * pi * Real(T) * Real(T) * Real(T))
+        mdDivF(Real(3.0),
+               Real(19.0) * pi * pi * Real(T) * Real(T) * Real(T))
             * Real(dXdTtilde)
-        - Real(0.5)
-              * Real(TildeVar[1] * dXdmubtilde + TildeVar[2] * dXdmuqtilde
-                     + TildeVar[3] * dXdmustilde)
-              / eLocal);
-    ResArr[2] = float(
-        (Real(5.0) * Real(dXdmubtilde) - Real(dXdmuqtilde)
-         + Real(2.0) * Real(dXdmustilde))
-        / Real(T * T));
-    ResArr[3] = float(
-        (Real(-1.0) * Real(dXdmubtilde) + Real(2.0) * Real(dXdmuqtilde)
-         - Real(dXdmustilde))
-        / Real(T * T));
-    ResArr[4] = float(
-        (Real(2.0) * Real(dXdmubtilde) - Real(dXdmuqtilde)
-         + Real(2.0) * Real(dXdmustilde))
-        / Real(T * T));
+        - mdDiv(Real(0.5)
+                    * Real(TildeVar[1] * dXdmubtilde
+                           + TildeVar[2] * dXdmuqtilde
+                           + TildeVar[3] * dXdmustilde),
+                eLocal));
+    ResArr[2] = float(mdDivF(
+        Real(5.0) * Real(dXdmubtilde) - Real(dXdmuqtilde)
+         + Real(2.0) * Real(dXdmustilde),
+        Real(T * T)));
+    ResArr[3] = float(mdDivF(
+        Real(-1.0) * Real(dXdmubtilde) + Real(2.0) * Real(dXdmuqtilde)
+            - Real(dXdmustilde),
+        Real(T * T)));
+    ResArr[4] = float(mdDivF(
+        Real(2.0) * Real(dXdmubtilde) - Real(dXdmuqtilde)
+            + Real(2.0) * Real(dXdmustilde),
+        Real(T * T)));
 }
 
 //! EOS_4D::pressureWithGradients
@@ -627,12 +656,12 @@ MD_FN void eos4DPressureGrad(
         const Real Tsq = Real(TildeVar[0]) * Real(TildeVar[0]);
         const Real eref = Real(3.) * d.alphaNf4 * (Tsq * Tsq);
         const Real pref = ResArr[0];
-        const Real ndpdn =
-            (rhob * Real(ResArr[2]) + rhoq * Real(ResArr[3])
-             + rhos * Real(ResArr[4]))
-            / s2;
+        const Real ndpdn = mdDiv(
+            rhob * Real(ResArr[2]) + rhoq * Real(ResArr[3])
+             + rhos * Real(ResArr[4]),
+            s2);
         p = dmax(smallEps, pref * s2 * s2);
-        dpde = (pref - Real(0.5) * ndpdn) / eref;
+        dpde = mdDiv(pref - Real(0.5) * ndpdn, eref);
         dpdrhob = s2 * Real(ResArr[2]);
         dpdrhoq = s2 * Real(ResArr[3]);
         dpdrhos = s2 * Real(ResArr[4]);
@@ -662,7 +691,8 @@ MD_FN EosGrad<Real> eos4DGrad(
         dpdrhoq, dpdrhos);
     const Real enthalpy = e + g.p + smallEps;
     Real cs2 =
-        g.dpde + (rhob * g.dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos) / enthalpy;
+        g.dpde
+        + mdDiv(rhob * g.dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos, enthalpy);
     g.cs2 = dmax(Real(0.01), dmin(Real(1.) / Real(3), cs2));
     return g;
 }

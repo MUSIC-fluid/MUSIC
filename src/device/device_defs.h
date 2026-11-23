@@ -106,6 +106,59 @@ inline void flagOr(MD_FLAGS f, int v) {
 }
 #endif
 
+//! mdDivF(a, b) and mdDiv(a, b) = a / b. On Metal the division of
+//! MTLMathModeSafe is the correctly rounded IEEE division; these give the
+//! same bits at about a quarter of its cost (13.5 against 3.1 ns per
+//! dependent operation on the M4): the fast reciprocal, one Newton step on
+//! 1/b and Markstein's correction of the quotient, with a numerator of
+//! exponent field 1 ... 25 scaled by 2^64 (its remainder would underflow).
+//! mdDiv also gives +-inf, NaN and the divisors 0 and +-inf as the division
+//! does. Checked on the M4 against a / b: all 2^46 pairs of float mantissas
+//! (exhaustive) and every pair of exponent fields (4096 random mantissas
+//! and signs each), with no difference inside the preconditions:
+//!   mdDivF: a not +-inf, b normal with |b| < 2^126, |a / b| < 2^127;
+//!   mdDiv: |b| < 2^126 or b = +-inf, |a / b| < 2^127.
+//! Elsewhere (CPU, CUDA) both are the division.
+#if defined(__METAL_VERSION__)
+MD_FN float mdDivF(float a, float b) {
+    const uint ua = as_type<uint>(a) & 0x7fffffffu;
+    const bool tiny = (ua - 0x00800000u) < 0x0C800000u;
+    const float as = a * (tiny ? 0x1p64f : 1.0f);
+    float y = metal::fast::divide(1.0f, b);
+    const float e = metal::fma(-b, y, 1.0f);
+    y = metal::fma(e, y, y);
+    const float q = as * y;
+    const float r = metal::fma(-b, q, as);
+    // a = 0: q has the sign of a / b, the correction would give +0 for -0
+    return ((a == 0.0f ? q : metal::fma(r, y, q))
+            * (tiny ? 0x1p-64f : 1.0f));
+}
+MD_FN float mdDiv(float a, float b) {
+    const uint ua = as_type<uint>(a) & 0x7fffffffu;
+    const uint ub = as_type<uint>(b) & 0x7fffffffu;
+    const uint sgn = (as_type<uint>(a) ^ as_type<uint>(b)) & 0x80000000u;
+    float l = mdDivF(a, b);
+    if (ua >= 0x7f800000u) l = a * metal::copysign(1.0f, b);
+    if (b == 0.0f) {
+        l = (a == 0.0f || ua > 0x7f800000u ? NAN
+                                           : as_type<float>(sgn | 0x7f800000u));
+    }
+    if (ub == 0x7f800000u)
+        l = (ua >= 0x7f800000u ? NAN : as_type<float>(sgn));
+    if (ub > 0x7f800000u) l = b;
+    return (l);
+}
+#else
+template <typename T>
+MD_FN T mdDivF(T a, T b) {
+    return (a / b);
+}
+template <typename T>
+MD_FN T mdDiv(T a, T b) {
+    return (a / b);
+}
+#endif
+
 //! erf: MSL has none. Float there: erfc of Numerical Recipes (erfcc, a
 //! Chebyshev fit with relative error below 1.2e-7 everywhere), so erf has an
 //! absolute error below 1.2e-7, the rounding of float near 1
