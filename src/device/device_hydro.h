@@ -103,6 +103,12 @@ class Backend {
     virtual bool specialize(const std::string &, std::string &) {
         return (true);
     }
+    //! fetch() of the slice of tau_n (which = 1) while the step that
+    //! stage() started may still run: see MusicDeviceApi::fetchUnwritten
+    virtual bool fetchUnwritten(
+        int which, int firstComp, int nComp, std::string &err) {
+        return (fetch(which, firstComp, nComp, err));
+    }
 };
 
 }  // namespace music_device
@@ -139,6 +145,11 @@ class DeviceHydro {
     //! fills curr and prev (the slices of the last step, as advanceStep
     //! left them) from the device, ghost cells included
     void syncHost(Fields &curr, Fields &prev);
+    //! fills curr, the Fields of tau_n that beginStep started from, while
+    //! the step runs (the stages read that slice and write the others;
+    //! with Metal the copy overlaps the step), ghost cells included. For
+    //! the host work of a step that reads all of fpCurr but not fpPrev
+    void syncCurrentDuringStep(Fields &curr);
     //! fills the cells of curr in the eta window (eta_min, eta_max) of the
     //! Cell_info diagnostics (all eta slices if boost-invariant)
     void syncEtaWindow(Fields &curr, double etaMin, double etaMax);
@@ -186,7 +197,7 @@ class DeviceHydro {
     int nSteps_ = 0;
     double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
     double diagSeconds_ = 0.;
-    int nFullSyncs_ = 0, nPartialSyncs_ = 0;
+    int nFullSyncs_ = 0, nPartialSyncs_ = 0, nOverlapSyncs_ = 0;
     // outflowFaces of the current and the previous slice, and whether they
     // hold the device state (after a step the current one becomes the
     // previous one)

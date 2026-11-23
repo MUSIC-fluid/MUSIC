@@ -16,11 +16,16 @@ Branch `gpu` at fe606d7 (phase 6, [gpu_porting_phase6_performance.md](gpu_portin
 - **Where the time goes:**
   - The GPU computes 84% of the wall time of a large viscous run, so the kernels decide the speed.
   - cellVisc takes half of the GPU time, and the KT face kernel 30–40%.
-- **The next step: the floating-point mode of the Metal compiler.**
-  - The kernels are compiled with `MTLMathModeSafe` (exact IEEE arithmetic). `MTLMathModeRelaxed` makes the face kernel 2.6× faster (3.2× with EoS 20), and the cell kernel 12–20% faster.
-  - Measured wall times drop by **22–37%** (viscous EoS 9: 8.0 → 6.2 s; EoS 20: 13.0 → 8.8 s). The accuracy against the CPU code stays the same.
-  - **It is not a drop-in change:** one integration case (an ideal run with a TATB source) aborts under relaxed math with an out-of-range KT signal speed. Some consistency checks of the solver rely on exact rounding and must be made robust first (section 4).
+- **The floating-point mode of the Metal compiler: tried, not adopted (section 7).**
+  - The kernels are compiled with `MTLMathModeSafe` (exact IEEE arithmetic). `MTLMathModeRelaxed` makes the face kernel 2.6× faster (3.2× with EoS 20), the cell kernel 12–20% faster, and the runs 22–37% faster, at the same accuracy against the CPU code on most metrics.
+  - **It is not reliable for MUSIC.** Relaxed rounding occasionally flips a cell-level decision of the primitive solve (solve, cap, regulate or revert), and each flip is a discrete, non-conservative event: +2 GeV in one step of a long freeze-out run, +0.1 GeV in the strings test.
+  - **The cause:** two concrete holes were found and closed (a NaN test folded away, and the bracketing solver failing). But which case breaks depends on the rounding pattern, so each variant failed a different test. Exact float never did.
+  - **The code stays in safe mode.** The attempt is kept as `doc/gpu_relaxed_math_attempt.patch`.
 - **Second step, done (section 6):** the per-step boundary-shell copy cost 0.55 s of an 8 s run. The outflow now reads its cells from a compact face array gathered on the device side, and that array is carried over for the previous slice. The copies fall from 0.91 to 0.56 s and the wall time by 5%, with every output file bit-identical.
+- **Items 3 and 6, done (section 8):** −4% to −11% of the wall time, every output byte-identical except the freeze-out run's conservation file (5e-8 of E).
+  - **The cell kernel per RK stage.** The stage-2 fixed-point loop costs registers in the stage-1 kernel too, where it never runs. Compiling one pipeline per stage makes the stage-1 cellVisc 15% faster (EoS 9) and 26% faster (EoS 20).
+  - **The stage-2 compaction is not worth building.** Divergence doubles the loop's cost, but the whole loop is 0.37 s of a 7.3 s run, and a compaction would gain under 1%.
+  - **Freeze-out steps copy the current slice while the next step runs,** and skip the previous slice, which only the vorticity output reads.
 - **Hypotheses ruled out:**
   - the solver tolerances in float;
   - the number of fixed-point passes;
@@ -125,24 +130,14 @@ Tested with temporary probes, all removed again: CPU-side counters in the device
 
 ## 4. The next steps, in order of gain
 
-1. **Relaxed math on Metal, with robust consistency checks.** Expected −22% to −37% wall on the benchmarks, from the measurements above.
-   - **What it needs:**
-     - **Find the failing operation.** Run `gpu_backend_sources` under relaxed math with backend-1 style flags at the face, recording which check fires and the state that caused it.
-     - **Make the state physical after each solve,** whatever the rounding: a final clamp or renormalisation that enforces u^τ ≥ |u^i| and f ≤ 1. Alternatively, compile those few lines in safe mode (the pragma compiles; the scope has to be the normalisation, not MaxSpeed).
-     - **Keep exact rounding where the CPU code compares with exact thresholds:** `isfinite` (relaxed mode keeps INF/NaN semantics; fast mode would not) and the MaxSpeed range checks.
-   - **Validation:**
-     - the whole integration suite on Metal;
-     - the 1.27M-cell runs against the CPU code;
-     - a run per EoS type;
-     - a deliberately broken input, to confirm that NaN detection still fires.
-   - **What it does not change:** backend 1 and CUDA. The math mode is a Metal compile option, so the CPU code and backend 1 stay bit-exact.
-   - **Risk:** the compiler problem with `nWComp` in phase 6 showed that this compiler can change results in ways the tests catch only when a case covers them. Run the integration suite after every change to the math mode or specialisation.
+1. **Relaxed math on Metal: tried, not adopted (section 7).** It would gain 22–37% of the wall time, but it makes the cell-level decisions of the primitive solve depend on rounding. The integration suite fails in a different case for each variant tried.
+   - **A future attempt would need:** a primitive solve whose decisions (cap, regulate, revert, the u⁰ sanity check) are insensitive to rounding by construction, for example with margins around each threshold, applied identically on the host. That changes the CPU code's results and is a physics decision.
 2. **The boundary-shell copy: done (section 6).** The copy went from 0.55 to 0.18 s per run, with bit-identical output. Packing the shell on the GPU would not have paid off: the scattered writes into the host Fields cost more than the device reads.
-3. **Divergence in the cell kernel's second stage.** 15% of cells need 2 fixed-point passes, so most SIMD groups run 3 solves and W updates.
-   - **Measure first:** time stage 2 against stage 1 in the profile. With relaxed math the solve gets cheaper, so this matters less.
-   - **Possible fix:** a compacted second pass over only the cells that did not converge after one pass. It changes no arithmetic, so it stays bit-exact.
+3. **The cell kernel's second stage: done (section 8),** as one pipeline per RK stage. The compaction of the fixed-point passes was measured and not built.
 4. **wface into cellVisc** (about 0.5 s, from phase 6): it computes each face twice to save the write and read of 11 values per face. It changes the order of operations at rounding level.
 5. **Small grids:** below 0.2M cells, the per-step host diagnostics and the two command buffers per step dominate. To do: batch several steps per command buffer when no output is due, and make the per-step diagnostics optional.
+
+6. **The freeze-out steps' full syncs: done (section 8).** The current slice is copied while the next step runs.
 
 **Not worth doing:** the start-up (0.3 s), the OpenMP settings, and the EoS lookup code (9% at most, as a micro-optimisation of the face kernel).
 
@@ -150,7 +145,7 @@ Tested with temporary probes, all removed again: CPU-side counters in the device
 
 - **Driver:** `run_bench.py` (kept in the session scratchpad, not in the repository) writes the inputs from the `visc9_0` benchmark input, with the integration suite's lumpy T_A/T_B. It runs both backends of each case and stores wall times, the `device:` lines and the conservation differences. Cases: `visc9_{41,81,121,161}`, `ideal9_161`, `visc20_161`, `diff14_161`, `fullFO9_101`.
 - **Kernel times:** `MUSIC_METAL_PROFILE=1`.
-- **The probes** (math mode, solve counters, copy split) were temporary and are not in the tree. The source is unchanged at fe606d7.
+- **The probes** (math mode, solve counters, pass histogram, loop caps, copy split, freeze-out timers) were temporary and are not in the tree.
 
 ## 6. Done: the boundary outflow without the shell copy
 
@@ -194,3 +189,138 @@ Tested with temporary probes, all removed again: CPU-side counters in the device
 
 - **The gather:** 1.8 ms per step for the current slice. The previous slice is gathered only after the 4 full syncs.
 - **The freeze-out run gains nothing:** its copies are the 77 full syncs of the freeze-out steps, not the shell. A partial sync for Cornelius would be the next host-copy target there.
+
+## 7. Tried: the relaxed floating-point mode
+
+**First failure: a NaN folded away** (`gpu_backend_sources`, TATB source, ideal, EoS 0, aborted at step 31 with "MaxSpeed: the signal speed of a KT face is out of range").
+- **Capture:** a temporary probe wrote the first failing face into a debug buffer.
+- **The face:** the reconstructed conserved state is nearly lightlike: τT^{ττ} = 0.54253 and |τT^{τi}| = 0.54253, at the edge of the source region between e = 1.25 and e = 0.11.
+- **Exact rounding:** replayed on the CPU with the device solver, the secant solve fails, the bracketing solve fails, and the face reverts to the cell state (flag 2), in float and in double. A scan of ±4e-6 around this state gives no NaN in exact arithmetic.
+- **Relaxed rounding:**
+  - The secant solve converges to v = 0.9999938 (u⁰ = 284), and `solveU0Hybrid` then returns success with u⁰ = NaN. Its NaN test `root != root` had been folded to false by the compiler.
+  - The NaN then passes the sanity check |u⁰ − u⁰_guess| / u⁰_guess > 100, because comparisons with NaN are false.
+- **Fix:** NaN and finiteness tests on the bit pattern of the float (integer operations, which no math mode folds). With it the case runs to the end. An injected NaN in e, u^x or τT^{ττ} is still caught at the first step, exactly as in safe mode and on backend 1.
+
+**Second failure: energy conservation** (the 101×101×41 run to freeze-out, 381 steps).
+
+| Metal build | max \|E/E0 − 1\| | steps | steps where the bracketing solver failed | wall |
+|---|---|---|---|---|
+| CPU code (double) | 7.4e-7 | 381 | — | 99.5 s |
+| backend 1, float (exact, on the CPU) | 4.0e-6 | 381 | — | 74.6 s |
+| safe (default) | 1.1e-6 | 381 | 0 | 11.7–12.6 s |
+| relaxed | **2.7e-3** (+2.04 GeV in the step at τ = 7.33) | 386 | 25 | 8.5 s |
+| relaxed, solver exact (`#pragma METAL fp math_mode(safe)` in `Solver`) | 1.9e-5 | 381 | 0 | 10.0 s |
+| relaxed, solver and EoS exact | 1.7e-4 | 381 | 0 | 10.5 s |
+| relaxed, EoS exact | 3.9e-4 | 381 | 0 | 8.9 s |
+
+- **Every relaxed variant violates conservation in discrete steps,** not by drift. The jumps range from 1 MeV to 2 GeV, at the times when a cell takes a different decision.
+- **The size of the violation is not monotonic** in how much is kept exact. It depends on which threshold the rounding happens to flip.
+- **Exact float, on Metal or on the CPU, stays at the 1e-6 level.**
+- **The freeze-out surface** of the fully relaxed run still agrees with the CPU code: E to 1e-6 and S to 7e-8, with 16 more cells out of 370,636.
+
+**Integration suite, Metal** (the other 52 or 53 metrics are at their safe-mode values, median ratio 1.0–1.05):
+
+| build | result |
+|---|---|
+| safe (default) | 25/25 |
+| relaxed, with the NaN fix | 25/25 (worst metric 2.2× its safe value) |
+| relaxed, solver exact | 24/25: `gpu_backend_sources`, strings viscous, conservation 1.05e-3 (limit 1e-4), from a jump of +0.106 GeV in the step at τ = 1.36 |
+
+**Speed of the variants** (wall, 1.27M cells, 101 steps):
+
+| case | safe | relaxed | relaxed, solver exact |
+|---|---|---|---|
+| viscous, EoS 9 | 7.86 s | 6.07 s | 6.61 s |
+| viscous, EoS 20 | 12.91 s | 8.57 s | 9.86 s |
+| ideal, EoS 9 | 3.57 s | 2.37 s | 3.10 s |
+
+**Decision:** the default stays `MTLMathModeSafe`, and the source is unchanged. Making relaxed math safe would need a primitive solve whose decisions are robust to rounding by design (section 4, item 1).
+- **The patch of the attempt:** `doc/gpu_relaxed_math_attempt.patch`. It contains the bit-level NaN tests, the `MD_EXACT_FP` pragma on the solver, and the `gpu_relaxed_math` input parameter (Metal only, default 0).
+
+## 8. Done: the cell kernel per RK stage, and the freeze-out copies (items 3 and 6)
+
+Both changes keep every output byte-identical, except `global_conservation_laws.dat` of runs with freeze-out (below). Backend 1 stays bit for bit with the CPU code.
+
+**Wall time, 7afc004 against this change** (Metal; two interleaved runs of each build; 101 steps on 1.27M cells, freeze-out 381 steps on 418k cells):
+
+| case | 7afc004 | now | change |
+|---|---|---|---|
+| viscous, EoS 9 | 8.16 / 7.54 s | 7.29 / 7.28 s | −7% |
+| viscous, EoS 20 | 12.95 / 12.53 s | 11.96 / 11.98 s | −6% |
+| viscous, EoS 14, diffusion | 11.56 / 11.49 s | 10.91 / 10.82 s | −6% |
+| ideal, EoS 9 | 3.60 / 3.45 s | 3.47 / 3.47 s | 0 (no cellVisc) |
+| viscous, EoS 9, freeze-out to the end | 11.33 / 11.33 s | 10.60 / 10.46 s | −7% |
+
+### 8.1 The stage-2 fixed-point loop (item 3)
+
+**Measured first** (`MUSIC_METAL_PROFILE=1`, the kernel time split by stage):
+
+| cellVisc GPU time | stage 1 | stage 2 |
+|---|---|---|
+| EoS 9 | 1.47 s | 1.94 s |
+| EoS 20 | 2.23 s | 2.94 s |
+
+**Passes per cell** (a counter on backend 1 in float, over all cells and steps of the EoS 9 run): 52% of the cells need no extra pass, 23% one, 21% two, 3.2% three and 0.5% more. On average a cell needs 0.90 extra passes, but its 32-lane SIMD group runs 1.92 passes per lane, so divergence doubles the cost of the loop.
+
+**What compaction could gain:**
+- With the loop capped at zero passes (wrong results, timing only), stage 2 takes 1.57 s instead of 1.94 s, so the whole loop costs 0.37 s.
+  - Caps of one to three passes are slower than the full loop, because every capped cell also runs the fallback solve from its best iterate.
+- With no divergence at all, about 0.2 s would remain to gain.
+- **A compacted second pass gives back most of that 0.2 s:**
+  - deferring the cells after two passes means recomputing their stage for 3.7% of the cells;
+  - deferring them after one pass means recomputing it for 25% of the cells, or storing about 80 values per deferred cell;
+  - either way the estimated net gain is under 1%.
+- **Not built.**
+
+**What the measurement showed instead:**
+- With EoS 20, the stage-1 kernel was 0.2 s (9%) faster when the loop's code was absent, although stage 1 never runs it. This held in two repeats; EoS 9 showed no difference. The loop's code costs registers, or code layout, in both stages.
+- **The fix:** `kernelCellVisc<Real, kStage>` (`device_visc.h`).
+  - kStage = −1 reads the stage from `P.rkFlag`, as before; the host and CUDA use it.
+  - Metal compiles `musicCellVisc0` and `musicCellVisc1` (`metal_kernels.metal`) and dispatches `psCellVisc[rk]`.
+  - kStage gates only the fixed-point branch; every arithmetic use of `P.rkFlag` stays a run-time value. So the arithmetic is the same, and the outputs are byte-identical.
+- **Result:** the stage-1 cellVisc falls from 1.47 to 1.25 s (EoS 9), and from 2.23 to 1.64 s (EoS 20). The larger fall than the probe's 0.2 s suggests that the stage-1 kernel loses more than the loop alone. Stage 2 is unchanged.
+- The profile now lists `cellVisc_rk0` and `cellVisc_rk1` separately.
+
+### 8.2 The freeze-out steps (item 6)
+
+**Host work per freeze-out step** (76 steps of the freeze-out run, a temporary timer):
+
+| | per step | total | |
+|---|---|---|---|
+| full sync of both slices | 6.9 ms | 0.52 s | the GPU waits |
+| Cornelius search | 8.8 ms | 0.67 s | during the next step (22 ms of kernels) |
+| copy of the two stored slices | 6.7 ms | 0.51 s | during the next step |
+
+Only the sync was on the critical path.
+
+**What the search reads:**
+- the current slice: e at every cube corner, and the full cells of the intersecting cubes;
+- the previous slice and its stored copy: only for the vorticity output.
+
+**The change:**
+- **Evolve:** on a freeze-out step that is not also an output, start, check or vorticity step, it no longer syncs before the step. After `beginStep` it calls `DeviceHydro::syncCurrentDuringStep(fpCurr)`.
+- **Why it is safe:** after `beginStep`, the slice of τ_n is the backend's previous slice (`state(1)`). Both stages read it and none writes it; the next step's second stage is the first to overwrite it.
+- **The backend API:** the new entry `fetchUnwritten` serves only that slice.
+  - Metal returns at once (shared memory), so the copy overlaps the step.
+  - CUDA does its usual blocking fetch (its stages are synchronous).
+  - The CPU backend has nothing to copy.
+- The `device:` log line counts these copies separately.
+
+**Result:** in the freeze-out run, the copy now takes place during the step, and the run is 7% faster.
+
+**The one changed output:**
+- **Cause:** on a step with a full sync, the host Fields are current, so the conservation sums came from the host Fields in double. These freeze-out steps now use the device rows in float, as every other step already did.
+- **Size:** `global_conservation_laws.dat` changes on those 74 lines by at most 5e-8 of E (momenta 1e-8, N_B 4e-9).
+- **Against the CPU code:** the difference is unchanged at 9.8e-7 of E, and the freeze-out surface is byte-identical.
+
+### 8.3 Tests
+
+- **New unit test:** "Device copy of the current slice during a step equals syncHost", on backend 1, ideal and viscous, in double and float.
+  - It overwrites the host Fields, copies during the step, and compares with `syncHost` after the step, ghost cells included.
+  - With the copy reading slice 0 instead of slice 1, it fails in all four configurations.
+- **Unit tests (bgunit, clang):** all pass:
+  - unittest_bugfix: 44 cases;
+  - cell, grid, minmod and reconst: all pass.
+- **CUDA:** the syntax check (host and device passes) passes.
+- **Integration (bmetal):** 25/25 pass.
+- **Byte identity with fe606d7:** the six small cases (CPU code, backend 1 in double and float, Metal viscous, ideal, freeze-out) and the 1.27M-cell runs are identical, apart from the conservation file of freeze-out runs.

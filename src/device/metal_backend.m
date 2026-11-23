@@ -38,7 +38,8 @@ enum {
     id<MTLDevice> dev;
     id<MTLCommandQueue> queue;
     id<MTLComputePipelineState> psPressure, psFace, psCell;
-    id<MTLComputePipelineState> psWFace, psCellVisc;
+    // psCellVisc[rk]: the viscous cell update of each RK stage
+    id<MTLComputePipelineState> psWFace, psCellVisc[2];
     id<MTLComputePipelineState> psStrings, psConservation;
     // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
@@ -102,12 +103,12 @@ static int buildPipelines(
         setErr(err, errLen, "kernel compilation failed", e);
         return 1;
     }
-    const char *names[7] = {"musicPressure",     "musicFace",
+    const char *names[8] = {"musicPressure",     "musicFace",
                             "musicCell",         "musicWFace",
-                            "musicCellVisc",     "musicStringSource",
-                            "musicConservation"};
-    id<MTLComputePipelineState> ps[7];
-    for (int k = 0; k < 7; k++) {
+                            "musicCellVisc0",    "musicStringSource",
+                            "musicConservation", "musicCellVisc1"};
+    id<MTLComputePipelineState> ps[8];
+    for (int k = 0; k < 8; k++) {
         id<MTLFunction> f =
             [lib newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
         if (f == nil) {
@@ -124,7 +125,8 @@ static int buildPipelines(
     m->psFace = ps[1];
     m->psCell = ps[2];
     m->psWFace = ps[3];
-    m->psCellVisc = ps[4];
+    m->psCellVisc[0] = ps[4];
+    m->psCellVisc[1] = ps[7];
     m->psStrings = ps[5];
     m->psConservation = ps[6];
     return 0;
@@ -172,16 +174,17 @@ static void metalDestroy(void *dev) {
         fprintf(stderr,
                 "Metal profile (GPU time per kernel); max threads per "
                 "threadgroup: pressure %lu, face %lu, wface %lu, cell %lu, "
-                "cellVisc %lu\n",
+                "cellVisc %lu / %lu\n",
                 (unsigned long)m->psPressure.maxTotalThreadsPerThreadgroup,
                 (unsigned long)m->psFace.maxTotalThreadsPerThreadgroup,
                 (unsigned long)m->psWFace.maxTotalThreadsPerThreadgroup,
                 (unsigned long)m->psCell.maxTotalThreadsPerThreadgroup,
-                (unsigned long)m->psCellVisc.maxTotalThreadsPerThreadgroup);
+                (unsigned long)m->psCellVisc[0].maxTotalThreadsPerThreadgroup,
+                (unsigned long)m->psCellVisc[1].maxTotalThreadsPerThreadgroup);
         for (NSString *k in [m->profileSeconds keysSortedByValueUsingSelector:
                                                    @selector(compare:)]) {
             const double t = [m->profileSeconds[k] doubleValue];
-            fprintf(stderr, "  %-10s %8.3f s  %5.1f%%\n", [k UTF8String], t,
+            fprintf(stderr, "  %-13s %8.3f s  %5.1f%%\n", [k UTF8String], t,
                     100. * t / (total > 0. ? total : 1.));
         }
     }
@@ -412,7 +415,8 @@ static int metalStage(
             }
         }
         // the cells
-        [names addObject:(viscous ? @"cellVisc" : @"cell")];
+        [names addObject:(viscous ? (rk == 0 ? @"cellVisc_rk0" : @"cellVisc_rk1")
+                                  : @"cell")];
         [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
             [enc setBytes:Pp length:pb atIndex:0];
             [enc setBuffer:m->eosDesc offset:0 atIndex:1];
@@ -429,7 +433,7 @@ static int metalStage(
             if (viscous) {
                 for (int d = 0; d < 3; d++)
                     [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
-                dispatch(enc, m->psCellVisc, n);
+                dispatch(enc, m->psCellVisc[rk], n);
             } else {
                 dispatch(enc, m->psCell, n);
             }
@@ -600,11 +604,24 @@ static int metalFetch(
     return waitPending(get(dev), err, errLen);
 }
 
+static int metalFetchUnwritten(
+    void *dev, int which, int firstComp, int nComp, char *err, int errLen) {
+    (void)dev;
+    (void)firstComp;
+    (void)nComp;
+    // shared memory, and no stage in flight writes the slice
+    if (which != 1) {
+        setErr(err, errLen, "fetchUnwritten: only the slice of tau_n", nil);
+        return 1;
+    }
+    return 0;
+}
+
 static const MusicDeviceApi kMetalApi = {
     metalCreate, metalDestroy, metalName,   metalResize, metalSetEos,
     metalState,  metalNoCopy,  metalStage,  metalSource, metalNoCopy,
     metalFetch,  metalNoCopy,  metalSetStrings, metalConservation,
-    metalSpecialize, metalFinish,
+    metalSpecialize, metalFinish, metalFetchUnwritten,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

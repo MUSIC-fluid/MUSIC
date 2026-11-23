@@ -545,6 +545,11 @@ int cudaFetch(
     void *dev, int which, int firstComp, int nComp, char *err, int len) {
     return get(dev)->fetch(which, firstComp, nComp, err, len);
 }
+// the stages are synchronous: fetch() of tau_n
+int cudaFetchUnwritten(
+    void *dev, int which, int firstComp, int nComp, char *err, int len) {
+    return get(dev)->fetch(which, firstComp, nComp, err, len);
+}
 int cudaDownload(void *dev, char *err, int len) {
     return get(dev)->download(err, len);
 }
@@ -569,7 +574,7 @@ const MusicDeviceApi kCudaApi = {
     cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
-    cudaSpecialize, cudaFinish,
+    cudaSpecialize, cudaFinish, cudaFetchUnwritten,
 };
 
 }  // namespace

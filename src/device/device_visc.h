@@ -1589,8 +1589,13 @@ struct ViscSolver {
 //! sCurr: the stage's slice; sPrev: arenaFieldsPrev (tau_{n-1} in the
 //! first stage, tau_n in the second); pCurr, pPrev their pressures; flux*:
 //! the ideal KT fluxes; wFace*: kernelWFace of the three directions; src:
-//! the source terms (if P.hasSource)
-template <typename Real>
+//! the source terms (if P.hasSource). kStage: -1 reads the stage from
+//! P.rkFlag (host, CUDA); 0 or 1 compiles one stage only (Metal, one pipeline
+//! per stage), which removes the fixed-point code from the first stage's
+//! kernel and its register cost (9% of that kernel with EoS 20). It gates
+//! only the fixed-point branch; every arithmetic use of P.rkFlag stays a
+//! run-time value, so the arithmetic is the same
+template <typename Real, int kStage = -1>
 MD_FN void kernelCellVisc(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *sCurr,
@@ -1723,7 +1728,7 @@ MD_FN void kernelCellVisc(
         d, tab, curr.c.e, curr.c.rhob, curr.c.rhoq, curr.c.rhos);
     vs.firstRKStepW(curr, prev, G, th, next);
 
-    if (P.rkFlag == 1) {
+    if (kStage < 0 ? P.rkFlag == 1 : kStage == 1) {
         // Advance::stage2ViscousFixedPoint
         const Real tau_np2 = P.tau + Real(2.) * P.dtau;
         const Real scaleT = fabs(qi[0]);

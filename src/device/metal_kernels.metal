@@ -57,28 +57,32 @@ kernel void musicWFace(
     kernelWFace(P, s, direction, int(gid), out);
 }
 
-kernel void musicCellVisc(
-    constant MSP &P [[buffer(0)]], constant MED &D [[buffer(1)]],
-    device const float *tab [[buffer(2)]],
-    device const float *sCurr [[buffer(3)]],
-    device const float *sPrev [[buffer(4)]],
-    device const float *pCurr [[buffer(5)]],
-    device const float *pPrev [[buffer(6)]],
-    device const float *fluxX [[buffer(7)]],
-    device const float *fluxY [[buffer(8)]],
-    device const float *fluxEta [[buffer(9)]],
-    device float *sNext [[buffer(10)]],
-    device metal::atomic_int *flags [[buffer(11)]],
-    device const float *wFaceX [[buffer(12)]],
-    device const float *wFaceY [[buffer(13)]],
-    device const float *wFaceEta [[buffer(14)]],
-    device const float *src [[buffer(15)]],
-    uint gid [[thread_position_in_grid]]) {
-    if (int(gid) >= P.nx * P.ny * P.neta) return;
-    kernelCellVisc(P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY,
-                   fluxEta, wFaceX, wFaceY, wFaceEta, src, sNext, int(gid),
-                   flags);
-}
+// one pipeline per RK stage (kernelCellVisc, kStage)
+#define MUSIC_CELL_VISC(NAME, STAGE)                                         \
+    kernel void NAME(                                                        \
+        constant MSP &P [[buffer(0)]], constant MED &D [[buffer(1)]],        \
+        device const float *tab [[buffer(2)]],                               \
+        device const float *sCurr [[buffer(3)]],                             \
+        device const float *sPrev [[buffer(4)]],                             \
+        device const float *pCurr [[buffer(5)]],                             \
+        device const float *pPrev [[buffer(6)]],                             \
+        device const float *fluxX [[buffer(7)]],                             \
+        device const float *fluxY [[buffer(8)]],                             \
+        device const float *fluxEta [[buffer(9)]],                           \
+        device float *sNext [[buffer(10)]],                                  \
+        device metal::atomic_int *flags [[buffer(11)]],                      \
+        device const float *wFaceX [[buffer(12)]],                           \
+        device const float *wFaceY [[buffer(13)]],                           \
+        device const float *wFaceEta [[buffer(14)]],                         \
+        device const float *src [[buffer(15)]],                              \
+        uint gid [[thread_position_in_grid]]) {                              \
+        if (int(gid) >= P.nx * P.ny * P.neta) return;                        \
+        kernelCellVisc<float, STAGE>(                                        \
+            P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta,    \
+            wFaceX, wFaceY, wFaceEta, src, sNext, int(gid), flags);          \
+    }
+MUSIC_CELL_VISC(musicCellVisc0, 0)
+MUSIC_CELL_VISC(musicCellVisc1, 1)
 
 kernel void musicStringSource(
     constant MSP &P [[buffer(0)]], device const float *S [[buffer(16)]],

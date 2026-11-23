@@ -215,6 +215,9 @@ int Evolve::EvolveIt(
         // store initial conditions
         const bool isFreezeStartStep =
             (!freezeStarted && tau > tauFreezeStart - 0.5 * dt);
+        // a freeze-out step that reads all of fpCurr and nothing of fpPrev:
+        // fpCurr is filled after beginStep, while the step runs
+        bool syncCurrDuringStep = false;
         if (onDevice && !deviceHydro_->hostCurrent()) {
             // the steps whose output or freeze-out reads all of fpCurr
             // (and fpPrev)
@@ -251,10 +254,20 @@ int Evolve::EvolveIt(
                          && it == it_source_max)
                      || DATA.output_hydro_debug_info == 1);
             }
-            if (isFreezeStartStep || outputStep || freezeStep || checkStep
-                || itSince == 0 || itSince == 10 || itSince == 30
-                || itSince == 50) {
+            const bool fullStep =
+                (isFreezeStartStep || outputStep || checkStep || itSince == 0
+                 || itSince == 10 || itSince == 30 || itSince == 50);
+            if (fullStep) {
                 syncAll();
+            } else if (freezeStep) {
+                // the Cornelius search reads fpPrev (and stores it for the
+                // next search) only for the vorticity; without it the
+                // stored previous slice is never read
+                if (DATA.output_vorticity == 1 && !DATA.boost_invariant) {
+                    syncAll();
+                } else {
+                    syncCurrDuringStep = true;
+                }
             }
         }
         if (isFreezeStartStep) {
@@ -292,6 +305,7 @@ int Evolve::EvolveIt(
                 }
             }
             deviceHydro_->beginStep(tau, fpPrev, fpCurr);
+            if (syncCurrDuringStep) deviceHydro_->syncCurrentDuringStep(*fpCurr);
         }
 
         // if (DATA.Initial_profile == 13) {

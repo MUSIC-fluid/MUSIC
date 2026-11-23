@@ -285,6 +285,13 @@ class CApiBackend : public Backend {
                 dev_, which, firstComp, nComp, err_, sizeof(err_)),
             err));
     }
+    bool fetchUnwritten(
+        int which, int firstComp, int nComp, std::string &err) {
+        return (check(
+            api_->fetchUnwritten(
+                dev_, which, firstComp, nComp, err_, sizeof(err_)),
+            err));
+    }
     bool download(std::string &err) {
         return (check(api_->download(dev_, err_, sizeof(err_)), err));
     }
@@ -406,7 +413,9 @@ DeviceHydro::~DeviceHydro() {
                      "overlap the host work), "
                   << downloadSeconds_ << " s copying to the host Fields ("
                   << nFullSyncs_ << " full, " << nPartialSyncs_
-                  << " partial), " << diagSeconds_
+                  << " partial, " << nOverlapSyncs_
+                  << " of the current slice during the step), "
+                  << diagSeconds_
                   << " s for the conservation sums";
     if (source_)
         music_message << ", " << sourceSeconds_
@@ -1155,6 +1164,34 @@ void DeviceHydro::packStrings(
     for (int l = 0; l < 4; l++) nActive += static_cast<int>(lists[l]->size());
 }
 
+
+void DeviceHydro::syncCurrentDuringStep(Fields &curr) {
+    if (!pending_) fail("syncCurrentDuringStep: no step is running");
+    if (&curr != pendingCurr_)
+        fail("syncCurrentDuringStep: not the slice the step started from");
+    if (hostCurrent_) return;
+    const auto t0 = std::chrono::steady_clock::now();
+    const int nx = nx_;
+    const auto all = [nx](int, int, int *r) {
+        r[1] = nx;
+        return (1);
+    };
+    // after beginStep the slice of tau_n is the backend's previous one
+    std::string err;
+    const int nComp =
+        (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+    if (!backend_->fetchUnwritten(1, 0, nComp, err)) fail(err);
+    if (float_) {
+        downloadT(curr, static_cast<const float *>(backend_->state(1)), all);
+    } else {
+        downloadT(curr, static_cast<const double *>(backend_->state(1)), all);
+    }
+    curr.updateGhosts();
+    nOverlapSyncs_++;
+    downloadSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+}
 
 void DeviceHydro::requireIdle(const char *what) const {
     if (pending_)

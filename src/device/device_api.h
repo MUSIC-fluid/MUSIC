@@ -87,6 +87,14 @@ typedef struct MusicDeviceApi {
     // pointers rotate when stage() returns; every call that reads the
     // device state waits first
     int (*finish)(void *dev, int *flags, char *err, int errLen);
+    // fetch() of slice which = 1 while the stages of a step are in flight:
+    // after stage() with rk = 1 that is the slice of tau_n, which the stages
+    // read and no stage writes (the next step's second stage overwrites
+    // it), so the backend need not wait for them (Metal: shared memory, it
+    // returns at once). Only which = 1 is allowed
+    int (*fetchUnwritten)(
+        void *dev, int which, int firstComp, int nComp, char *err,
+        int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

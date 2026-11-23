@@ -2366,6 +2366,75 @@ TEST_CASE("Device outflow faces reproduce boundary_outflow_rate") {
     }
 }
 
+TEST_CASE("Device copy of the current slice during a step equals syncHost") {
+    // Evolve fills fpCurr of a freeze-out step after beginStep, while the
+    // step runs (DeviceHydro::syncCurrentDuringStep). It must give the
+    // Fields that syncHost gives for the same slice after the step (there
+    // fpPrev), ghost cells included, on backend 1 in double and float
+    for (int viscous = 0; viscous < 2; viscous++) {
+        for (int gpuFloat = 0; gpuFloat < 2; gpuFloat++) {
+            CAPTURE(viscous);
+            CAPTURE(gpuFloat);
+            InitData DATA = (viscous ? viscousDeviceParameters(0)
+                                     : idealDeviceParameters(false, 0));
+            DATA.gpu_backend = 1;
+            DATA.gpu_float = gpuFloat;
+            EOS eos(9);
+            Evolve evolve(eos, DATA, nullptr);
+            Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+            if (viscous) {
+                fillLumpyViscous(a, false);
+                fillLumpyViscous(b, true);
+                fillLumpyViscous(c, false);
+            } else {
+                fillLumpyIdeal(a);
+                b = a;
+                c = a;
+            }
+            Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+            double tau = DATA.tau0;
+            for (int it = 0; it < 2; it++) {
+                evolve.preparePressure(*fpCurr);
+                evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+                tau += DATA.delta_tau;
+            }
+            DeviceHydro *dh = evolve.deviceHydro();
+            REQUIRE(dh != nullptr);
+            REQUIRE(dh->active());
+            REQUIRE(!dh->hostCurrent());
+            // the host Fields hold something else before the copy
+            for (Fields *f : {fpCurr, fpPrev}) {
+                f->e_.fill(-1.);
+                f->Wmunu_[1].fill(-1.);
+            }
+            dh->beginStep(tau, fpPrev, fpCurr);
+            dh->syncCurrentDuringStep(*fpCurr);
+            const Fields during(*fpCurr);
+            evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+            evolve.syncHost(*fpCurr, *fpPrev);
+            REQUIRE(fpPrev->nStorage() == during.nStorage());
+            const int nStorage = during.nStorage();
+            int nDiff = 0;
+            const auto compare = [&](const FieldComponent &x,
+                                     const FieldComponent &y) {
+                for (int k = 0; k < nStorage; k++)
+                    if (!(x[k] == y[k])) nDiff++;
+            };
+            compare(during.e_, fpPrev->e_);
+            compare(during.rhob_, fpPrev->rhob_);
+            compare(during.rhoq_, fpPrev->rhoq_);
+            compare(during.rhos_, fpPrev->rhos_);
+            compare(during.piBulk_, fpPrev->piBulk_);
+            compare(during.piBulkChem_, fpPrev->piBulkChem_);
+            for (int m = 0; m < 4; m++) compare(during.u_[m], fpPrev->u_[m]);
+            for (int m = 0; m < 14; m++)
+                compare(during.Wmunu_[m], fpPrev->Wmunu_[m]);
+            CHECK(nDiff == 0);
+            CHECK(during.e_[during.getFieldIdx(0, 0, 0)] > 0.);
+        }
+    }
+}
+
 TEST_CASE("Device kernels reproduce the update of Advance with the 4D EoS") {
     // EoS 20 on the device: the quadrilinear tables in float, as on the
     // host, with n_Q and n_S in the state and a few dilute cells
