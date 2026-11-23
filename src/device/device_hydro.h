@@ -70,9 +70,16 @@ class Backend {
     virtual void *state(int which) = 0;
     virtual bool upload(std::string &err) = 0;
     //! one RK stage (rk = 0, 1) of the Heun step: see device_api.h
+    //! the flags of a stage the backend has not finished come from finish()
     virtual bool stage(
         const void *params, size_t paramBytes, int rk, int &flags,
         std::string &err) = 0;
+    //! waits for the second stage of the step (the backends may return
+    //! from stage() before it has run); flags: those not returned yet
+    virtual bool finish(int &flags, std::string &) {
+        flags = 0;
+        return (true);
+    }
     //! the source terms of the next stage: kNTJ components of the cells
     virtual void *source() = 0;
     virtual bool uploadSource(std::string &err) = 0;
@@ -90,6 +97,11 @@ class Backend {
     virtual bool conservation(
         const void *params, size_t paramBytes, void *out, size_t outBytes,
         std::string &err) = 0;
+    //! the switches of the run (DeviceHydro::specKey); the CPU kernels
+    //! read them at run time
+    virtual bool specialize(const std::string &, std::string &) {
+        return (true);
+    }
 };
 
 }  // namespace music_device
@@ -108,9 +120,15 @@ class DeviceHydro {
     bool active() const { return (backend_ != nullptr); }
 
     //! one Heun step from *fpCurr at tau; rotates the pointers as
-    //! Evolve::AdvanceRK does
+    //! Evolve::AdvanceRK does. Finishes the step beginStep started, if any
     void advanceStep(
         double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext);
+    //! starts the step from *fpCurr at tau on the device and returns while
+    //! it runs: the host may read and write its Fields (not the device)
+    //! until advanceStep finishes the step
+    void beginStep(double tau, Fields *fpPrev, Fields *fpCurr);
+    //! a step is running (beginStep without advanceStep)
+    bool stepPending() const { return (pending_); }
 
     //! the host changed the fields: upload before the next step
     void invalidate() { valid_ = false; }
@@ -146,6 +164,13 @@ class DeviceHydro {
 
     bool valid_ = false;
     bool hostCurrent_ = true;
+    // the step beginStep started
+    bool pending_ = false;
+    double pendingTau_ = 0.;
+    const Fields *pendingCurr_ = nullptr, *pendingPrev_ = nullptr;
+    int pendingFlags_ = 0;
+    //! fails if a step is running: the device state is being written
+    void requireIdle(const char *what) const;
     const HydroSourceStrings *strings_ = nullptr;
     const Fields *lastCurr_ = nullptr;
     const Fields *lastPrev_ = nullptr;
@@ -166,8 +191,9 @@ class DeviceHydro {
     bool computeSource(const Real *s, double tauRk);
     bool buildEos(std::string &err);
     void upload(const Fields &curr, const Fields &prev, double tau);
-    //! the cells of slice which (0: current, 1: previous) with
-    //! ix0 <= ix < ix1, ... that keep(ix, iy, ieta) into arena
+    //! the cells of slice which (0: current, 1: previous) into arena:
+    //! keep(iy, ieta, r) gives the x ranges [r[0], r[1]), [r[2], r[3]) of
+    //! the row and returns their number (0 - 2)
     template <typename Keep>
     void downloadCells(Fields &arena, int which, const Keep &keep);
     //! the strings of the current tau frame, packed for setStrings
@@ -177,6 +203,9 @@ class DeviceHydro {
     void uploadT(const Fields &arena, double tau, Real *s) const;
     template <typename Real>
     void fillViscParams(music_device::StepParams<Real> &P) const;
+    //! the StepParams and EosDesc fields that MD_RUN and MD_EOS_TYPE read,
+    //! as "name=value;...": fixed for the run
+    std::string specKey() const;
     template <typename Real, typename Keep>
     void downloadT(Fields &arena, const Real *s, const Keep &keep) const;
     template <typename Real>

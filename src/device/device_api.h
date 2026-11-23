@@ -77,6 +77,16 @@ typedef struct MusicDeviceApi {
     int (*conservation)(
         void *dev, const void *params, size_t paramBytes, void *out,
         size_t outBytes, char *err, int errLen);
+    // the switches of the run, "name=value;..." (DeviceHydro::specKey):
+    // the backend may compile its kernels for them (Metal: MUSIC_SPEC and
+    // MUSIC_SPEC_<name>, see MD_RUN in device_defs.h). Every later stage
+    // must have these values
+    int (*specialize)(void *dev, const char *key, char *err, int errLen);
+    // waits for the second stage of the step: stage() with rk = 1 may
+    // return before it has run (and then gives its flags here). The state
+    // pointers rotate when stage() returns; every call that reads the
+    // device state waits first
+    int (*finish)(void *dev, int *flags, char *err, int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

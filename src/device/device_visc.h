@@ -97,7 +97,7 @@ MD_FN void kernelWFace(
     const int nFaces = faceCount(nx, ny, neta, direction);
     const Real tau = P.tau + Real(P.rkFlag) * P.dtau;
     const Real tauFac = (direction == 3 ? Real(1.0) : tau);
-    const bool withBulk = (P.bulk == 1 || P.bulkChem == 1);
+    const bool withBulk = (MD_RUN(P, bulk) == 1 || MD_RUN(P, bulkChem) == 1);
     const int IL = cellIndex(nx, ny, neta, fx - dx, fy - dy, feta - deta);
     const int IR = cellIndex(nx, ny, neta, fx, fy, feta);
     const int ILL =
@@ -108,7 +108,7 @@ MD_FN void kernelWFace(
     const Real aL = fabs(ud[IL]) / u0[IL];
     const Real aR = fabs(ud[IR]) / u0[IR];
     const Real ax = dmax(aL, aR);
-    for (int idx = 0; idx < P.nWComp; idx++) {
+    for (int idx = 0; idx < MD_RUN(P, nWComp); idx++) {
         MD_GLOBAL const Real *W = s + wFluxComp(idx) * n;
         const Real fLL = W[ILL] * ud[ILL];
         const Real fL = W[IL] * ud[IL];
@@ -508,13 +508,13 @@ struct ViscSolver {
                     dUsup[m][dir] =
                         (minmodDx(fp1, f, fm1, P.theta) / delta[dir]);
                 }
-                if (P.duIdeal == 1) {
+                if (MD_RUN(P, duIdeal) == 1) {
                     const Real Pc = pCurr[Ic];
                     const Real Pp1 = pCurr[Ip1];
                     const Real Pm1 = pCurr[Im1];
                     dPsup[dir] = (minmodDx(Pp1, Pc, Pm1, P.theta) / delta[dir]);
                 }
-                if (P.diff == 1) {
+                if (MD_RUN(P, diff) == 1) {
                     // partial_n (mu_B / T)
                     const Real f = muBOverT(sCurr, n, Ic);
                     const Real fp1 = muBOverT(sCurr, n, Ip1);
@@ -546,7 +546,7 @@ struct ViscSolver {
                 f += dUsup[m][0] * sCurr[(4 + m) * n + i];
             }
             dUsup[0][0] = f / sCurr[4 * n + i];
-            if (P.diff == 1) {
+            if (MD_RUN(P, diff) == 1) {
                 // the backward difference of mu_B / T
                 const Real tildemu = muBOverT(sCurr, n, i);
                 const Real tildemu_prev = muBOverT(sPrev, n, i);
@@ -555,7 +555,7 @@ struct ViscSolver {
             }
         }
         // MakeDTauIdealEoM
-        if (P.duIdeal == 1) {
+        if (MD_RUN(P, duIdeal) == 1) {
             const Real eps = sCurr[i];
             const Real weight = idealEoMWeight(eps);
             if (weight > Real(0.)) {
@@ -674,7 +674,7 @@ struct ViscSolver {
             G.sigma[9] = sigma_local[3][3];
         }
         // calculate_kinetic_vorticity_with_spatial_projector
-        if (P.vorticity) {
+        if (MD_RUN(P, vorticity)) {
             Real omega_local[4][4];
             for (int mu = 0; mu < 4; mu++) {
                 omega_local[mu][mu] = Real(0.0);
@@ -712,6 +712,12 @@ struct ViscSolver {
             Real Wmunu_local[4][4];
             unpackSym(grid_pt.W, Wmunu_local);
             for (int k = 0; k < 10; k++) G.wRhs[k] = Real(0.);
+            // P.nWComp at run time, not MD_RUN: with this bound a compile-
+            // time constant, the Metal compiler (M4, macOS 26) gives the
+            // update with FlagResetCausality = 1 an error of 5e-5 per step
+            // (gpu_backend_viscous, "causality"); the same loop with the
+            // bound from P, and the kernels on the CPU in float, agree with
+            // the CPU code to rounding
             for (int idx = 0; idx < P.nWComp; idx++) {
                 G.wRhs[idx] += wFluxDiv[idx];
             }
@@ -747,11 +753,11 @@ struct ViscSolver {
                         + (G.theta * Wmunu_local[mu][nu]))
                            * (P.dtau));
             }
-            if (P.bulk == 1) {
+            if (MD_RUN(P, bulk) == 1) {
                 G.wRhs[5] -= (grid_pt.pi) * (grid_pt.c.u[0]) / tau * P.dtau;
                 G.wRhs[5] += (grid_pt.pi) * G.theta * P.dtau;
             }
-            if (P.bulkChem == 1) {
+            if (MD_RUN(P, bulkChem) == 1) {
                 G.wRhs[6] -=
                     (grid_pt.piChem) * (grid_pt.c.u[0]) / tau * P.dtau;
                 G.wRhs[6] += (grid_pt.piChem) * G.theta * P.dtau;
@@ -832,7 +838,7 @@ struct ViscSolver {
         Real kappa = kappa_coefficient
                      * (rhob / denorm_safe
                         - rhob * rhob / dmax(epsilon + pressure, small_eps));
-        if (P.profile1) {
+        if (MD_RUN(P, profile1)) {
             Real denorm_safe1 = copysign(dmax(fabs(mub), small_eps), mub);
             kappa = kappa_coefficient * (rhob / denorm_safe1);
         }
@@ -854,7 +860,7 @@ struct ViscSolver {
             }
             Real Nonlinear2 = -transport_coeff_2 * temptemp;
             Real Nonlinear3 = Real(0.0);
-            if (P.vorticity) {
+            if (MD_RUN(P, vorticity)) {
                 Real transport_coeff_3 = Real(1.0) * tau_rho;
                 Real omega[4][4];
                 unpackAnti(G.omega, omega);
@@ -866,7 +872,7 @@ struct ViscSolver {
             }
             sourceTerms[nu - 1] =
                 ((-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3) / tau_rho);
-            if (P.profile1) {
+            if (MD_RUN(P, profile1)) {
                 sourceTerms[nu - 1] = (-q[nu] - NS) / tau_rho;
             }
             sourceTerms[nu - 1] += (G.theta - grid_pt.c.u[0] / tau) * q[nu];
@@ -959,13 +965,13 @@ struct ViscSolver {
         Real shear_to_s = tc.etaOverS(T, muB);
         bool include_WWterm = false;
         bool include_Wsigma_term = false;
-        if (P.secondOrder == 1) {
+        if (MD_RUN(P, secondOrder) == 1) {
             include_WWterm = true;
             include_Wsigma_term = true;
         }
         Real pressure = th.p;
         Real shear = Real(0.);
-        if (P.muBShear == 0) {
+        if (MD_RUN(P, muBShear) == 0) {
             Real entropy = th.s;
             shear = shear_to_s * entropy;
         } else {
@@ -984,7 +990,7 @@ struct ViscSolver {
         Real transport_coefficient_b = (Real(6. / 5.) * tau_pi);
         Real transport_coefficient2_b = Real(0.);
         Real resummedCorrection = Real(1);
-        if (P.resum) {
+        if (MD_RUN(P, resum)) {
             Real R_shear = Real(0.);
             Real R_bulk = Real(0.);
             inverseReynolds(epsilon + pressure, grid_pt, R_shear, R_bulk);
@@ -1006,7 +1012,7 @@ struct ViscSolver {
                  * Wmunu[mu][nu]);
             Real NS_term = Real(-2.) * shear * sigma[mu][nu];
             Real Coupling_to_Bulk = Real(0.0);
-            if (P.secondOrder == 1) {
+            if (MD_RUN(P, secondOrder) == 1) {
                 Real Bulk_Sigma = grid_pt.pi * sigma[mu][nu];
                 Real Bulk_W = grid_pt.pi * Wmunu[mu][nu];
                 Real Bulk_Sigma_term = Bulk_Sigma * transport_coefficient_b;
@@ -1014,9 +1020,9 @@ struct ViscSolver {
                 Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
             }
             Real Vorticity_term = Real(0.0);
-            if (P.vorticity) {
+            if (MD_RUN(P, vorticity)) {
                 Real transport_coefficient4 = Real(2.) * tau_pi;
-                if (P.resum) {
+                if (MD_RUN(P, resum)) {
                     transport_coefficient4 *= resummedCorrection;
                 }
                 Real omega[4][4];
@@ -1107,7 +1113,7 @@ struct ViscSolver {
         Real Final_Answer;
         bool include_BBterm = false;
         bool include_coupling_to_shear = false;
-        if (P.secondOrder == 1) {
+        if (MD_RUN(P, secondOrder) == 1) {
             include_BBterm = true;
             include_coupling_to_shear = true;
         }
@@ -1118,17 +1124,17 @@ struct ViscSolver {
         Real pressure = th.p;
         bulk = tc.zetaOverS(temperature, mu_B);
         bulk = bulk * (epsilon + pressure) / dmax(temperature, Real(1e-16));
-        if (P.bulkRelaxType == 0) {
+        if (MD_RUN(P, bulkRelaxType) == 0) {
             Real csfactor = dmax(Real(1.) / Real(3.) - cs2, Real(1e-16));
             Bulk_Relax_time =
                 (P.bulkRelaxFactor * bulk / (csfactor * csfactor)
                  / dmax(epsilon + pressure, Real(1e-16)));
-        } else if (P.bulkRelaxType == 1) {
+        } else if (MD_RUN(P, bulkRelaxType) == 1) {
             Real csfactor = dmax(Real(1.) / Real(3.) - cs2, Real(1e-16));
             Bulk_Relax_time =
                 (P.bulkRelaxFactor * bulk / csfactor
                  / dmax(epsilon + pressure, Real(1e-16)));
-        } else if (P.bulkRelaxType == 2) {
+        } else if (MD_RUN(P, bulkRelaxType) == 2) {
             Bulk_Relax_time =
                 (P.bulkRelaxFactor * bulk
                  / dmax(epsilon + pressure, Real(1e-16)));
@@ -1139,12 +1145,12 @@ struct ViscSolver {
         transport_coeff2 = (Real(0.) * Bulk_Relax_time);
         transport_coeff1_s =
             (Real(8. / 5.) * (Real(1.) / Real(3.) - cs2) * Bulk_Relax_time);
-        if (P.bulkRelaxType == 2) {
+        if (MD_RUN(P, bulkRelaxType) == 2) {
             transport_coeff1_s =
                 (Real(8. / 5.) * Real(1.) / Real(3.) * Bulk_Relax_time);
         }
         transport_coeff2_s = Real(0.);
-        if (P.resum) {
+        if (MD_RUN(P, resum)) {
             Real resummedCorrection = Real(1);
             Real R_shear = Real(0.);
             Real R_bulk = Real(0.);
@@ -1461,7 +1467,7 @@ struct ViscSolver {
         const Real rk_flag = Real(P.rkFlag);
         Real tempf;
         Real u0Prev = prev.c.u[0];
-        if (P.shear == 1) {
+        if (MD_RUN(P, shear) == 1) {
             Real sourceTerms[5];
             uWSource(grid_c, G, th, sourceTerms);
             for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
@@ -1480,7 +1486,7 @@ struct ViscSolver {
                 grid_f.W[idx_1d] = Real(0.0);
             }
         }
-        if (P.bulk == 1) {
+        if (MD_RUN(P, bulk) == 1) {
             Real piBulkPrev = prev.pi;
             tempf =
                 ((Real(1.) - rk_flag) * (grid_c.pi * grid_c.c.u[0])
@@ -1495,7 +1501,7 @@ struct ViscSolver {
             grid_f.pi = Real(0.0);
             grid_f.piChem = Real(0.0);
         }
-        if (P.bulkChem == 1) {
+        if (MD_RUN(P, bulkChem) == 1) {
             Real piBulkChemPrev_local = prev.piChem;
             tempf =
                 ((Real(1.) - rk_flag) * (grid_c.piChem * grid_c.c.u[0])
@@ -1507,7 +1513,7 @@ struct ViscSolver {
             tempf *= Real(1.) / (Real(1.) + rk_flag);
             grid_f.piChem = tempf / (grid_f.c.u[0]);
         }
-        if (P.diff == 1) {
+        if (MD_RUN(P, diff) == 1) {
             const Real tau_now = P.tau + rk_flag * P.dtau;
             Real sourceTerms[3] = {Real(0.), Real(0.), Real(0.)};
             uqSource(tau_now, grid_c, G, th, sourceTerms);
@@ -1552,12 +1558,12 @@ struct ViscSolver {
         for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
             tempf += grid_f.W[idx_1d] * grid_f.c.u[idx_1d - 10];
         }
-        grid_f.W[10] = Real(P.diff) * tempf / (grid_f.c.u[0]);
-        if (P.questRevert) {
+        grid_f.W[10] = Real(MD_RUN(P, diff)) * tempf / (grid_f.c.u[0]);
+        if (MD_RUN(P, questRevert)) {
             questRevert(grid_f);
-            if (P.diff == 1) questRevertQmu(grid_f);
-            if (P.resum) questRevertResummed(grid_f);
-            if (P.causality) {
+            if (MD_RUN(P, diff) == 1) questRevertQmu(grid_f);
+            if (MD_RUN(P, resum)) questRevertResummed(grid_f);
+            if (MD_RUN(P, causality)) {
                 Real Lambdas[3];
                 wEigenvalues(grid_f, Lambdas);
                 causalityConstraints(grid_f, Lambdas);
@@ -1600,7 +1606,7 @@ MD_FN void kernelCellVisc(
     const int iy = (i / nx) % ny;
     const int ieta = i / (nx * ny);
     const Real tau = P.tau + Real(P.rkFlag) * P.dtau;
-    const bool withBulk = (P.bulk == 1 || P.bulkChem == 1);
+    const bool withBulk = (MD_RUN(P, bulk) == 1 || MD_RUN(P, bulkChem) == 1);
     const VCell<Real> curr = loadVCell(sCurr, n, i);
     const VCell<Real> prev = loadVCell(sPrev, n, i);
 
@@ -1642,7 +1648,7 @@ MD_FN void kernelCellVisc(
             (direction == 1 ? P.dx : (direction == 2 ? P.dy : P.deta * tau));
         const Real deltaSrc =
             (direction == 1 ? P.dx : (direction == 2 ? P.dy : P.deta));
-        for (int idx = 0; idx < P.nWComp; idx++) {
+        for (int idx = 0; idx < MD_RUN(P, nWComp); idx++) {
             const Real HW =
                 (F[idx * nFaces + Iph] - F[idx * nFaces + Imh]) / deltaFlux;
             if (direction == 1) wFluxDiv[idx] = Real(0.);
@@ -1834,7 +1840,7 @@ MD_FN void kernelCellVisc(
     for (int k = 0; k < 14; k++) sNext[(kOffW + k) * n + i] = next.W[k];
     sNext[kOffPi * n + i] = next.pi;
     sNext[kOffPiChem * n + i] = next.piChem;
-    if (P.storeQ) {
+    if (MD_RUN(P, storeQ)) {
         const bool changed =
             (flagUsed & (kFlagMomentumCap | kFlagRegulate | kFlagRevert)) != 0;
         const Real pOut =

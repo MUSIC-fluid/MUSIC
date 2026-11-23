@@ -583,7 +583,7 @@ MD_FN void kernelFace(
     Cell<Real> gL, gR;
     EosState<Real> eL, eR;
     Real qL[7], qR[7];
-    if (P.mode == 1) {
+    if (MD_RUN(P, mode) == 1) {
         // Advance::computeFaceFluxPrimitive
         const Real th = P.theta;
         gL.e = cL.e + Real(0.5) * minmodDx(cR.e, cL.e, cLL.e, th);
@@ -658,7 +658,7 @@ MD_FN void cellQiFlux(
     const Cell<Real> cellCurr = loadCell(sCurr, n, i);
     const Real pressure = pCurr[i];
     for (int a = 0; a < 7; a++) {
-        qi[a] = (P.storeQ ? sCurr[(kNPrim + a) * n + i]
+        qi[a] = (MD_RUN(P, storeQ) ? sCurr[(kNPrim + a) * n + i]
                           : TJb(cellCurr, a, 0, pressure) * tau_rk);
     }
     // MakeDeltaQI
@@ -712,7 +712,7 @@ MD_FN void cellRkAverage(
     // within a statement (clang) or across them (gcc), and the device
     // reproduces the host only with the same grouping
     for (int a = 0; a < 7; a++) {
-        if (P.storeQ) {
+        if (MD_RUN(P, storeQ)) {
             qi[a] += sPrev[(kNPrim + a) * n + i];
         } else {
             qi[a] += Real(P.rkFlag) * TJb(cellPrev, a, 0, pressurePrev) * P.tau;
@@ -754,7 +754,7 @@ MD_FN void kernelCell(
         P.tau + P.dtau, qi, cellCurr, (MD_THREAD EosState<Real> *)0, pressure,
         flag);
     storeCell(sNext, n, i, out);
-    if (P.storeQ) {
+    if (MD_RUN(P, storeQ)) {
         // a capped, regulated or reverted cell keeps the q of its state
         const bool changed =
             (flag & (kFlagMomentumCap | kFlagRegulate | kFlagRevert)) != 0;

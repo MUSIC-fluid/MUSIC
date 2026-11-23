@@ -35,6 +35,19 @@
 #define MD_FLAGS int *
 #endif
 
+// The switches of a run (StepParams and EosDesc fields that are fixed for
+// the run). The Metal backend compiles the kernels for one run with
+// MUSIC_SPEC and MUSIC_SPEC_<name> defined (DeviceHydro::specKey), so the
+// code of the features that are off is removed; elsewhere they are read at
+// run time.
+#if defined(__METAL_VERSION__) && defined(MUSIC_SPEC)
+#define MD_RUN(P, name) (MUSIC_SPEC_##name)
+#define MD_EOS_TYPE(d) (MUSIC_SPEC_eosType)
+#else
+#define MD_RUN(P, name) ((P).name)
+#define MD_EOS_TYPE(d) ((d).type)
+#endif
+
 namespace music_device {
 
 #if defined(__METAL_VERSION__)

@@ -116,8 +116,11 @@ int Evolve::EvolveIt(
     // filled only where they are read (DeviceHydro::syncHost, ...)
     const bool onDevice =
         (deviceHydro_ && deviceHydro_->active() && rk_order == 2);
+    // (not while the next step runs: only the returns to re-run hydro
+    // leave the loop then, and nothing reads the Fields after them)
     const auto syncAll = [&]() {
-        if (onDevice) deviceHydro_->syncHost(*fpCurr, *fpPrev);
+        if (onDevice && !deviceHydro_->stepPending())
+            deviceHydro_->syncHost(*fpCurr, *fpPrev);
     };
     std::vector<double> deviceRows;
     while (tau < tauMax) {
@@ -263,6 +266,30 @@ int Evolve::EvolveIt(
         }
         const int itSinceFreezeStart = freezeStarted ? it - itFreezeStart : -1;
 
+        // on the device: everything the host reads of this step comes from
+        // the device here; then the next step starts on the device and
+        // runs while the host does the output, the diagnostics and the
+        // freeze-out on its copies (AdvanceRK waits for it)
+        bool haveDeviceRows = false;
+        if (onDevice) {
+            if (!deviceHydro_->hostCurrent() && DATA.beastMode == 0) {
+                // output_momentum_anisotropy_vs_tau and the phase-diagram
+                // trajectories read eta windows of fpCurr
+                deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
+                if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
+                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
+                // the conservation sums and the grid maxima; the outflow
+                // reads the outermost cells
+                deviceHydro_->conservationRows(tau, deviceRows);
+                haveDeviceRows = true;
+                if (!DATA.boost_invariant) {
+                    deviceHydro_->syncShell(
+                        *fpCurr, fpPrev, 1, 1, fpCurr->nEta() > 1 ? 1 : 0);
+                }
+            }
+            deviceHydro_->beginStep(tau, fpPrev, fpCurr);
+        }
+
         // if (DATA.Initial_profile == 13) {
         //     if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
         //         grid_info.output_energy_density_and_rhob_disitrubtion(
@@ -325,14 +352,10 @@ int Evolve::EvolveIt(
                 }
             }
 
-            if (onDevice)
-                deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
             grid_info.output_momentum_anisotropy_vs_tau(
                 tau, -0.5, 0.5, *fpCurr);
 
             if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
-                if (onDevice)
-                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
                 grid_info.output_average_phase_diagram_trajectory(
                     tau, -0.5, 0.5, *fpCurr);
                 grid_info.output_average_phase_diagram_trajectory(
@@ -346,12 +369,9 @@ int Evolve::EvolveIt(
             }
             // check energy conservation
             if (!DATA.boost_invariant) {
-                if (onDevice && !deviceHydro_->hostCurrent()) {
+                if (haveDeviceRows) {
                     // the sums from the device, the outflow from the
                     // outermost cells
-                    deviceHydro_->conservationRows(tau, deviceRows);
-                    deviceHydro_->syncShell(
-                        *fpCurr, fpPrev, 1, 1, fpCurr->nEta() > 1 ? 1 : 0);
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, nullptr, &gridMaxima,
                         &deviceRows);
@@ -359,9 +379,8 @@ int Evolve::EvolveIt(
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, pressureCurr, &gridMaxima);
                 }
-            } else if (onDevice && !deviceHydro_->hostCurrent()) {
+            } else if (haveDeviceRows) {
                 // the grid maxima from the device
-                deviceHydro_->conservationRows(tau, deviceRows);
                 gridMaxima.valid = true;
                 for (size_t r = 0; r + 12 <= deviceRows.size(); r += 12) {
                     gridMaxima.e = std::max(gridMaxima.e, deviceRows[r + 7]);

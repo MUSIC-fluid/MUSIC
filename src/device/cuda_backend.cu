@@ -548,6 +548,13 @@ int cudaFetch(
 int cudaDownload(void *dev, char *err, int len) {
     return get(dev)->download(err, len);
 }
+// the kernels read the switches at run time
+int cudaSpecialize(void *, const char *, char *, int) { return 0; }
+// the stages are synchronous and return their flags
+int cudaFinish(void *, int *flags, char *, int) {
+    *flags = 0;
+    return 0;
+}
 int cudaSetStrings(
     void *dev, const void *data, size_t bytes, char *err, int len) {
     return get(dev)->setStrings(data, bytes, err, len);
@@ -562,6 +569,7 @@ const MusicDeviceApi kCudaApi = {
     cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
+    cudaSpecialize, cudaFinish,
 };
 
 }  // namespace

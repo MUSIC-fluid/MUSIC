@@ -19,6 +19,7 @@
 #import <Metal/Metal.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "device_api.h"
@@ -49,6 +50,10 @@ enum {
     id<MTLBuffer> consOut;   // the conservation rows
     id<MTLCommandBuffer> pending;  // the first stage, in flight
     id<MTLBuffer> eosDesc, eosTable, flags;
+    NSString *specKey;  // the switches the kernels were compiled for
+    // MUSIC_METAL_PROFILE set: the GPU time of each kernel (s)
+    BOOL profile;
+    NSMutableDictionary *profileSeconds;
     int cur, pred, next;
     int nx, ny, neta, nComp;
     char name[256];
@@ -76,6 +81,61 @@ static int faceCount(int nx, int ny, int neta, int d) {
     return (nx + (d == 1)) * (ny + (d == 2)) * (neta + (d == 3));
 }
 
+//! compiles the kernels; macros (may be nil): the switches of the run
+//! (MUSIC_SPEC, MUSIC_SPEC_<name>, see MD_RUN in device_defs.h)
+static int buildPipelines(
+    MusicMetalDevice *m, NSDictionary *macros, char *err, int errLen) {
+    MTLCompileOptions *opt = [MTLCompileOptions new];
+    // IEEE division and sqrt, no folding of isfinite()
+    if (@available(macOS 15.0, *)) {
+        opt.mathMode = MTLMathModeSafe;
+    } else {
+        opt.fastMathEnabled = NO;
+    }
+    if (macros != nil) opt.preprocessorMacros = macros;
+    NSError *e = nil;
+    id<MTLLibrary> lib = [m->dev
+        newLibraryWithSource:[NSString stringWithUTF8String:kMusicMetalSource]
+                     options:opt
+                       error:&e];
+    if (lib == nil) {
+        setErr(err, errLen, "kernel compilation failed", e);
+        return 1;
+    }
+    const char *names[7] = {"musicPressure",     "musicFace",
+                            "musicCell",         "musicWFace",
+                            "musicCellVisc",     "musicStringSource",
+                            "musicConservation"};
+    id<MTLComputePipelineState> ps[7];
+    for (int k = 0; k < 7; k++) {
+        id<MTLFunction> f =
+            [lib newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
+        if (f == nil) {
+            setErr(err, errLen, "a kernel is missing", nil);
+            return 1;
+        }
+        ps[k] = [m->dev newComputePipelineStateWithFunction:f error:&e];
+        if (ps[k] == nil) {
+            setErr(err, errLen, "pipeline creation failed", e);
+            return 1;
+        }
+    }
+    m->psPressure = ps[0];
+    m->psFace = ps[1];
+    m->psCell = ps[2];
+    m->psWFace = ps[3];
+    m->psCellVisc = ps[4];
+    m->psStrings = ps[5];
+    m->psConservation = ps[6];
+    return 0;
+}
+
+//! the generic kernels, if no specialize() came first
+static int ensurePipelines(MusicMetalDevice *m, char *err, int errLen) {
+    if (m->psCell != nil) return 0;
+    return buildPipelines(m, nil, err, errLen);
+}
+
 static void *metalCreate(int realSize, char *err, int errLen) {
     @autoreleasepool {
         if (realSize != 4) {
@@ -88,49 +148,9 @@ static void *metalCreate(int realSize, char *err, int errLen) {
             setErr(err, errLen, "no Metal device", nil);
             return NULL;
         }
-        MTLCompileOptions *opt = [MTLCompileOptions new];
-        // IEEE division and sqrt, no folding of isfinite()
-        if (@available(macOS 15.0, *)) {
-            opt.mathMode = MTLMathModeSafe;
-        } else {
-            opt.fastMathEnabled = NO;
-        }
-        NSError *e = nil;
-        id<MTLLibrary> lib = [m->dev
-            newLibraryWithSource:[NSString
-                                     stringWithUTF8String:kMusicMetalSource]
-                         options:opt
-                           error:&e];
-        if (lib == nil) {
-            setErr(err, errLen, "kernel compilation failed", e);
-            return NULL;
-        }
-        const char *names[7] = {"musicPressure",     "musicFace",
-                                "musicCell",         "musicWFace",
-                                "musicCellVisc",     "musicStringSource",
-                                "musicConservation"};
-        id<MTLComputePipelineState> ps[7];
-        for (int k = 0; k < 7; k++) {
-            id<MTLFunction> f = [lib
-                newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
-            if (f == nil) {
-                setErr(err, errLen, "a kernel is missing", nil);
-                return NULL;
-            }
-            ps[k] = [m->dev newComputePipelineStateWithFunction:f error:&e];
-            if (ps[k] == nil) {
-                setErr(err, errLen, "pipeline creation failed", e);
-                return NULL;
-            }
-        }
-        m->psPressure = ps[0];
-        m->psFace = ps[1];
-        m->psCell = ps[2];
-        m->psWFace = ps[3];
-        m->psCellVisc = ps[4];
-        m->psStrings = ps[5];
-        m->psConservation = ps[6];
         m->queue = [m->dev newCommandQueue];
+        m->profile = (getenv("MUSIC_METAL_PROFILE") != NULL);
+        m->profileSeconds = [NSMutableDictionary new];
         m->flags = [m->dev newBufferWithLength:sizeof(int)
                                        options:MTLResourceStorageModeShared];
         m->cur = 0;
@@ -145,7 +165,27 @@ static void *metalCreate(int realSize, char *err, int errLen) {
 static void metalDestroy(void *dev) {
     if (dev == NULL) return;
     MusicMetalDevice *m = (__bridge_transfer MusicMetalDevice *)dev;
-    (void)m;  // released at the end of the scope
+    if (m->profile) {
+        double total = 0.;
+        for (NSString *k in m->profileSeconds)
+            total += [m->profileSeconds[k] doubleValue];
+        fprintf(stderr,
+                "Metal profile (GPU time per kernel); max threads per "
+                "threadgroup: pressure %lu, face %lu, wface %lu, cell %lu, "
+                "cellVisc %lu\n",
+                (unsigned long)m->psPressure.maxTotalThreadsPerThreadgroup,
+                (unsigned long)m->psFace.maxTotalThreadsPerThreadgroup,
+                (unsigned long)m->psWFace.maxTotalThreadsPerThreadgroup,
+                (unsigned long)m->psCell.maxTotalThreadsPerThreadgroup,
+                (unsigned long)m->psCellVisc.maxTotalThreadsPerThreadgroup);
+        for (NSString *k in [m->profileSeconds keysSortedByValueUsingSelector:
+                                                   @selector(compare:)]) {
+            const double t = [m->profileSeconds[k] doubleValue];
+            fprintf(stderr, "  %-10s %8.3f s  %5.1f%%\n", [k UTF8String], t,
+                    100. * t / (total > 0. ? total : 1.));
+        }
+    }
+    // released at the end of the scope
 }
 
 static const char *metalName(void *dev) { return get(dev)->name; }
@@ -254,7 +294,15 @@ static void dispatch(
     int count) {
     [enc setComputePipelineState:ps];
     NSUInteger tg = ps.maxTotalThreadsPerThreadgroup;
-    if (tg > 256) tg = 256;
+    // the largest threadgroup the pipeline allows: on the M4 1024 runs the
+    // viscous update 11% faster than 256 (tiles in x, y, eta instead of
+    // whole x rows were slower). MUSIC_METAL_TG overrides it (tuning)
+    static int tgEnv = -1;
+    if (tgEnv < 0) {
+        const char *v = getenv("MUSIC_METAL_TG");
+        tgEnv = (v != NULL ? atoi(v) : 0);
+    }
+    if (tgEnv > 0 && (NSUInteger)tgEnv < tg) tg = (NSUInteger)tgEnv;
     [enc dispatchThreads:MTLSizeMake(count, 1, 1)
         threadsPerThreadgroup:MTLSizeMake(tg, 1, 1)];
 }
@@ -280,6 +328,7 @@ static int metalStage(
     char *err, int errLen) {
     @autoreleasepool {
         MusicMetalDevice *m = get(dev);
+        if (ensurePipelines(m, err, errLen)) return 1;
         if (paramBytes > 1024) {
             setErr(err, errLen, "StepParams too large", nil);
             return 1;
@@ -293,19 +342,19 @@ static int metalStage(
             memset([m->flags contents], 0, sizeof(int));
         }
         const int n = m->nx * m->ny * m->neta;
-        id<MTLCommandBuffer> cb = [m->queue commandBuffer];
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        [enc setBuffer:m->eosDesc offset:0 atIndex:1];
-        [enc setBuffer:m->eosTable offset:0 atIndex:2];
         id<MTLBuffer> sIn = m->slice[rk == 0 ? m->cur : m->pred];
         // the second stage averages with tau_n; the viscous update of the
         // first stage takes its time derivatives against tau_{n-1}
         id<MTLBuffer> sPrev = m->slice[rk == 0 && viscous ? m->next : m->cur];
         id<MTLBuffer> sOut = m->slice[rk == 0 ? m->pred : m->next];
         id<MTLBuffer> pIn = (rk == 0 ? m->pCur : m->pPred);
-        [enc setBytes:P length:paramBytes atIndex:0];
-        // the pressure of the stage's input slice
-        [enc setBuffer:sIn offset:0 atIndex:3];
+        const size_t pb = paramBytes;
+        // each kernel binds everything it reads, so that the profile mode
+        // can give each one a command buffer of its own
+        typedef void (^Encode)(id<MTLComputeCommandEncoder>);
+        NSMutableArray *work = [NSMutableArray new];
+        NSMutableArray *names = [NSMutableArray new];
+        const unsigned char *Pp = P;
         // the strings source from the u of the stage's input slice
         int stringSource = 0;
         memcpy(&stringSource, P + MUSIC_DEVICE_STRINGS_OFFSET, sizeof(int));
@@ -314,55 +363,116 @@ static int metalStage(
                 setErr(err, errLen, "the strings were not set", nil);
                 return 1;
             }
-            [enc setBuffer:m->strings offset:0 atIndex:16];
-            [enc setBuffer:m->src offset:0 atIndex:15];
-            [enc setBuffer:m->flags offset:0 atIndex:11];
-            dispatch(enc, m->psStrings, n);
+            [names addObject:@"strings"];
+            [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+                [enc setBytes:Pp length:pb atIndex:0];
+                [enc setBuffer:m->strings offset:0 atIndex:16];
+                [enc setBuffer:sIn offset:0 atIndex:3];
+                [enc setBuffer:m->src offset:0 atIndex:15];
+                [enc setBuffer:m->flags offset:0 atIndex:11];
+                dispatch(enc, m->psStrings, n);
+            } copy]];
         }
-        [enc setBuffer:pIn offset:0 atIndex:4];
-        dispatch(enc, m->psPressure, n);
+        // the pressure of the stage's input slice
+        [names addObject:@"pressure"];
+        [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+            [enc setBytes:Pp length:pb atIndex:0];
+            [enc setBuffer:m->eosDesc offset:0 atIndex:1];
+            [enc setBuffer:m->eosTable offset:0 atIndex:2];
+            [enc setBuffer:sIn offset:0 atIndex:3];
+            [enc setBuffer:pIn offset:0 atIndex:4];
+            dispatch(enc, m->psPressure, n);
+        } copy]];
         // the faces
-        [enc setBuffer:m->flags offset:0 atIndex:6];
         for (int d = 1; d <= 3; d++) {
             const int nf = faceCount(m->nx, m->ny, m->neta, d);
-            [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
-            [enc setBytes:&d length:sizeof(int) atIndex:7];
-            dispatch(enc, m->psFace, nf);
+            [names addObject:@"face"];
+            [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+                int dir = d;
+                [enc setBytes:Pp length:pb atIndex:0];
+                [enc setBuffer:m->eosDesc offset:0 atIndex:1];
+                [enc setBuffer:m->eosTable offset:0 atIndex:2];
+                [enc setBuffer:sIn offset:0 atIndex:3];
+                [enc setBuffer:pIn offset:0 atIndex:4];
+                [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
+                [enc setBuffer:m->flags offset:0 atIndex:6];
+                [enc setBytes:&dir length:sizeof(int) atIndex:7];
+                dispatch(enc, m->psFace, nf);
+            } copy]];
             if (viscous) {
-                [enc setBuffer:m->wFace[d - 1] offset:0 atIndex:5];
-                dispatch(enc, m->psWFace, nf);
+                [names addObject:@"wface"];
+                [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+                    int dir = d;
+                    [enc setBytes:Pp length:pb atIndex:0];
+                    [enc setBuffer:sIn offset:0 atIndex:3];
+                    [enc setBuffer:m->wFace[d - 1] offset:0 atIndex:5];
+                    [enc setBytes:&dir length:sizeof(int) atIndex:7];
+                    dispatch(enc, m->psWFace, nf);
+                } copy]];
             }
         }
         // the cells
-        [enc setBuffer:sPrev offset:0 atIndex:4];
-        [enc setBuffer:pIn offset:0 atIndex:5];
-        [enc setBuffer:m->pCur offset:0 atIndex:6];
-        for (int d = 0; d < 3; d++)
-            [enc setBuffer:m->flux[d] offset:0 atIndex:7 + d];
-        [enc setBuffer:sOut offset:0 atIndex:10];
-        [enc setBuffer:m->flags offset:0 atIndex:11];
-        [enc setBuffer:m->src offset:0 atIndex:15];
-        if (viscous) {
+        [names addObject:(viscous ? @"cellVisc" : @"cell")];
+        [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+            [enc setBytes:Pp length:pb atIndex:0];
+            [enc setBuffer:m->eosDesc offset:0 atIndex:1];
+            [enc setBuffer:m->eosTable offset:0 atIndex:2];
+            [enc setBuffer:sIn offset:0 atIndex:3];
+            [enc setBuffer:sPrev offset:0 atIndex:4];
+            [enc setBuffer:pIn offset:0 atIndex:5];
+            [enc setBuffer:m->pCur offset:0 atIndex:6];
             for (int d = 0; d < 3; d++)
-                [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
-            dispatch(enc, m->psCellVisc, n);
+                [enc setBuffer:m->flux[d] offset:0 atIndex:7 + d];
+            [enc setBuffer:sOut offset:0 atIndex:10];
+            [enc setBuffer:m->flags offset:0 atIndex:11];
+            [enc setBuffer:m->src offset:0 atIndex:15];
+            if (viscous) {
+                for (int d = 0; d < 3; d++)
+                    [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
+                dispatch(enc, m->psCellVisc, n);
+            } else {
+                dispatch(enc, m->psCell, n);
+            }
+        } copy]];
+        id<MTLCommandBuffer> cb = nil;
+        if (m->profile) {
+            // one command buffer per kernel, timed on the GPU
+            for (NSUInteger k = 0; k < [work count]; k++) {
+                id<MTLCommandBuffer> one = [m->queue commandBuffer];
+                id<MTLComputeCommandEncoder> enc = [one computeCommandEncoder];
+                ((Encode)work[k])(enc);
+                [enc endEncoding];
+                [one commit];
+                [one waitUntilCompleted];
+                if (one.error != nil) {
+                    setErr(err, errLen, "a kernel failed", one.error);
+                    return 1;
+                }
+                NSString *key = names[k];
+                NSNumber *old = m->profileSeconds[key];
+                m->profileSeconds[key] =
+                    @((old ? [old doubleValue] : 0.)
+                      + (one.GPUEndTime - one.GPUStartTime));
+                cb = one;
+            }
         } else {
-            dispatch(enc, m->psCell, n);
+            cb = [m->queue commandBuffer];
+            id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+            for (Encode e in work) e(enc);
+            [enc endEncoding];
+            [cb commit];
         }
-        [enc endEncoding];
-        [cb commit];
         *flags = 0;
         if (rk == 0) {
             m->pending = cb;
             return 0;
         }
-        // the second stage: wait for both, then the new slice is current
+        // the second stage runs while the host goes on (metalFinish waits
+        // for it); every read of the slices waits for it first
         m->pending = cb;
-        if (waitPending(m, err, errLen)) return 1;
         const int t = m->cur;
         m->cur = m->next;
         m->next = t;
-        *flags = *(int *)[m->flags contents];
         return 0;
     }
 }
@@ -388,12 +498,60 @@ static int metalSetStrings(
     }
 }
 
+static int metalFinish(void *dev, int *flags, char *err, int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        if (waitPending(m, err, errLen)) return 1;
+        *flags = *(int *)[m->flags contents];
+        return 0;
+    }
+}
+
+static int metalSpecialize(void *dev, const char *key, char *err, int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        // MUSIC_METAL_NOSPEC: the generic kernels (debugging)
+        if (getenv("MUSIC_METAL_NOSPEC") != NULL) return 0;
+        NSString *k = [NSString stringWithUTF8String:key];
+        if (m->specKey != nil && [m->specKey isEqualToString:k]) return 0;
+        if (waitPending(m, err, errLen)) return 1;
+        NSMutableDictionary *macros = [NSMutableDictionary new];
+        macros[@"MUSIC_SPEC"] = @1;
+        for (NSString *item in [k componentsSeparatedByString:@";"]) {
+            NSArray<NSString *> *kv = [item componentsSeparatedByString:@"="];
+            if ([kv count] != 2) {
+                setErr(err, errLen, "a malformed specialisation key", nil);
+                return 1;
+            }
+            macros[[@"MUSIC_SPEC_" stringByAppendingString:kv[0]]] =
+                @([kv[1] intValue]);
+        }
+        // MUSIC_METAL_SPEC_SKIP=name,...: these switches stay run-time
+        // fields (debugging; the kernels name their parameters P and d)
+        const char *skip = getenv("MUSIC_METAL_SPEC_SKIP");
+        for (NSString *name in (skip != NULL
+                                    ? [[NSString stringWithUTF8String:skip]
+                                          componentsSeparatedByString:@","]
+                                    : @[])) {
+            if ([name length] == 0) continue;
+            macros[[@"MUSIC_SPEC_" stringByAppendingString:name]] =
+                ([name isEqualToString:@"eosType"]
+                     ? @"((d).type)"
+                     : [NSString stringWithFormat:@"((P).%@)", name]);
+        }
+        if (buildPipelines(m, macros, err, errLen)) return 1;
+        m->specKey = k;
+        return 0;
+    }
+}
+
 static int metalConservation(
     void *dev, const void *params, size_t paramBytes, void *out,
     size_t outBytes, char *err, int errLen) {
     @autoreleasepool {
         MusicMetalDevice *m = get(dev);
         if (waitPending(m, err, errLen)) return 1;
+        if (ensurePipelines(m, err, errLen)) return 1;
         if (m->consOut == nil || [m->consOut length] < outBytes) {
             m->consOut = [m->dev newBufferWithLength:outBytes
                                              options:MTLResourceStorageModeShared];
@@ -410,13 +568,23 @@ static int metalConservation(
         [enc setBuffer:m->slice[m->cur] offset:0 atIndex:3];
         [enc setBuffer:m->slice[m->next] offset:0 atIndex:4];
         [enc setBuffer:m->consOut offset:0 atIndex:5];
-        dispatch(enc, m->psConservation, m->nx * m->neta);
+        // one thread per (eta, x) row: few threads, so small threadgroups
+        // spread them over the GPU cores
+        [enc setComputePipelineState:m->psConservation];
+        [enc dispatchThreads:MTLSizeMake(m->nx * m->neta, 1, 1)
+            threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
         [enc endEncoding];
         [cb commit];
         [cb waitUntilCompleted];
         if (cb.error != nil) {
             setErr(err, errLen, "the conservation kernel failed", cb.error);
             return 1;
+        }
+        if (m->profile) {
+            NSNumber *old = m->profileSeconds[@"conservation"];
+            m->profileSeconds[@"conservation"] =
+                @((old ? [old doubleValue] : 0.)
+                  + (cb.GPUEndTime - cb.GPUStartTime));
         }
         memcpy(out, [m->consOut contents], outBytes);
         return 0;
@@ -436,6 +604,7 @@ static const MusicDeviceApi kMetalApi = {
     metalCreate, metalDestroy, metalName,   metalResize, metalSetEos,
     metalState,  metalNoCopy,  metalStage,  metalSource, metalNoCopy,
     metalFetch,  metalNoCopy,  metalSetStrings, metalConservation,
+    metalSpecialize, metalFinish,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

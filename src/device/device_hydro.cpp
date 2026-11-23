@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 #include <utility>
 
 #include "../eos.h"
@@ -261,6 +262,10 @@ class CApiBackend : public Backend {
     bool upload(std::string &err) {
         return (check(api_->upload(dev_, err_, sizeof(err_)), err));
     }
+    bool finish(int &flags, std::string &err) {
+        flags = 0;
+        return (check(api_->finish(dev_, &flags, err_, sizeof(err_)), err));
+    }
     bool stage(
         const void *params, size_t paramBytes, int rk, int &flags,
         std::string &err) {
@@ -285,6 +290,10 @@ class CApiBackend : public Backend {
     bool setStrings(const void *data, size_t bytes, std::string &err) {
         return (check(
             api_->setStrings(dev_, data, bytes, err_, sizeof(err_)), err));
+    }
+    bool specialize(const std::string &key, std::string &err) {
+        return (check(
+            api_->specialize(dev_, key.c_str(), err_, sizeof(err_)), err));
     }
     bool conservation(
         const void *params, size_t paramBytes, void *out, size_t outBytes,
@@ -369,6 +378,7 @@ DeviceHydro::DeviceHydro(
         fail("unknown gpu_backend " + std::to_string(which));
     }
     if (!buildEos(err)) fail(err);
+    if (!backend_->specialize(specKey(), err)) fail(err);
     strings_ = dynamic_cast<const HydroSourceStrings *>(source_.get());
     music_message << "hydro on the device: " << backend_->name() << ", "
                   << (viscous_ ? "viscous, " : "ideal, ")
@@ -381,9 +391,18 @@ DeviceHydro::DeviceHydro(
 }
 
 DeviceHydro::~DeviceHydro() {
+    if (backend_ != nullptr && pending_) {
+        // a step Evolve did not finish (it returned to re-run): wait
+        int f = 0;
+        std::string err;
+        backend_->finish(f, err);
+        pending_ = false;
+    }
     if (backend_ == nullptr || nSteps_ == 0) return;
     music_message << "device: " << nSteps_ << " steps, "
-                  << stepSeconds_ << " s in the kernels, "
+                  << stepSeconds_
+                  << " s launching and waiting for the device (the steps "
+                     "overlap the host work), "
                   << downloadSeconds_ << " s copying to the host Fields ("
                   << nFullSyncs_ << " full, " << nPartialSyncs_
                   << " partial), " << diagSeconds_
@@ -616,6 +635,28 @@ void DeviceHydro::fillParams(
     std::memcpy(out.data(), &P, sizeof(P));
 }
 
+std::string DeviceHydro::specKey() const {
+    std::vector<unsigned char> bytes;
+    fillParams<double>(DATA.tau0, false, bytes);
+    StepParams<double> P;
+    std::memcpy(&P, bytes.data(), sizeof(P));
+    const int id = eos_.get_eos_id();
+    // as in fillEos
+    const int eosType =
+        (id == 0 ? 0 : (id == 9 || id == 91 ? 1 : (id == 20 ? 3 : 2)));
+    std::ostringstream k;
+    k << "mode=" << P.mode << ";storeQ=" << P.storeQ << ";nComp=" << P.nComp
+      << ";shear=" << P.shear << ";bulk=" << P.bulk
+      << ";secondOrder=" << P.secondOrder << ";vorticity=" << P.vorticity
+      << ";duIdeal=" << P.duIdeal << ";resum=" << P.resum
+      << ";causality=" << P.causality << ";bulkChem=" << P.bulkChem
+      << ";diff=" << P.diff << ";profile1=" << P.profile1
+      << ";muBShear=" << P.muBShear << ";bulkRelaxType=" << P.bulkRelaxType
+      << ";questRevert=" << P.questRevert << ";nWComp=" << P.nWComp
+      << ";eosType=" << eosType;
+    return (k.str());
+}
+
 template <typename Real>
 void DeviceHydro::fillViscParams(StepParams<Real> &P) const {
     P.shear = DATA.turn_on_shear;
@@ -720,11 +761,14 @@ template <typename Real, typename Keep>
 void DeviceHydro::downloadT(
     Fields &arena, const Real *s, const Keep &keep) const {
     const int n = nx_ * ny_ * neta_;
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) schedule(dynamic, 16)
     for (int ieta = 0; ieta < neta_; ieta++)
-        for (int iy = 0; iy < ny_; iy++)
-            for (int ix = 0; ix < nx_; ix++) {
-                if (!keep(ix, iy, ieta)) continue;
+        for (int iy = 0; iy < ny_; iy++) {
+            // the x ranges [r[0], r[1]) and [r[2], r[3]) of the row
+            int r[4] = {0, 0, 0, 0};
+            const int nr = keep(iy, ieta, r);
+            for (int k = 0; k < nr; k++)
+            for (int ix = r[2 * k]; ix < r[2 * k + 1]; ix++) {
                 const int idx = arena.getFieldIdx(ix, iy, ieta);
                 const int i = ix + nx_ * (iy + ny_ * ieta);
                 arena.e_[idx] = s[i];
@@ -739,6 +783,7 @@ void DeviceHydro::downloadT(
                     arena.piBulkChem_[idx] = s[music_device::kOffPiChem * n + i];
                 }
             }
+        }
 }
 
 template <typename Real>
@@ -831,11 +876,16 @@ void DeviceHydro::downloadCells(Fields &arena, int which, const Keep &keep) {
 }
 
 void DeviceHydro::syncHost(Fields &curr, Fields &prev) {
+    requireIdle("syncHost");
     if (hostCurrent_) return;
     if (&curr != lastCurr_ || &prev != lastPrev_)
         fail("syncHost: not the slices of the last step");
     const auto t0 = std::chrono::steady_clock::now();
-    const auto all = [](int, int, int) { return (true); };
+    const int nx = nx_;
+    const auto all = [nx](int, int, int *r) {
+        r[1] = nx;
+        return (1);
+    };
     downloadCells(curr, 0, all);
     downloadCells(prev, 1, all);
     curr.updateGhosts();
@@ -848,18 +898,21 @@ void DeviceHydro::syncHost(Fields &curr, Fields &prev) {
 }
 
 void DeviceHydro::syncEtaWindow(Fields &curr, double etaMin, double etaMax) {
+    requireIdle("syncEtaWindow");
     if (hostCurrent_) return;
     if (&curr != lastCurr_) fail("syncEtaWindow: not the current slice");
     const auto t0 = std::chrono::steady_clock::now();
     // the eta of the Cell_info diagnostics
     const bool boostInvariant = DATA.boost_invariant;
     const double deta = DATA.delta_eta, etaSize = DATA.eta_size;
-    downloadCells(curr, 0, [&](int, int, int ieta) {
+    const int nx = nx_;
+    downloadCells(curr, 0, [&](int, int ieta, int *r) {
         double eta = 0.0;
         if (!boostInvariant) {
             eta = ((static_cast<double>(ieta)) * (deta) - (etaSize) / 2.0);
         }
-        return (eta < etaMax && eta > etaMin);
+        r[1] = nx;
+        return (eta < etaMax && eta > etaMin ? 1 : 0);
     });
     nPartialSyncs_++;
     downloadSeconds_ += std::chrono::duration<double>(
@@ -869,16 +922,22 @@ void DeviceHydro::syncEtaWindow(Fields &curr, double etaMin, double etaMax) {
 
 void DeviceHydro::syncShell(
     Fields &curr, Fields *prev, int bandX, int bandY, int bandEta) {
+    requireIdle("syncShell");
     if (hostCurrent_) return;
     if (&curr != lastCurr_ || (prev != nullptr && prev != lastPrev_))
         fail("syncShell: not the slices of the last step");
     const auto t0 = std::chrono::steady_clock::now();
     const int nx = nx_, ny = ny_, neta = neta_;
-    const auto keep = [&](int ix, int iy, int ieta) {
-        return (ix < bandX || ix >= nx - bandX || iy < bandY
-                || iy >= ny - bandY
-                || (bandEta > 0
-                    && (ieta < bandEta || ieta >= neta - bandEta)));
+    const auto keep = [&](int iy, int ieta, int *r) {
+        if (iy < bandY || iy >= ny - bandY
+            || (bandEta > 0 && (ieta < bandEta || ieta >= neta - bandEta))) {
+            r[1] = nx;  // the whole row
+            return (1);
+        }
+        r[1] = std::min(bandX, nx);
+        r[2] = std::max(nx - bandX, r[1]);
+        r[3] = nx;
+        return (2);
     };
     downloadCells(curr, 0, keep);
     if (prev != nullptr) downloadCells(*prev, 1, keep);
@@ -889,6 +948,7 @@ void DeviceHydro::syncShell(
 }
 
 void DeviceHydro::conservationRows(double tau, std::vector<double> &rows) {
+    requireIdle("conservationRows");
     const auto t0 = std::chrono::steady_clock::now();
     std::vector<unsigned char> params;
     const size_t nRows = static_cast<size_t>(nx_) * neta_;
@@ -1027,8 +1087,57 @@ void DeviceHydro::packStrings(
 }
 
 
+void DeviceHydro::requireIdle(const char *what) const {
+    if (pending_)
+        fail(std::string(what)
+             + ": the device is running a step (beginStep without "
+               "advanceStep)");
+}
+
 void DeviceHydro::advanceStep(
     double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext) {
+    if (!pending_) {
+        beginStep(tau, fpPrev, fpCurr);
+    } else if (std::abs(tau - pendingTau_) > 1e-12 || fpCurr != pendingCurr_
+               || fpPrev != pendingPrev_) {
+        fail("advanceStep: not the step beginStep started");
+    }
+    const auto t0 = std::chrono::steady_clock::now();
+    int flags = pendingFlags_, f = 0;
+    std::string err;
+    if (!backend_->finish(f, err)) fail(err);
+    flags |= f;
+    pending_ = false;
+    stepSeconds_ += std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - t0)
+                        .count();
+    if (flags & music_device::kFlagSourceNan) fail("qi_source is nan");
+    if (flags & music_device::kFatalFlags) {
+        fail("MaxSpeed: the signal speed of a KT face is out of range "
+             "(where the CPU code exits)");
+    }
+    if (DATA.echo_level > 5 && (flags & ~music_device::kFatalFlags)) {
+        music_message << "device step flags: " << flags
+                      << " (2 revert, 4 regulate, 8 momentum cap, 16 "
+                      << "velocity bracket failed)";
+        music_message.flush("info");
+    }
+    // Evolve::AdvanceRK: after both stages the slice that was the previous
+    // one holds the new state, the current one becomes the previous one.
+    // The host Fields are filled when Evolve asks (syncHost, ...)
+    Fields *oldPrev = fpPrev;
+    fpPrev = fpCurr;
+    fpCurr = oldPrev;
+    (void)fpNext;
+    lastCurr_ = fpCurr;
+    lastPrev_ = fpPrev;
+    valid_ = true;
+    hostCurrent_ = false;
+    nSteps_++;
+}
+
+void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
+    requireIdle("beginStep");
     if (!valid_ || fpCurr != lastCurr_ || (viscous_ && fpPrev != lastPrev_)
         || fpCurr->nX() != nx_ || fpCurr->nY() != ny_
         || fpCurr->nEta() != neta_) {
@@ -1101,32 +1210,17 @@ void DeviceHydro::advanceStep(
         flags |= f;
     }
     const auto t1 = std::chrono::steady_clock::now();
-    if (flags & music_device::kFlagSourceNan) fail("qi_source is nan");
-    if (flags & music_device::kFatalFlags) {
-        fail("MaxSpeed: the signal speed of a KT face is out of range "
-             "(where the CPU code exits)");
-    }
-    if (DATA.echo_level > 5 && (flags & ~music_device::kFatalFlags)) {
-        music_message << "device step flags: " << flags
-                      << " (2 revert, 4 regulate, 8 momentum cap, 16 "
-                      << "velocity bracket failed)";
-        music_message.flush("info");
-    }
-    // Evolve::AdvanceRK: after both stages the slice that was the previous
-    // one holds the new state, the current one becomes the previous one.
-    // The host Fields are filled when Evolve asks (syncHost, ...)
-    Fields *oldPrev = fpPrev;
-    fpPrev = fpCurr;
-    fpCurr = oldPrev;
-    (void)fpNext;
-    lastCurr_ = fpCurr;
-    lastPrev_ = fpPrev;
+    // the device state of tau_n stays as it is; advanceStep checks the
+    // flags and rotates the slices
     valid_ = true;
-    hostCurrent_ = false;
+    pending_ = true;
+    pendingTau_ = tau;
+    pendingCurr_ = fpCurr;
+    pendingPrev_ = fpPrev;
+    pendingFlags_ = flags;
     stepSeconds_ +=
         std::chrono::duration<double>(t1 - t0).count() - sourceSeconds;
     sourceSeconds_ += sourceSeconds;
-    nSteps_++;
 }
 
 void DeviceHydro::fail(const std::string &what) const {

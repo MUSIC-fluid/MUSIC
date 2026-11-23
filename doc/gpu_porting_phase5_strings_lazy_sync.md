@@ -120,3 +120,5 @@ Other sources (TATB, AMPT, Tmunu) still use the phase 3 path: the host evaluates
   - cell, grid, minmod and reconst: all pass.
 - **CUDA:** syntax check passes.
 - **Integration (bmetal, with the bgunit memory driver):** 25/25 pass. The full run had 24 tests and passed; the new `gpu_backend_freezeout` was added after it and passed on its own.
+
+Next: [phase 6](gpu_porting_phase6_performance.md), performance.
