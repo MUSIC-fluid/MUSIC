@@ -575,6 +575,8 @@ const MusicDeviceApi kCudaApi = {
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
     cudaSpecialize, cudaFinish, cudaFetchUnwritten,
+    // the stages are synchronous: the host calls conservation()
+    NULL, NULL,
 };
 
 }  // namespace

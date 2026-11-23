@@ -116,6 +116,9 @@ int Evolve::EvolveIt(
     // filled only where they are read (DeviceHydro::syncHost, ...)
     const bool onDevice =
         (deviceHydro_ && deviceHydro_->active() && rk_order == 2);
+    // beastMode 0 reads the conservation rows every step: each step
+    // computes those of its new slice on the device right after it
+    if (onDevice) deviceHydro_->conservationAhead(DATA.beastMode == 0);
     // (not while the next step runs: only the returns to re-run hydro
     // leave the loop then, and nothing reads the Fields after them)
     const auto syncAll = [&]() {
@@ -289,23 +292,37 @@ int Evolve::EvolveIt(
         const std::vector<double> *outflowCurr = nullptr;
         const std::vector<double> *outflowPrev = nullptr;
         if (onDevice) {
-            if (!deviceHydro_->hostCurrent() && DATA.beastMode == 0) {
-                // output_momentum_anisotropy_vs_tau and the phase-diagram
-                // trajectories read eta windows of fpCurr
-                deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
-                if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
-                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
-                // the conservation sums and the grid maxima, and the cells
-                // of the outflow faces
+            // the reads of fpCurr (tau_n) come after beginStep, while the
+            // step runs: the step writes the other slices. Those of fpPrev
+            // come before, since its second stage overwrites tau_{n-1}
+            const bool diagnostics =
+                (!deviceHydro_->hostCurrent() && DATA.beastMode == 0);
+            if (diagnostics) {
+                // the conservation sums and the grid maxima (computed
+                // right after the last step), and the outflow faces of
+                // fpPrev (kept from the last step)
                 deviceHydro_->conservationRows(tau, deviceRows);
                 haveDeviceRows = true;
                 if (!DATA.boost_invariant) {
-                    outflowCurr = &deviceHydro_->outflowFaces(*fpCurr, 0);
                     outflowPrev = &deviceHydro_->outflowFaces(*fpPrev, 1);
                 }
             }
             deviceHydro_->beginStep(tau, fpPrev, fpCurr);
             if (syncCurrDuringStep) deviceHydro_->syncCurrentDuringStep(*fpCurr);
+            if (diagnostics) {
+                // output_momentum_anisotropy_vs_tau and the phase-diagram
+                // trajectories read eta windows of fpCurr (all of it was
+                // copied on a freeze-out step)
+                if (!syncCurrDuringStep) {
+                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
+                    if (DATA.Initial_profile == 13
+                        || DATA.Initial_profile == 131)
+                        deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
+                }
+                if (!DATA.boost_invariant) {
+                    outflowCurr = &deviceHydro_->outflowFaces(*fpCurr, 0);
+                }
+            }
         }
 
         // if (DATA.Initial_profile == 13) {

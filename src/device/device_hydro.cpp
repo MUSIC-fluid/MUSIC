@@ -292,6 +292,24 @@ class CApiBackend : public Backend {
                 dev_, which, firstComp, nComp, err_, sizeof(err_)),
             err));
     }
+    bool conservationBegin(
+        const void *params, size_t paramBytes, size_t outBytes,
+        std::string &err) {
+        if (api_->conservationBegin == nullptr)
+            return (Backend::conservationBegin(
+                params, paramBytes, outBytes, err));
+        return (check(
+            api_->conservationBegin(
+                dev_, params, paramBytes, outBytes, err_, sizeof(err_)),
+            err));
+    }
+    bool conservationEnd(void *out, size_t outBytes, std::string &err) {
+        if (api_->conservationEnd == nullptr)
+            return (Backend::conservationEnd(out, outBytes, err));
+        return (check(
+            api_->conservationEnd(dev_, out, outBytes, err_, sizeof(err_)),
+            err));
+    }
     bool download(std::string &err) {
         return (check(api_->download(dev_, err_, sizeof(err_)), err));
     }
@@ -415,8 +433,8 @@ DeviceHydro::~DeviceHydro() {
                   << nFullSyncs_ << " full, " << nPartialSyncs_
                   << " partial, " << nOverlapSyncs_
                   << " of the current slice during the step), "
-                  << diagSeconds_
-                  << " s for the conservation sums";
+                  << diagSeconds_ << " s for the conservation sums ("
+                  << nConsAhead_ << " computed right after their step)";
     if (source_)
         music_message << ", " << sourceSeconds_
                       << (strings_ ? " s packing the strings"
@@ -848,6 +866,7 @@ bool DeviceHydro::computeSource(const Real *s, double tauRk) {
 
 void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
     std::string err;
+    consAheadValid_ = false;
     if (curr.nX() != nx_ || curr.nY() != ny_ || curr.nEta() != neta_) {
         nx_ = curr.nX();
         ny_ = curr.nY();
@@ -873,11 +892,14 @@ void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
 }
 
 template <typename Keep>
-void DeviceHydro::downloadCells(Fields &arena, int which, const Keep &keep) {
+void DeviceHydro::downloadCells(
+    Fields &arena, int which, const Keep &keep, bool during) {
     std::string err;
     const int nComp =
         (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
-    if (!backend_->fetch(which, 0, nComp, err)) fail(err);
+    if (during ? !backend_->fetchUnwritten(which, 0, nComp, err)
+               : !backend_->fetch(which, 0, nComp, err))
+        fail(err);
     if (float_) {
         downloadT(arena, static_cast<const float *>(backend_->state(which)),
                   keep);
@@ -909,23 +931,33 @@ void DeviceHydro::syncHost(Fields &curr, Fields &prev) {
                             .count();
 }
 
+int DeviceHydro::currentSlice(
+    const Fields &curr, const char *what, bool &during) const {
+    // during a step the slice of tau_n is the backend's previous one, which
+    // the stages read and do not write (fetchUnwritten)
+    during = pending_;
+    if (&curr != (pending_ ? pendingCurr_ : lastCurr_))
+        fail(std::string(what) + ": not the current slice");
+    return (pending_ ? 1 : 0);
+}
+
 void DeviceHydro::syncEtaWindow(Fields &curr, double etaMin, double etaMax) {
-    requireIdle("syncEtaWindow");
     if (hostCurrent_) return;
-    if (&curr != lastCurr_) fail("syncEtaWindow: not the current slice");
+    bool during = false;
+    const int which = currentSlice(curr, "syncEtaWindow", during);
     const auto t0 = std::chrono::steady_clock::now();
     // the eta of the Cell_info diagnostics
     const bool boostInvariant = DATA.boost_invariant;
     const double deta = DATA.delta_eta, etaSize = DATA.eta_size;
     const int nx = nx_;
-    downloadCells(curr, 0, [&](int, int ieta, int *r) {
+    downloadCells(curr, which, [&](int, int ieta, int *r) {
         double eta = 0.0;
         if (!boostInvariant) {
             eta = ((static_cast<double>(ieta)) * (deta) - (etaSize) / 2.0);
         }
         r[1] = nx;
         return (eta < etaMax && eta > etaMin ? 1 : 0);
-    });
+    }, during);
     nPartialSyncs_++;
     downloadSeconds_ += std::chrono::duration<double>(
                             std::chrono::steady_clock::now() - t0)
@@ -996,24 +1028,37 @@ static void gatherOutflow(
 
 const std::vector<double> &DeviceHydro::outflowFaces(
     const Fields &arena, int which) {
-    requireIdle("outflowFaces");
     if (which != 0 && which != 1) fail("outflowFaces: which is 0 or 1");
-    if (&arena != (which == 0 ? lastCurr_ : lastPrev_))
-        fail("outflowFaces: not the slices of the last step");
+    // during a step: the current slice only (its backend slice is the
+    // previous one, which no stage writes); the previous slice's faces
+    // only if they were taken before
+    bool during = false;
+    int slice = which;
+    if (which == 0) {
+        slice = currentSlice(arena, "outflowFaces", during);
+    } else {
+        if (&arena != (pending_ ? pendingPrev_ : lastPrev_))
+            fail("outflowFaces: not the previous slice");
+        if (pending_ && !outflowValid_[1])
+            fail("outflowFaces: the previous slice is being written by the "
+                 "step");
+    }
     if (outflowValid_[which]) return (outflow_[which]);
     const auto t0 = std::chrono::steady_clock::now();
     std::string err;
     const int nComp =
         (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
-    if (!backend_->fetch(which, 0, nComp, err)) fail(err);
+    if (during ? !backend_->fetchUnwritten(slice, 0, nComp, err)
+               : !backend_->fetch(slice, 0, nComp, err))
+        fail(err);
     const bool hostStatic = outflowStatic_[which];
     if (float_) {
         gatherOutflow(
-            static_cast<const float *>(backend_->state(which)), arena,
+            static_cast<const float *>(backend_->state(slice)), arena,
             viscous_, hostStatic, nx_, ny_, neta_, outflow_[which]);
     } else {
         gatherOutflow(
-            static_cast<const double *>(backend_->state(which)), arena,
+            static_cast<const double *>(backend_->state(slice)), arena,
             viscous_, hostStatic, nx_, ny_, neta_, outflow_[which]);
     }
     outflowValid_[which] = true;
@@ -1033,6 +1078,28 @@ void DeviceHydro::conservationRows(double tau, std::vector<double> &rows) {
     const size_t nVals = music_device::kConsVals * nRows;
     rows.resize(nVals);
     std::string err;
+    // the rows the last step computed, if it computed them for this tau
+    // (the same kernel, the same parameters)
+    if (consAheadValid_ && tau == consAheadTau_) {
+        consAheadValid_ = false;
+        if (float_) {
+            std::vector<float> out(nVals);
+            if (!backend_->conservationEnd(
+                    out.data(), out.size() * sizeof(float), err))
+                fail(err);
+            for (size_t k = 0; k < nVals; k++) rows[k] = out[k];
+        } else {
+            if (!backend_->conservationEnd(
+                    rows.data(), rows.size() * sizeof(double), err))
+                fail(err);
+        }
+        nConsAhead_++;
+        diagSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+        return;
+    }
+    consAheadValid_ = false;
     if (float_) {
         fillParams<float>(tau, false, params);
         std::vector<float> out(nVals);
@@ -1322,6 +1389,30 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
         flags |= f;
     }
     const auto t1 = std::chrono::steady_clock::now();
+    // the conservation rows of the new slice, for conservationRows of the
+    // next iteration (Evolve advances tau by DATA.delta_tau)
+    consAheadValid_ = false;
+    if (consAhead_) {
+        const double tauNext = tau + DATA.delta_tau;
+        std::vector<unsigned char> params;
+        const size_t nVals =
+            music_device::kConsVals * static_cast<size_t>(nx_) * neta_;
+        size_t outBytes = 0;
+        if (float_) {
+            fillParams<float>(tauNext, false, params);
+            outBytes = nVals * sizeof(float);
+        } else {
+            fillParams<double>(tauNext, false, params);
+            outBytes = nVals * sizeof(double);
+        }
+        if (!backend_->conservationBegin(
+                params.data(), params.size(), outBytes, err))
+            fail(err);
+        consAheadValid_ = true;
+        consAheadTau_ = tauNext;
+    }
+    const auto t2 = std::chrono::steady_clock::now();
+    diagSeconds_ += std::chrono::duration<double>(t2 - t1).count();
     // the device state of tau_n stays as it is; advanceStep checks the
     // flags and rotates the slices
     valid_ = true;

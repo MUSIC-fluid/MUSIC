@@ -95,6 +95,19 @@ typedef struct MusicDeviceApi {
     int (*fetchUnwritten)(
         void *dev, int which, int firstComp, int nComp, char *err,
         int errLen);
+    // conservation() in two halves, so that the rows of the new slice are
+    // computed right after the step's second stage without the host
+    // waiting for them: conservationBegin, called after stage() with
+    // rk = 1, queues the kernel of the current slice (the new one) with the
+    // previous one (tau_n) behind the step; conservationEnd waits for it
+    // and copies the rows to out. finish() and every read of the device
+    // state also wait for it. NULL: the host calls conservation() in
+    // conservationBegin (backends whose stages are synchronous)
+    int (*conservationBegin)(
+        void *dev, const void *params, size_t paramBytes, size_t outBytes,
+        char *err, int errLen);
+    int (*conservationEnd)(
+        void *dev, void *out, size_t outBytes, char *err, int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

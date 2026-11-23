@@ -36,6 +36,7 @@
 #ifndef SRC_DEVICE_DEVICE_HYDRO_H_
 #define SRC_DEVICE_DEVICE_HYDRO_H_
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -109,6 +110,26 @@ class Backend {
         int which, int firstComp, int nComp, std::string &err) {
         return (fetch(which, firstComp, nComp, err));
     }
+    //! conservation() of the slices after a step, in two halves (see
+    //! MusicDeviceApi::conservationBegin): here computed at once and kept
+    virtual bool conservationBegin(
+        const void *params, size_t paramBytes, size_t outBytes,
+        std::string &err) {
+        consKept_.resize(outBytes);
+        return (conservation(
+            params, paramBytes, consKept_.data(), outBytes, err));
+    }
+    virtual bool conservationEnd(void *out, size_t outBytes, std::string &err) {
+        if (outBytes != consKept_.size()) {
+            err = "conservationEnd: not the size of conservationBegin";
+            return (false);
+        }
+        std::memcpy(out, consKept_.data(), outBytes);
+        return (true);
+    }
+
+  private:
+    std::vector<unsigned char> consKept_;
 };
 
 }  // namespace music_device
@@ -138,7 +159,10 @@ class DeviceHydro {
     bool stepPending() const { return (pending_); }
 
     //! the host changed the fields: upload before the next step
-    void invalidate() { valid_ = false; }
+    void invalidate() {
+        valid_ = false;
+        consAheadValid_ = false;
+    }
 
     //! the host Fields hold the state of the last step
     bool hostCurrent() const { return (hostCurrent_); }
@@ -166,8 +190,17 @@ class DeviceHydro {
     //! when they were taken then. Valid until the next step
     const std::vector<double> &outflowFaces(const Fields &arena, int which);
     //! the rows of Cell_info::check_conservation_law (kConsVals per (eta,
-    //! x) row, see device_diag.h) of the device state at tau
+    //! x) row, see device_diag.h) of the device state at tau: those the
+    //! last step computed (conservationAhead) if it computed them for tau,
+    //! else computed now
     void conservationRows(double tau, std::vector<double> &rows);
+    //! each step computes the conservation rows of its new slice at
+    //! tau + delta_tau right after its second stage, on the device, so
+    //! that conservationRows of the next iteration does not wait for a
+    //! kernel (Evolve: in beastMode 0, which reads them every step)
+    void conservationAhead(bool on) { consAhead_ = on; }
+    //! how many conservationRows calls took the rows of conservationAhead
+    int conservationRowsAhead() const { return (nConsAhead_); }
 
   private:
     const InitData &DATA;
@@ -198,6 +231,16 @@ class DeviceHydro {
     double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
     double diagSeconds_ = 0.;
     int nFullSyncs_ = 0, nPartialSyncs_ = 0, nOverlapSyncs_ = 0;
+    // conservationAhead: the rows the last step queued, and their tau
+    bool consAhead_ = false;
+    bool consAheadValid_ = false;
+    double consAheadTau_ = 0.;
+    int nConsAhead_ = 0;
+    //! the backend slice of the Fields of tau_n for a read, and whether it
+    //! is read during a step (then slice 1, through fetchUnwritten): curr
+    //! must be the current Fields of the last step, or the one the running
+    //! step started from
+    int currentSlice(const Fields &curr, const char *what, bool &during) const;
     // outflowFaces of the current and the previous slice, and whether they
     // hold the device state (after a step the current one becomes the
     // previous one)
@@ -222,7 +265,8 @@ class DeviceHydro {
     //! keep(iy, ieta, r) gives the x ranges [r[0], r[1]), [r[2], r[3]) of
     //! the row and returns their number (0 - 2)
     template <typename Keep>
-    void downloadCells(Fields &arena, int which, const Keep &keep);
+    void downloadCells(
+        Fields &arena, int which, const Keep &keep, bool during = false);
     //! the strings of the current tau frame, packed for setStrings
     template <typename Real>
     void packStrings(std::vector<unsigned char> &out, int &nActive) const;
