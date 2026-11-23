@@ -1364,7 +1364,8 @@ void Cell_info::compute_angular_momentum(
 //! and strangeness number at a give proper time
 void Cell_info::check_conservation_law(
     Fields &arena, Fields &arena_prev, const double tau,
-    const std::vector<double> *pressureIn, GridMaxima *maxima) {
+    const std::vector<double> *pressureIn, GridMaxima *maxima,
+    const std::vector<double> *deviceRows) {
     std::string filename = "global_conservation_laws.dat";
     ofstream output_file;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
@@ -1397,18 +1398,39 @@ void Cell_info::check_conservation_law(
         sinhEta[ieta] = sinh(eta_s);
     }
     // the sums of every (eta, x) row, added up in a fixed order below
-    constexpr int nSums = 7;
-    std::vector<double> rowSums(static_cast<size_t>(nSums) * neta * nx, 0.);
+    const int nSums = (deviceRows != nullptr ? 12 : 7);
+    std::vector<double> rowSums;
     double eps_max = 0.0;
     double rhob_max = 0.0;
     double rhoq_max = -10.0;
     double rhos_max = -10.0;
     double T_max = 0.0;
     const bool withMaxima = (maxima != nullptr);
+    const size_t nRows = static_cast<size_t>(neta) * nx;
+    if (deviceRows != nullptr) {
+        if (deviceRows->size() != nSums * nRows) {
+            music_message.error(
+                "check_conservation_law: the device rows do not match the "
+                "grid");
+            exit(1);
+        }
+        for (size_t row = 0; row < nRows; row++) {
+            const double *r = deviceRows->data() + nSums * row;
+            eps_max = std::max(eps_max, r[7]);
+            rhob_max = std::max(rhob_max, r[8]);
+            rhoq_max = std::max(rhoq_max, r[9]);
+            rhos_max = std::max(rhos_max, r[10]);
+            T_max = std::max(T_max, r[11]);
+        }
+    } else {
+        rowSums.assign(static_cast<size_t>(nSums) * nRows, 0.);
+    }
+    const std::vector<double> &rows =
+        (deviceRows != nullptr ? *deviceRows : rowSums);
 
 #pragma omp parallel for collapse(2) schedule(static) \
     reduction(max : eps_max, rhob_max, rhoq_max, rhos_max, T_max)
-    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ieta = 0; ieta < (deviceRows != nullptr ? 0 : neta); ieta++)
         for (int ix = 0; ix < nx; ix++) {
             const double cosh_eta = coshEta[ieta];
             const double sinh_eta = sinhEta[ieta];
@@ -1489,8 +1511,8 @@ void Cell_info::check_conservation_law(
             r[5] = rT_y;
             r[6] = rT_z;
         }
-    for (size_t row = 0; row < static_cast<size_t>(neta) * nx; row++) {
-        const double *r = rowSums.data() + nSums * row;
+    for (size_t row = 0; row < nRows; row++) {
+        const double *r = rows.data() + nSums * row;
         N_B += r[0];
         N_Q += r[1];
         N_S += r[2];

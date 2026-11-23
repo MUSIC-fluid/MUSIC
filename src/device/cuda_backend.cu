@@ -67,6 +67,14 @@ MUSIC_CUDA_MATH(acos)
 MUSIC_CUDA_MATH(atanh)
 MUSIC_CUDA_MATH(cos)
 MUSIC_CUDA_MATH(tanh)
+MUSIC_CUDA_MATH(acosh)
+MUSIC_CUDA_MATH(asinh)
+MUSIC_CUDA_MATH(cosh)
+MUSIC_CUDA_MATH(sinh)
+MUSIC_CUDA_MATH(sin)
+MUSIC_CUDA_MATH(erf)
+__host__ __device__ double atan2(double, double);
+__host__ __device__ float atan2(float, float);
 MUSIC_CUDA_MATH(exp)
 MUSIC_CUDA_MATH(log)
 __host__ __device__ double pow(double, double);
@@ -86,7 +94,8 @@ __host__ __device__ bool isnan(float);
 #include <string.h>
 
 #include "device_api.h"
-#include "device_visc.h"
+#include "device_diag.h"
+#include "device_strings.h"
 
 namespace {
 
@@ -151,6 +160,24 @@ __global__ void cudaCellVisc(
         wFaceY, wFaceEta, src, sNext, i, flags);
 }
 
+template <typename Real>
+__global__ void cudaStringSource(
+    const StepParams<Real> P, const Real *S, const Real *sIn, Real *src,
+    int *flags) {
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= P.nx * P.ny * P.neta) return;
+    music_device::kernelStringSource(P, S, sIn, src, i, flags);
+}
+
+template <typename Real>
+__global__ void cudaConservation(
+    const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
+    const Real *sCurr, const Real *sPrev, Real *out) {
+    const int row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= P.nx * P.neta) return;
+    music_device::kernelConservationRow(P, D, tab, sCurr, sPrev, out, row);
+}
+
 const int kBlock = 128;
 
 int blocks(int n) { return (n + kBlock - 1) / kBlock; }
@@ -181,6 +208,10 @@ struct DeviceBase {
     virtual int fetch(
         int which, int firstComp, int nComp, char *err, int len) = 0;
     virtual int download(char *err, int len) = 0;
+    virtual int setStrings(const void *data, size_t bytes, char *err, int len) = 0;
+    virtual int conservation(
+        const void *params, size_t bytes, void *out, size_t outBytes,
+        char *err, int len) = 0;
 };
 
 template <typename Real>
@@ -191,6 +222,10 @@ struct Device : public DeviceBase {
     Real *wFace[3] = {NULL, NULL, NULL};  // viscous update only
     Real *src = NULL, *srcHost = NULL;   // the source terms
     Real *table = NULL;
+    Real *strings = NULL;  // the packed strings (device_strings.h)
+    size_t stringsBytes = 0;
+    Real *consOut = NULL;  // the conservation rows
+    size_t consBytes = 0;
     // pinned copies of the current, the previous and the predictor slice
     Real *host[3] = {NULL, NULL, NULL};
     int *flags = NULL;
@@ -221,6 +256,51 @@ struct Device : public DeviceBase {
         release();
         cudaFree(table);
         cudaFree(flags);
+        cudaFree(strings);
+        cudaFree(consOut);
+    }
+
+    int setStrings(const void *data, size_t bytes, char *err, int len) {
+        if (bytes > stringsBytes) {
+            cudaFree(strings);
+            strings = NULL;
+            stringsBytes = 0;
+            if (!ok(cudaMalloc((void **)&strings, bytes), "cudaMalloc", err,
+                    len))
+                return 1;
+            stringsBytes = bytes;
+        }
+        return ok(cudaMemcpy(strings, data, bytes, cudaMemcpyHostToDevice),
+                  "setStrings", err, len)
+                   ? 0
+                   : 1;
+    }
+
+    int conservation(
+        const void *params, size_t bytes, void *out, size_t outBytes,
+        char *err, int len) {
+        if (bytes != sizeof(StepParams<Real>)) {
+            if (err) snprintf(err, len, "CUDA: StepParams size mismatch");
+            return 1;
+        }
+        StepParams<Real> P;
+        memcpy(&P, params, sizeof(P));
+        if (outBytes > consBytes) {
+            cudaFree(consOut);
+            consOut = NULL;
+            consBytes = 0;
+            if (!ok(cudaMalloc((void **)&consOut, outBytes), "cudaMalloc",
+                    err, len))
+                return 1;
+            consBytes = outBytes;
+        }
+        cudaConservation<Real><<<blocks(nx * neta), kBlock>>>(
+            P, desc, table, slice[cur], slice[next], consOut);
+        if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
+        return ok(cudaMemcpy(out, consOut, outBytes, cudaMemcpyDeviceToHost),
+                  "conservation", err, len)
+                   ? 0
+                   : 1;
     }
 
     int resize(int nx_, int ny_, int neta_, int nComp_, char *err, int len) {
@@ -361,6 +441,14 @@ struct Device : public DeviceBase {
             const Real *sPrev = slice[rk == 0 && viscous ? next : cur];
             Real *sOut = slice[rk == 0 ? pred : next];
             Real *pIn = (rk == 0 ? pCur : pPred);
+            if (P.stringSource) {
+                if (strings == NULL) {
+                    if (err) snprintf(err, len, "CUDA: the strings were not set");
+                    return 1;
+                }
+                cudaStringSource<Real><<<blocks(n), kBlock>>>(
+                    P, strings, sIn, src, flags);
+            }
             cudaPressure<Real><<<blocks(n), kBlock>>>(P, desc, table, sIn, pIn);
             for (int d = 1; d <= 3; d++) {
                 const int nf = faceCount(nx, ny, neta, d);
@@ -460,11 +548,20 @@ int cudaFetch(
 int cudaDownload(void *dev, char *err, int len) {
     return get(dev)->download(err, len);
 }
+int cudaSetStrings(
+    void *dev, const void *data, size_t bytes, char *err, int len) {
+    return get(dev)->setStrings(data, bytes, err, len);
+}
+int cudaConservationRows(
+    void *dev, const void *params, size_t bytes, void *out, size_t outBytes,
+    char *err, int len) {
+    return get(dev)->conservation(params, bytes, out, outBytes, err, len);
+}
 
 const MusicDeviceApi kCudaApi = {
     cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
-    cudaFetch,  cudaDownload,
+    cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
 };
 
 }  // namespace

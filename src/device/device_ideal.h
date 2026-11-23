@@ -34,6 +34,10 @@ struct StepParams {
     int rkFlag;  // 0: first stage, 1: second
     int storeQ;  // the update starts from the stored tau T^{tau mu}
     int maxIter;
+    // the stage evaluates the strings source on the device first
+    // (kernelStringSource, into the source buffer); implies hasSource.
+    // At the fixed byte offset MUSIC_DEVICE_STRINGS_OFFSET (device_api.h)
+    int stringSource;
     Real tau;  // tau_n of the step
     Real dtau, dx, dy, deta;
     Real theta;  // minmod theta
@@ -71,6 +75,8 @@ struct StepParams {
     // the stage adds the source terms qi_source (kNTJ components of the
     // cells, computed by the host as in Advance::FirstRKStepT)
     int hasSource;
+    // the conservation diagnostic: DATA.eta_size
+    Real etaSize;
 };
 
 template <typename Real>

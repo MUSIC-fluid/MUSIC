@@ -60,6 +60,14 @@ class Evolve {
     }
     void AdvanceRK(
         double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext);
+    //! fills fpCurr and fpPrev of the last AdvanceRK from the device (with
+    //! gpu_backend; EvolveIt does this where it reads the Fields)
+    //! the device update (null without gpu_backend)
+    DeviceHydro *deviceHydro() { return (deviceHydro_.get()); }
+    void syncHost(Fields &curr, Fields &prev) {
+        if (deviceHydro_ && deviceHydro_->active())
+            deviceHydro_->syncHost(curr, prev);
+    }
 
     int FreezeOut_equal_tau_Surface(double tau, Fields &arena_current);
     void FreezeOut_equal_tau_Surface_XY(

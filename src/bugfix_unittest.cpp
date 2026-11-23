@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -34,6 +35,7 @@
 #include "hydro_source_TATB.h"
 #include "hydro_source_Tmunu.h"
 #include "hydro_source_ampt.h"
+#include "hydro_source_strings.h"
 #include "music.h"
 #include "pretty_ostream.h"
 #include "read_in_parameters.h"
@@ -1740,11 +1742,15 @@ std::vector<double> runIdealSteps(
     c = a;
     Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
     double tau = DATA.tau0;
+    auto strings = std::dynamic_pointer_cast<HydroSourceStrings>(source);
     for (int it = 0; it < steps; it++) {
+        // Evolve::EvolveIt: the strings of the tau frame
+        if (strings) strings->prepare_list_for_current_tau_frame(tau);
         evolve.preparePressure(*fpCurr);
         evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
         tau += DATA.delta_tau;
     }
+    evolve.syncHost(*fpCurr, *fpPrev);
     std::vector<double> out;
     for (int ieta = 0; ieta < DATA.neta; ieta++)
         for (int iy = 0; iy < DATA.ny; iy++)
@@ -1904,11 +1910,15 @@ std::vector<double> runViscousSteps(
     fillLumpyViscous(c, false);
     Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
     double tau = DATA.tau0;
+    auto strings = std::dynamic_pointer_cast<HydroSourceStrings>(source);
     for (int it = 0; it < steps; it++) {
+        // Evolve::EvolveIt: the strings of the tau frame
+        if (strings) strings->prepare_list_for_current_tau_frame(tau);
         evolve.preparePressure(*fpCurr);
         evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
         tau += DATA.delta_tau;
     }
+    evolve.syncHost(*fpCurr, *fpPrev);
     std::vector<double> out;
     for (int ieta = 0; ieta < DATA.neta; ieta++)
         for (int iy = 0; iy < DATA.ny; iy++)
@@ -2082,6 +2092,204 @@ TEST_CASE("Device kernels reproduce the update of Advance with sources") {
             const double relL1 = l1 / norm;
             CAPTURE(relL1);
             CHECK(relL1 < 1e-5);
+        }
+    }
+}
+
+namespace {
+//! the strings of tests/test_source_terms/strings_event_0.dat with
+//! tau_0 = 0.2 fm/c, so that their ends cross eta_s = +-0.8 at tau = 0.8
+//! fm/c, and the baryon number of the first string at eta_s = -0.85
+//! (deposited at tau = 0.81 fm/c)
+std::string writeDeviceTestStrings() {
+    const char *root = std::getenv("HYDROPROGRAMPATH");
+    const std::string src =
+        std::string(root ? root : ".")
+        + "/tests/test_source_terms/strings_event_0.dat";
+    std::ifstream in(src);
+    REQUIRE(in.good());
+    const std::string out = "device_test_strings.dat";
+    std::ofstream o(out);
+    std::string line;
+    int row = 0;
+    while (std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') {
+            o << line << "\n";
+            continue;
+        }
+        std::istringstream ss(line);
+        std::vector<double> v;
+        double x;
+        while (ss >> x) v.push_back(x);
+        REQUIRE(v.size() >= 26);
+        v[3] = 0.2;
+        if (row == 0) {
+            v[19] = -0.85;
+            v[23] = 1.;
+        }
+        o << std::setprecision(17);
+        for (double y : v) o << y << "  ";
+        o << "\n";
+        row++;
+    }
+    return (out);
+}
+}  // namespace
+
+TEST_CASE("Device kernels reproduce the strings source of Advance") {
+    // the strings source evaluated on the device from the strings of the
+    // tau frame (DeviceHydro::packStrings, kernelStringSource)
+    const std::string file = writeDeviceTestStrings();
+    for (int viscous = 0; viscous < 2; viscous++) {
+        CAPTURE(viscous);
+        InitData DATA = (viscous ? viscousDeviceParameters(0)
+                                 : idealDeviceParameters(false, 0));
+        DATA.initName = file;
+        DATA.Initial_profile = 13;
+        DATA.turn_on_rhob = 1;
+        DATA.stringSourceSigmaX = 0.5;
+        DATA.stringSourceSigmaEta = 0.5;
+        DATA.preEqFlowFactor = 0.5;
+        DATA.tau0 = 0.8;
+        auto source = std::make_shared<HydroSourceStrings>(DATA);
+        const auto run = [&](int backend, int gpuFloat,
+                             std::shared_ptr<HydroSourceBase> src) {
+            return (viscous ? runViscousSteps(DATA, 0, backend, gpuFloat, 4, src)
+                            : runIdealSteps(DATA, backend, gpuFloat, 4, src));
+        };
+        const auto host = run(0, 0, source);
+        const auto dev = run(1, 0, source);
+        const auto noSource = run(0, 0, nullptr);
+        REQUIRE(host.size() == dev.size());
+        const size_t stride = (viscous ? 22 : 6);
+        double maxDiff = 0., effect = 0., effectB = 0.;
+        int nDiff = 0;
+        for (size_t i = 0; i < host.size(); i++) {
+            REQUIRE(std::isfinite(dev[i]));
+            const double d = std::abs(host[i] - dev[i]);
+            if (d > 0.) nDiff++;
+            maxDiff = std::max(maxDiff, d);
+            effect = std::max(effect, std::abs(host[i] - noSource[i]));
+            if (i % stride == 1)
+                effectB = std::max(effectB, std::abs(host[i] - noSource[i]));
+        }
+        CAPTURE(nDiff);
+        CAPTURE(maxDiff);
+        CAPTURE(effect);
+        CAPTURE(effectB);
+        CHECK(effect > 1e-3);   // the strings deposit energy
+        CHECK(effectB > 1e-6);  // and baryon number
+        CHECK(maxDiff == 0.);
+        const auto devF = run(1, 1, source);
+        double l1 = 0., norm = 0., l1B = 0., normB = 0.;
+        for (size_t i = 0; i < host.size(); i += stride) {
+            l1 += std::abs(devF[i] - host[i]);
+            norm += std::abs(host[i]);
+            l1B += std::abs(devF[i + 1] - host[i + 1]);
+            normB += std::abs(host[i + 1]);
+        }
+        const double relL1 = l1 / norm, relL1B = l1B / normB;
+        CAPTURE(relL1);
+        CAPTURE(relL1B);
+        CHECK(relL1 < 1e-5);
+        CHECK(relL1B < 1e-5);
+    }
+    std::remove(file.c_str());
+}
+
+TEST_CASE("Device conservation sums reproduce check_conservation_law") {
+    // check_conservation_law from the device rows (DeviceHydro::
+    // conservationRows, the outflow from the outermost cells) against the
+    // sweep over the host Fields, after a few steps on backend 1
+    for (int viscous = 0; viscous < 2; viscous++) {
+        for (int eosId : {0, 9}) {
+            for (int gpuFloat = 0; gpuFloat < 2; gpuFloat++) {
+                CAPTURE(viscous);
+                CAPTURE(eosId);
+                CAPTURE(gpuFloat);
+                InitData DATA = (viscous ? viscousDeviceParameters(0)
+                                         : idealDeviceParameters(false, 0));
+                DATA.gpu_backend = 1;
+                DATA.gpu_float = gpuFloat;
+                EOS eos(eosId);
+                Evolve evolve(eos, DATA, nullptr);
+                Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+                if (viscous) {
+                    fillLumpyViscous(a, false);
+                    fillLumpyViscous(b, true);
+                    fillLumpyViscous(c, false);
+                } else {
+                    fillLumpyIdeal(a);
+                    b = a;
+                    c = a;
+                }
+                Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+                double tau = DATA.tau0;
+                for (int it = 0; it < 3; it++) {
+                    evolve.preparePressure(*fpCurr);
+                    evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+                    tau += DATA.delta_tau;
+                }
+                REQUIRE(evolve.deviceHydro() != nullptr);
+                REQUIRE(evolve.deviceHydro()->active());
+                std::vector<double> rows;
+                evolve.deviceHydro()->conservationRows(tau, rows);
+                std::remove("global_conservation_laws.dat");
+                // the device rows, with only the shell of the Fields
+                evolve.deviceHydro()->syncShell(
+                    *fpCurr, fpPrev, 1, 1, DATA.neta > 1 ? 1 : 0);
+                GridMaxima mDev, mHost;
+                {
+                    Cell_info info(DATA, eos);
+                    info.check_conservation_law(
+                        *fpCurr, *fpPrev, tau, nullptr, &mDev, &rows);
+                }
+                evolve.syncHost(*fpCurr, *fpPrev);
+                {
+                    Cell_info info(DATA, eos);
+                    info.check_conservation_law(
+                        *fpCurr, *fpPrev, tau, nullptr, &mHost);
+                }
+                std::ifstream f("global_conservation_laws.dat");
+                std::vector<std::vector<double>> lines;
+                std::string line;
+                while (std::getline(f, line)) {
+                    if (line.empty() || line[0] == '#') continue;
+                    std::istringstream ss(line);
+                    std::vector<double> v;
+                    double x;
+                    while (ss >> x) v.push_back(x);
+                    lines.push_back(v);
+                }
+                REQUIRE(lines.size() == 2);
+                REQUIRE(lines[0].size() == 8);
+                double maxRel = 0.;
+                for (int k = 1; k < 8; k++) {
+                    const double scale =
+                        std::max(std::abs(lines[1][1]), 1e-30);
+                    maxRel = std::max(
+                        maxRel, std::abs(lines[0][k] - lines[1][k]) / scale);
+                }
+                const double dMax = std::max(
+                    {std::abs(mDev.e - mHost.e) / mHost.e,
+                     std::abs(mDev.rhob - mHost.rhob)
+                         / std::max(mHost.rhob, 1e-30),
+                     std::abs(mDev.T - mHost.T) / mHost.T,
+                     std::abs(mDev.rhoq - mHost.rhoq),
+                     std::abs(mDev.rhos - mHost.rhos)});
+                CAPTURE(maxRel);
+                CAPTURE(dMax);
+                CHECK(mDev.valid);
+                if (gpuFloat) {
+                    CHECK(maxRel < 1e-6);
+                    CHECK(dMax < 1e-6);
+                } else {
+                    // the file holds 11 digits; the sums are bit for bit
+                    CHECK(maxRel == 0.);
+                    CHECK(dMax == 0.);
+                }
+                std::remove("global_conservation_laws.dat");
+            }
         }
     }
 }

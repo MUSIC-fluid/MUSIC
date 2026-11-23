@@ -87,6 +87,26 @@ class HydroSourceStrings : public HydroSourceBase {
     double getStringTransverseCoord(
         const double xl, const double xr, const double etaFrac,
         const double string_tilt) const;
+
+    // read-only access for the strings source on the device
+    // (DeviceHydro::packStrings): the strings and the lists of the current
+    // tau frame, each in the order of the full list
+    using StringList = std::vector<std::shared_ptr<QCD_string>>;
+    const StringList &get_strings() const { return (QCD_strings_list); }
+    const StringList &get_energy_list() const {
+        return (QCD_strings_list_current_tau);
+    }
+    const StringList &get_remnant_list() const {
+        return (QCD_strings_remnant_list_current_tau);
+    }
+    const StringList &get_baryon_list() const {
+        return (QCD_strings_baryon_list_current_tau);
+    }
+    const StringList &get_electric_list() const {
+        return (QCD_strings_electric_list_current_tau);
+    }
+    double get_preEqFlowFactor() const { return (preEqFlowFactor_); }
+    double get_parton_quench_factor() const { return (parton_quench_factor); }
 };
 
 #endif  // SRC_HYDRO_SOURCE_STRINGS_H_

@@ -99,3 +99,5 @@ The host's "pixy_diff" compares π^xy with the analytic π^xx (`Cell_info::Gubse
   - cell, grid, minmod and reconst: all pass.
 - **CUDA:** syntax check (host and device passes) passes.
 - **Integration (bmetal, with the bgunit memory driver):** 24/24 pass, including the new `gpu_backend_pi_chem` and `gpu_backend_gubser_viscous`. (The full run had 23 tests; `gpu_backend_pi_chem` was added after it and rerun on its own together with `gpu_backend_viscous`.)
+
+Next: [phase 5](gpu_porting_phase5_strings_lazy_sync.md), the strings source on the device and fewer host copies.

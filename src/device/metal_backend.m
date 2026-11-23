@@ -38,12 +38,15 @@ enum {
     id<MTLCommandQueue> queue;
     id<MTLComputePipelineState> psPressure, psFace, psCell;
     id<MTLComputePipelineState> psWFace, psCellVisc;
+    id<MTLComputePipelineState> psStrings, psConservation;
     // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
     id<MTLBuffer> pCur, pPred;
     id<MTLBuffer> flux[3];
     id<MTLBuffer> wFace[3];  // viscous update only
     id<MTLBuffer> src;       // the source terms, kNTJ components
+    id<MTLBuffer> strings;   // the packed strings (device_strings.h)
+    id<MTLBuffer> consOut;   // the conservation rows
     id<MTLCommandBuffer> pending;  // the first stage, in flight
     id<MTLBuffer> eosDesc, eosTable, flags;
     int cur, pred, next;
@@ -102,10 +105,12 @@ static void *metalCreate(int realSize, char *err, int errLen) {
             setErr(err, errLen, "kernel compilation failed", e);
             return NULL;
         }
-        const char *names[5] = {"musicPressure", "musicFace", "musicCell",
-                                "musicWFace", "musicCellVisc"};
-        id<MTLComputePipelineState> ps[5];
-        for (int k = 0; k < 5; k++) {
+        const char *names[7] = {"musicPressure",     "musicFace",
+                                "musicCell",         "musicWFace",
+                                "musicCellVisc",     "musicStringSource",
+                                "musicConservation"};
+        id<MTLComputePipelineState> ps[7];
+        for (int k = 0; k < 7; k++) {
             id<MTLFunction> f = [lib
                 newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
             if (f == nil) {
@@ -123,6 +128,8 @@ static void *metalCreate(int realSize, char *err, int errLen) {
         m->psCell = ps[2];
         m->psWFace = ps[3];
         m->psCellVisc = ps[4];
+        m->psStrings = ps[5];
+        m->psConservation = ps[6];
         m->queue = [m->dev newCommandQueue];
         m->flags = [m->dev newBufferWithLength:sizeof(int)
                                        options:MTLResourceStorageModeShared];
@@ -299,6 +306,19 @@ static int metalStage(
         [enc setBytes:P length:paramBytes atIndex:0];
         // the pressure of the stage's input slice
         [enc setBuffer:sIn offset:0 atIndex:3];
+        // the strings source from the u of the stage's input slice
+        int stringSource = 0;
+        memcpy(&stringSource, P + MUSIC_DEVICE_STRINGS_OFFSET, sizeof(int));
+        if (stringSource) {
+            if (m->strings == nil) {
+                setErr(err, errLen, "the strings were not set", nil);
+                return 1;
+            }
+            [enc setBuffer:m->strings offset:0 atIndex:16];
+            [enc setBuffer:m->src offset:0 atIndex:15];
+            [enc setBuffer:m->flags offset:0 atIndex:11];
+            dispatch(enc, m->psStrings, n);
+        }
         [enc setBuffer:pIn offset:0 atIndex:4];
         dispatch(enc, m->psPressure, n);
         // the faces
@@ -349,6 +369,60 @@ static int metalStage(
 
 static void *metalSource(void *dev) { return [get(dev)->src contents]; }
 
+static int metalSetStrings(
+    void *dev, const void *data, size_t bytes, char *err, int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        // the stages in flight may still read the old buffer
+        if (waitPending(m, err, errLen)) return 1;
+        if (m->strings == nil || [m->strings length] < bytes) {
+            m->strings = [m->dev newBufferWithLength:(bytes > 0 ? bytes : 4)
+                                             options:MTLResourceStorageModeShared];
+            if (m->strings == nil) {
+                setErr(err, errLen, "out of device memory", nil);
+                return 1;
+            }
+        }
+        memcpy([m->strings contents], data, bytes);
+        return 0;
+    }
+}
+
+static int metalConservation(
+    void *dev, const void *params, size_t paramBytes, void *out,
+    size_t outBytes, char *err, int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        if (waitPending(m, err, errLen)) return 1;
+        if (m->consOut == nil || [m->consOut length] < outBytes) {
+            m->consOut = [m->dev newBufferWithLength:outBytes
+                                             options:MTLResourceStorageModeShared];
+            if (m->consOut == nil) {
+                setErr(err, errLen, "out of device memory", nil);
+                return 1;
+            }
+        }
+        id<MTLCommandBuffer> cb = [m->queue commandBuffer];
+        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+        [enc setBytes:params length:paramBytes atIndex:0];
+        [enc setBuffer:m->eosDesc offset:0 atIndex:1];
+        [enc setBuffer:m->eosTable offset:0 atIndex:2];
+        [enc setBuffer:m->slice[m->cur] offset:0 atIndex:3];
+        [enc setBuffer:m->slice[m->next] offset:0 atIndex:4];
+        [enc setBuffer:m->consOut offset:0 atIndex:5];
+        dispatch(enc, m->psConservation, m->nx * m->neta);
+        [enc endEncoding];
+        [cb commit];
+        [cb waitUntilCompleted];
+        if (cb.error != nil) {
+            setErr(err, errLen, "the conservation kernel failed", cb.error);
+            return 1;
+        }
+        memcpy(out, [m->consOut contents], outBytes);
+        return 0;
+    }
+}
+
 static int metalFetch(
     void *dev, int which, int firstComp, int nComp, char *err, int errLen) {
     (void)which;
@@ -361,7 +435,7 @@ static int metalFetch(
 static const MusicDeviceApi kMetalApi = {
     metalCreate, metalDestroy, metalName,   metalResize, metalSetEos,
     metalState,  metalNoCopy,  metalStage,  metalSource, metalNoCopy,
-    metalFetch,  metalNoCopy,
+    metalFetch,  metalNoCopy,  metalSetStrings, metalConservation,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

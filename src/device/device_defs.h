@@ -39,6 +39,12 @@ namespace music_device {
 
 #if defined(__METAL_VERSION__)
 using metal::acos;
+using metal::acosh;
+using metal::asinh;
+using metal::atan2;
+using metal::cosh;
+using metal::sin;
+using metal::sinh;
 using metal::atanh;
 using metal::copysign;
 using metal::cos;
@@ -57,6 +63,12 @@ MD_FN void flagOr(MD_FLAGS f, int v) {
 __device__ inline void flagOr(MD_FLAGS f, int v) { atomicOr(f, v); }
 #else
 using std::acos;
+using std::acosh;
+using std::asinh;
+using std::atan2;
+using std::cosh;
+using std::sin;
+using std::sinh;
 using std::atanh;
 using std::copysign;
 using std::cos;
@@ -71,6 +83,35 @@ using std::tanh;
 inline void flagOr(MD_FLAGS f, int v) {
     __atomic_fetch_or(f, v, __ATOMIC_RELAXED);
 }
+#endif
+
+//! erf: MSL has none. Float there: erfc of Numerical Recipes (erfcc, a
+//! Chebyshev fit with relative error below 1.2e-7 everywhere), so erf has an
+//! absolute error below 1.2e-7, the rounding of float near 1
+#if defined(__METAL_VERSION__)
+MD_FN float derf(float x) {
+    const float z = fabs(x);
+    const float t = 1.f / (1.f + 0.5f * z);
+    const float ans =
+        t
+        * exp(-z * z - 1.26551223f
+              + t * (1.00002368f
+                     + t * (0.37409196f
+                            + t * (0.09678418f
+                                   + t * (-0.18628806f
+                                          + t * (0.27886807f
+                                                 + t * (-1.13520398f
+                                                        + t * (1.48851587f
+                                                               + t * (-0.82215223f
+                                                                      + t * 0.17087277f)))))))));
+    return (x >= 0.f ? 1.f - ans : ans - 1.f);
+}
+#elif defined(__CUDACC__)
+MD_FN double derf(double x) { return erf(x); }
+MD_FN float derf(float x) { return erf(x); }
+#else
+inline double derf(double x) { return std::erf(x); }
+inline float derf(float x) { return std::erf(x); }
 #endif
 
 //! std::numeric_limits<Real>::max(); MSL has no double literals
@@ -113,8 +154,9 @@ enum DeviceFlags {
     kFlagRegulate = 4,       // T^{tau tau} < abs_err, cell set to rest
     kFlagMomentumCap = 8,    // superluminal T^{tau mu} capped
     kFlagHybridFail = 16,    // the bracketing velocity solver found no root
+    kFlagSourceNan = 32,     // qi_source is nan (strings source on the device)
 };
-enum { kFatalFlags = kFlagMaxSpeedFatal };
+enum { kFatalFlags = kFlagMaxSpeedFatal | kFlagSourceNan };
 
 //! number of components of a device state slice: e, n_B, n_Q, n_S,
 //! u^tau, u^x, u^y, u^eta, and (with storeQ) tau T^{tau mu}, tau J^tau_{B,Q,S}

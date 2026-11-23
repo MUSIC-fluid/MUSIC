@@ -16,8 +16,11 @@
 #include "../eos_idealgas.h"
 #include "../fields.h"
 #include "../hydro_source_base.h"
+#include "../hydro_source_strings.h"
 #include "../util.h"
 #include "device_api.h"
+#include "device_diag.h"
+#include "device_strings.h"
 #include "device_visc.h"
 
 #ifndef MUSIC_WITH_METAL
@@ -43,6 +46,7 @@ class CpuBackend : public Backend {
     std::vector<Real> flux_[3];
     std::vector<Real> wFace_[3];
     std::vector<Real> src_;
+    std::vector<Real> strings_;
     EosDesc<Real> desc_;
     std::vector<Real> table_;
     int dummyTable_ = 0;
@@ -100,6 +104,36 @@ class CpuBackend : public Backend {
     void *source() { return (src_.data()); }
     bool uploadSource(std::string &) { return (true); }
     bool fetch(int, int, int, std::string &) { return (true); }
+    bool setStrings(const void *data, size_t bytes, std::string &) {
+        strings_.resize(bytes / sizeof(Real));
+        if (bytes > 0) std::memcpy(strings_.data(), data, bytes);
+        return (true);
+    }
+    bool conservation(
+        const void *params, size_t paramBytes, void *out, size_t outBytes,
+        std::string &err) {
+        if (paramBytes != sizeof(StepParams<Real>)) {
+            err = "StepParams size mismatch";
+            return (false);
+        }
+        StepParams<Real> P;
+        std::memcpy(&P, params, sizeof(P));
+        const int rows = nx_ * neta_;
+        if (outBytes < sizeof(Real) * kConsVals * rows) {
+            err = "the conservation buffer is too small";
+            return (false);
+        }
+        const Real *tab =
+            (table_.empty() ? reinterpret_cast<const Real *>(&dummyTable_)
+                            : table_.data());
+        Real *o = static_cast<Real *>(out);
+        const Real *sCurr = slice_[cur_].data();
+        const Real *sPrev = slice_[next_].data();
+#pragma omp parallel for schedule(static)
+        for (int row = 0; row < rows; row++)
+            kernelConservationRow(P, desc_, tab, sCurr, sPrev, o, row);
+        return (true);
+    }
 
     bool stage(
         const void *params, size_t paramBytes, int rk, int &flags,
@@ -129,8 +163,19 @@ class CpuBackend : public Backend {
             Real *pIn = (rk == 0 ? pCur_ : pPred_).data();
             Real *sOut = slice_[rk == 0 ? pred_ : next_].data();
             const int n = n_;
+            if (P.stringSource && strings_.empty()) {
+                err = "the strings were not set";
+                return (false);
+            }
 #pragma omp parallel
             {
+                if (P.stringSource) {
+                    // the strings source from the u of the stage's input
+#pragma omp for schedule(dynamic, 64)
+                    for (int i = 0; i < n; i++)
+                        kernelStringSource(
+                            P, strings_.data(), sIn, src_.data(), i, &f);
+                }
 #pragma omp for schedule(static)
                 for (int i = 0; i < n; i++)
                     kernelPressure(P, D, tab, sIn, pIn, i);
@@ -237,6 +282,18 @@ class CApiBackend : public Backend {
     bool download(std::string &err) {
         return (check(api_->download(dev_, err_, sizeof(err_)), err));
     }
+    bool setStrings(const void *data, size_t bytes, std::string &err) {
+        return (check(
+            api_->setStrings(dev_, data, bytes, err_, sizeof(err_)), err));
+    }
+    bool conservation(
+        const void *params, size_t paramBytes, void *out, size_t outBytes,
+        std::string &err) {
+        return (check(
+            api_->conservation(
+                dev_, params, paramBytes, out, outBytes, err_, sizeof(err_)),
+            err));
+    }
 };
 
 }  // namespace
@@ -249,6 +306,11 @@ static_assert(
     offsetof(StepParams<float>, rkFlag) == MUSIC_DEVICE_RKFLAG_OFFSET
         && offsetof(StepParams<double>, rkFlag) == MUSIC_DEVICE_RKFLAG_OFFSET,
     "MUSIC_DEVICE_RKFLAG_OFFSET does not match StepParams");
+static_assert(
+    offsetof(StepParams<float>, stringSource) == MUSIC_DEVICE_STRINGS_OFFSET
+        && offsetof(StepParams<double>, stringSource)
+               == MUSIC_DEVICE_STRINGS_OFFSET,
+    "MUSIC_DEVICE_STRINGS_OFFSET does not match StepParams");
 
 DeviceHydro::DeviceHydro(
     const InitData &DATA_in, const EOS &eos, double absErr, double relErr,
@@ -307,11 +369,14 @@ DeviceHydro::DeviceHydro(
         fail("unknown gpu_backend " + std::to_string(which));
     }
     if (!buildEos(err)) fail(err);
+    strings_ = dynamic_cast<const HydroSourceStrings *>(source_.get());
     music_message << "hydro on the device: " << backend_->name() << ", "
                   << (viscous_ ? "viscous, " : "ideal, ")
                   << (float_ ? "float" : "double")
                   << (storeQ_ ? ", stored tau T^{tau mu}" : "")
-                  << (source_ ? ", source terms from the host" : "");
+                  << (strings_ ? ", strings source on the device"
+                               : (source_ ? ", source terms from the host"
+                                          : ""));
     music_message.flush("info");
 }
 
@@ -319,10 +384,14 @@ DeviceHydro::~DeviceHydro() {
     if (backend_ == nullptr || nSteps_ == 0) return;
     music_message << "device: " << nSteps_ << " steps, "
                   << stepSeconds_ << " s in the kernels, "
-                  << downloadSeconds_ << " s copying to the host Fields";
+                  << downloadSeconds_ << " s copying to the host Fields ("
+                  << nFullSyncs_ << " full, " << nPartialSyncs_
+                  << " partial), " << diagSeconds_
+                  << " s for the conservation sums";
     if (source_)
         music_message << ", " << sourceSeconds_
-                      << " s for the source terms on the host";
+                      << (strings_ ? " s packing the strings"
+                                   : " s for the source terms on the host");
     music_message.flush("info");
 }
 
@@ -382,7 +451,8 @@ void fillEos(
         d.oneOverAlphaNf4 = Real(e4->get_one_over_alphaNf());
         const std::vector<double> &t5 = e4->get_T5diff();
         const size_t size = e4->get_table(0).size();
-        const size_t nTab = (withThermal ? 5 : 1);
+        // ideal hydro: P, and T for the grid maxima of the diagnostics
+        const size_t nTab = (withThermal ? 5 : 2);
         if (size != static_cast<size_t>(nn[0]) * nn[1] * nn[2] * nn[3]
             || nTab * size > static_cast<size_t>(INT_MAX)) {
             err = "the 4D EoS tables do not fit the device index";
@@ -433,13 +503,14 @@ void fillEos(
         const double *data = b.pressure_tb.data();
         table.assign(data, data + b.pressure_tb.size());
         d.muSOffset = d.muQOffset = d.edgeOffset = -1;
-        if (withThermal && d.type == 1) {
+        // the thermal tables also for ideal hydro: the T of the grid maxima
+        if (d.type == 1) {
             // EOS_hotQCD::get_temperature: T^5 on the e grid of table 0
             d.tOffset = static_cast<int>(
                 table.size() + b.temperature_tb.offset(0));
             const double *t = b.temperature_tb.data();
             table.insert(table.end(), t, t + b.temperature_tb.size());
-        } else if (withThermal) {
+        } else {
             // EOS_neos: T^5, mu_B (mu_S, mu_Q if tabulated) as the pressure,
             // then the n_B edges
             const auto append = [&](const EosTable &tb) {
@@ -464,7 +535,7 @@ void fillEos(
                 }
             }
         }
-    } else if (withThermal) {
+    } else {
         // EOS_idealgas::get_muB_over_T
         const EOS_idealgas *g =
             dynamic_cast<const EOS_idealgas *>(&eos.get_eos_base());
@@ -539,6 +610,8 @@ void DeviceHydro::fillParams(
     P.nComp = (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
     if (viscous_) fillViscParams(P);
     P.hasSource = (hasSource ? 1 : 0);
+    P.stringSource = (hasSource && strings_ != nullptr ? 1 : 0);
+    P.etaSize = Real(DATA.eta_size);
     out.resize(sizeof(P));
     std::memcpy(out.data(), &P, sizeof(P));
 }
@@ -643,13 +716,15 @@ void DeviceHydro::uploadT(const Fields &arena, double tau, Real *s) const {
             }
 }
 
-template <typename Real>
-void DeviceHydro::downloadT(Fields &arena, const Real *s) const {
+template <typename Real, typename Keep>
+void DeviceHydro::downloadT(
+    Fields &arena, const Real *s, const Keep &keep) const {
     const int n = nx_ * ny_ * neta_;
 #pragma omp parallel for collapse(2)
     for (int ieta = 0; ieta < neta_; ieta++)
         for (int iy = 0; iy < ny_; iy++)
             for (int ix = 0; ix < nx_; ix++) {
+                if (!keep(ix, iy, ieta)) continue;
                 const int idx = arena.getFieldIdx(ix, iy, ieta);
                 const int i = ix + nx_ * (iy + ny_ * ieta);
                 arena.e_[idx] = s[i];
@@ -740,13 +815,217 @@ void DeviceHydro::upload(const Fields &curr, const Fields &prev, double tau) {
     if (!backend_->upload(err)) fail(err);
 }
 
-void DeviceHydro::download(Fields &arena) const {
+template <typename Keep>
+void DeviceHydro::downloadCells(Fields &arena, int which, const Keep &keep) {
+    std::string err;
+    const int nComp =
+        (viscous_ ? music_device::kNCompVisc : music_device::kNComp);
+    if (!backend_->fetch(which, 0, nComp, err)) fail(err);
     if (float_) {
-        downloadT(arena, static_cast<const float *>(backend_->state(0)));
+        downloadT(arena, static_cast<const float *>(backend_->state(which)),
+                  keep);
     } else {
-        downloadT(arena, static_cast<const double *>(backend_->state(0)));
+        downloadT(arena, static_cast<const double *>(backend_->state(which)),
+                  keep);
     }
 }
+
+void DeviceHydro::syncHost(Fields &curr, Fields &prev) {
+    if (hostCurrent_) return;
+    if (&curr != lastCurr_ || &prev != lastPrev_)
+        fail("syncHost: not the slices of the last step");
+    const auto t0 = std::chrono::steady_clock::now();
+    const auto all = [](int, int, int) { return (true); };
+    downloadCells(curr, 0, all);
+    downloadCells(prev, 1, all);
+    curr.updateGhosts();
+    prev.updateGhosts();
+    hostCurrent_ = true;
+    nFullSyncs_++;
+    downloadSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+}
+
+void DeviceHydro::syncEtaWindow(Fields &curr, double etaMin, double etaMax) {
+    if (hostCurrent_) return;
+    if (&curr != lastCurr_) fail("syncEtaWindow: not the current slice");
+    const auto t0 = std::chrono::steady_clock::now();
+    // the eta of the Cell_info diagnostics
+    const bool boostInvariant = DATA.boost_invariant;
+    const double deta = DATA.delta_eta, etaSize = DATA.eta_size;
+    downloadCells(curr, 0, [&](int, int, int ieta) {
+        double eta = 0.0;
+        if (!boostInvariant) {
+            eta = ((static_cast<double>(ieta)) * (deta) - (etaSize) / 2.0);
+        }
+        return (eta < etaMax && eta > etaMin);
+    });
+    nPartialSyncs_++;
+    downloadSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+}
+
+void DeviceHydro::syncShell(
+    Fields &curr, Fields *prev, int bandX, int bandY, int bandEta) {
+    if (hostCurrent_) return;
+    if (&curr != lastCurr_ || (prev != nullptr && prev != lastPrev_))
+        fail("syncShell: not the slices of the last step");
+    const auto t0 = std::chrono::steady_clock::now();
+    const int nx = nx_, ny = ny_, neta = neta_;
+    const auto keep = [&](int ix, int iy, int ieta) {
+        return (ix < bandX || ix >= nx - bandX || iy < bandY
+                || iy >= ny - bandY
+                || (bandEta > 0
+                    && (ieta < bandEta || ieta >= neta - bandEta)));
+    };
+    downloadCells(curr, 0, keep);
+    if (prev != nullptr) downloadCells(*prev, 1, keep);
+    nPartialSyncs_++;
+    downloadSeconds_ += std::chrono::duration<double>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+}
+
+void DeviceHydro::conservationRows(double tau, std::vector<double> &rows) {
+    const auto t0 = std::chrono::steady_clock::now();
+    std::vector<unsigned char> params;
+    const size_t nRows = static_cast<size_t>(nx_) * neta_;
+    const size_t nVals = music_device::kConsVals * nRows;
+    rows.resize(nVals);
+    std::string err;
+    if (float_) {
+        fillParams<float>(tau, false, params);
+        std::vector<float> out(nVals);
+        if (!backend_->conservation(
+                params.data(), params.size(), out.data(),
+                out.size() * sizeof(float), err))
+            fail(err);
+        for (size_t k = 0; k < nVals; k++) rows[k] = out[k];
+    } else {
+        fillParams<double>(tau, false, params);
+        if (!backend_->conservation(
+                params.data(), params.size(), rows.data(),
+                rows.size() * sizeof(double), err))
+            fail(err);
+    }
+    diagSeconds_ += std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - t0)
+                        .count();
+}
+
+template <typename Real>
+void DeviceHydro::packStrings(
+    std::vector<unsigned char> &out, int &nActive) const {
+    using namespace music_device;
+    const HydroSourceStrings &S = *strings_;
+    const auto &all = S.get_strings();
+    const HydroSourceStrings::StringList *lists[4] = {
+        &S.get_energy_list(), &S.get_remnant_list(), &S.get_baryon_list(),
+        &S.get_electric_list()};
+    // the union of the four lists in the order of the full list; each
+    // list is a subsequence of it
+    size_t cursor[4] = {0, 0, 0, 0};
+    std::vector<double> buf(kStrHead, 0.);
+    int nStr = 0;
+    for (const auto &it : all) {
+        bool in[4];
+        bool any = false;
+        for (int l = 0; l < 4; l++) {
+            in[l] = (cursor[l] < lists[l]->size()
+                     && (*lists[l])[cursor[l]].get() == it.get());
+            if (in[l]) cursor[l]++;
+            any = any || in[l];
+        }
+        if (!any) continue;
+        const QCD_string &q = *it;
+        double r[kStrRec];
+        for (int l = 0; l < 4; l++) r[kRInEnergy + l] = (in[l] ? 1. : 0.);
+        r[kRNorm] = q.norm;
+        r[kRTilt] = q.string_tilt;
+        r[kRERemL] = q.E_remnant_norm_L;
+        r[kRERemR] = q.E_remnant_norm_R;
+        r[kRTauForm] = q.tau_form;
+        r[kRSigmaX] = q.sigma_x;
+        r[kRSigmaEta] = q.sigma_eta;
+        r[kRTau0] = q.tau_0;
+        r[kREta0] = q.eta_s_0;
+        r[kRXl] = q.x_pl;
+        r[kRYl] = q.y_pl;
+        r[kRXr] = q.x_pr;
+        r[kRYr] = q.y_pr;
+        r[kRTauEndL] = q.tau_end_left;
+        r[kRTauEndR] = q.tau_end_right;
+        r[kREtaL] = q.eta_s_left;
+        r[kREtaR] = q.eta_s_right;
+        r[kRYL] = q.y_l;
+        r[kRYR] = q.y_r;
+        r[kRRemL] = q.remnant_l;
+        r[kRRemR] = q.remnant_r;
+        r[kRTauBL] = q.tau_baryon_left;
+        r[kRTauBR] = q.tau_baryon_right;
+        r[kREtaBL] = q.eta_s_baryon_left;
+        r[kREtaBR] = q.eta_s_baryon_right;
+        r[kRYBL] = q.y_l_baryon;
+        r[kRYBR] = q.y_r_baryon;
+        r[kRFracL] = q.baryon_frac_l;
+        r[kRFracR] = q.baryon_frac_r;
+        r[kRTauQL] = q.tau_Qe_left;
+        r[kRTauQR] = q.tau_Qe_right;
+        r[kRQL] = q.Qe_left;
+        r[kRQR] = q.Qe_right;
+        r[kREtaQL] = q.eta_s_Qe_left;
+        r[kREtaQR] = q.eta_s_Qe_right;
+        // as in the loops of HydroSourceStrings
+        const double n_sigma_skip = 8.;
+        const double preEqFlowFactor_ = S.get_preEqFlowFactor();
+        const double sigma_x = q.sigma_x;
+        const double sigma_x_sq = sigma_x * sigma_x;
+        const double sigma_eta = q.sigma_eta;
+        const double preFlowNorm =
+            (1. / 2. * sigma_x_sq
+             * (2.
+                + exp(preEqFlowFactor_ * preEqFlowFactor_ / 2.)
+                      * sqrt(2 * M_PI) * preEqFlowFactor_
+                      * erf(preEqFlowFactor_ / sqrt(2.))));
+        const double prefactor_prep = 1. / (2. * M_PI * preFlowNorm);
+        const double prefactor_etas = 1. / (sqrt(2. * M_PI) * sigma_eta);
+        r[kRPrefPrep] = prefactor_prep;
+        r[kRPrefEtas] = prefactor_etas;
+        r[kRPrefactors] = prefactor_prep * prefactor_etas;
+        r[kRPrefPrepB] = 1. / (2. * M_PI * sigma_x * sigma_x);
+        r[kRSkipX] = n_sigma_skip * sigma_x;
+        r[kRSkipEta] = n_sigma_skip * sigma_eta;
+        buf.insert(buf.end(), r, r + kStrRec);
+        nStr++;
+    }
+    buf[kStrNStrings] = nStr;
+    for (int l = 0; l < 4; l++) {
+        if (cursor[l] != lists[l]->size())
+            fail("a string list is not in the order of the full list");
+        buf[kStrNEnergy + l] = static_cast<double>(lists[l]->size());
+    }
+    buf[kStrPreEqFlow] = S.get_preEqFlowFactor();
+    buf[kStrQuench] = S.get_parton_quench_factor();
+    buf[kStrUseBQ] = (DATA.use_BQ_ratios ? 1. : 0.);
+    buf[kStrRhob] = (DATA.turn_on_rhob == 1 ? 1. : 0.);
+    buf[kStrQS] = (DATA.turn_on_QS == 1 ? 1. : 0.);
+    buf[kStrDtau] = DATA.delta_tau;
+    buf[kStrXSize] = DATA.x_size;
+    buf[kStrYSize] = DATA.y_size;
+    buf[kStrEtaSize] = DATA.eta_size;
+    buf[kStrDx] = DATA.delta_x;
+    buf[kStrDy] = DATA.delta_y;
+    buf[kStrDeta] = DATA.delta_eta;
+    buf[kStrHbarc] = Util::hbarc;
+    out.resize(buf.size() * sizeof(Real));
+    Real *o = reinterpret_cast<Real *>(out.data());
+    for (size_t k = 0; k < buf.size(); k++) o[k] = Real(buf[k]);
+    nActive = 0;
+    for (int l = 0; l < 4; l++) nActive += static_cast<int>(lists[l]->size());
+}
+
 
 void DeviceHydro::advanceStep(
     double tau, Fields *&fpPrev, Fields *&fpCurr, Fields *&fpNext) {
@@ -758,17 +1037,41 @@ void DeviceHydro::advanceStep(
                          || fpPrev->nEta() != fpCurr->nEta())) {
             fail("the previous and current slices differ in size");
         }
+        // the host Fields must hold the last step: Evolve fills them
+        // (syncHost) before it changes them and calls invalidate()
+        if (!hostCurrent_)
+            fail("the host Fields are older than the device state");
         upload(*fpCurr, *fpPrev, tau);
     }
     int flags = 0;
     std::string err;
     double sourceSeconds = 0.;
     const auto t0 = std::chrono::steady_clock::now();
+    // the strings source: the strings of this tau frame, once for both
+    // stages (Evolve called prepare_list_for_current_tau_frame)
+    bool stringSource = false;
+    if (strings_) {
+        const auto s0 = std::chrono::steady_clock::now();
+        std::vector<unsigned char> packed;
+        int nActive = 0;
+        if (float_) {
+            packStrings<float>(packed, nActive);
+        } else {
+            packStrings<double>(packed, nActive);
+        }
+        stringSource = (nActive > 0);
+        if (stringSource
+            && !backend_->setStrings(packed.data(), packed.size(), err))
+            fail(err);
+        sourceSeconds += std::chrono::duration<double>(
+                             std::chrono::steady_clock::now() - s0)
+                             .count();
+    }
     for (int rk = 0; rk < 2; rk++) {
         // the sources at tau_rk from the u of the stage's slice: tau_n, then
         // the predictor
-        bool hasSource = false;
-        if (source_) {
+        bool hasSource = stringSource;
+        if (source_ && !strings_) {
             const auto s0 = std::chrono::steady_clock::now();
             const int which = (rk == 0 ? 0 : 2);
             if (rk == 1 && !backend_->fetch(which, 4, 4, err)) fail(err);
@@ -798,6 +1101,7 @@ void DeviceHydro::advanceStep(
         flags |= f;
     }
     const auto t1 = std::chrono::steady_clock::now();
+    if (flags & music_device::kFlagSourceNan) fail("qi_source is nan");
     if (flags & music_device::kFatalFlags) {
         fail("MaxSpeed: the signal speed of a KT face is out of range "
              "(where the CPU code exits)");
@@ -808,23 +1112,20 @@ void DeviceHydro::advanceStep(
                       << "velocity bracket failed)";
         music_message.flush("info");
     }
-    if (!backend_->download(err)) fail(err);
     // Evolve::AdvanceRK: after both stages the slice that was the previous
-    // one holds the new state, the current one becomes the previous one
+    // one holds the new state, the current one becomes the previous one.
+    // The host Fields are filled when Evolve asks (syncHost, ...)
     Fields *oldPrev = fpPrev;
     fpPrev = fpCurr;
     fpCurr = oldPrev;
     (void)fpNext;
-    download(*fpCurr);
-    fpCurr->updateGhosts();
     lastCurr_ = fpCurr;
     lastPrev_ = fpPrev;
     valid_ = true;
-    const auto t2 = std::chrono::steady_clock::now();
+    hostCurrent_ = false;
     stepSeconds_ +=
         std::chrono::duration<double>(t1 - t0).count() - sourceSeconds;
     sourceSeconds_ += sourceSeconds;
-    downloadSeconds_ += std::chrono::duration<double>(t2 - t1).count();
     nSteps_++;
 }
 

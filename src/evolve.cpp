@@ -112,6 +112,14 @@ int Evolve::EvolveIt(
     // or older slices, so they only need an update after the initial state
     // and after the fields are remapped (beastMode)
     bool ghostsStale = true;
+    // the device keeps the state between the steps; the host Fields are
+    // filled only where they are read (DeviceHydro::syncHost, ...)
+    const bool onDevice =
+        (deviceHydro_ && deviceHydro_->active() && rk_order == 2);
+    const auto syncAll = [&]() {
+        if (onDevice) deviceHydro_->syncHost(*fpCurr, *fpPrev);
+    };
+    std::vector<double> deviceRows;
     while (tau < tauMax) {
         const std::vector<Fields *> allFields = {
             fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
@@ -126,6 +134,8 @@ int Evolve::EvolveIt(
                 coarsenGrid = true;
             }
             if (doubleDtau) {
+                // the host changes the fields below
+                syncAll();
                 DATA.delta_tau = 2. * DATA.delta_tau;
                 NtauBlock =
                     std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
@@ -168,6 +178,7 @@ int Evolve::EvolveIt(
             // would leave the grid unchanged and repeat this every step
             const double padding = std::max(
                 DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
+            syncAll();
             grid_info.noteRegrid(*fpCurr, tau);
             regridTransverse(allFields, padding, false);
             ghostsStale = true;
@@ -184,8 +195,10 @@ int Evolve::EvolveIt(
             ghostsStale = false;
         }
         // the pressure of fpCurr, for the diagnostics and the first RK stage
-        const std::vector<double> &pressureCurr =
-            advance.preparePressure(*fpCurr);
+        // (the device evaluates its own; check_conservation_law then calls
+        // the EoS)
+        const std::vector<double> *pressureCurr =
+            (onDevice ? nullptr : &advance.preparePressure(*fpCurr));
         // the maxima of fpCurr, when check_conservation_law found them
         GridMaxima gridMaxima;
 
@@ -199,6 +212,48 @@ int Evolve::EvolveIt(
         // store initial conditions
         const bool isFreezeStartStep =
             (!freezeStarted && tau > tauFreezeStart - 0.5 * dt);
+        if (onDevice && !deviceHydro_->hostCurrent()) {
+            // the steps whose output or freeze-out reads all of fpCurr
+            // (and fpPrev)
+            const int itSince = (isFreezeStartStep ? 0
+                                 : freezeStarted   ? it - itFreezeStart
+                                                   : -1);
+            const bool outputStep =
+                (it % Nskip_timestep == 0
+                 && ((DATA.outputEvolutionData >= 1
+                      && DATA.outputEvolutionData <= 4)
+                     || DATA.outputEvolutionData == 7
+                     || DATA.store_hydro_info_in_memory == 1
+                     || DATA.output_outofequilibriumsize == 1));
+            const bool freezeStep =
+                (freezeout_flag == 1
+                 && ((freezeout_lowtemp_flag == 1 && isFreezeStartStep)
+                     || (itSince > 0
+                         && tau - tauLastFreeze > (facTau - 0.5) * dt)));
+            const auto atTau = [&](std::initializer_list<double> taus) {
+                for (double t : taus)
+                    if (std::abs(tau - t) < 1e-8) return (true);
+                return (false);
+            };
+            bool checkStep = false;
+            if (DATA.beastMode == 0) {
+                checkStep =
+                    ((DATA.Initial_profile == 0
+                      && atTau({1.0, 1.2, 1.5, 2.0, 3.0}))
+                     || (DATA.Initial_profile == 1
+                         && atTau({1.0, 2.0, 5.0, 10.0, 20.0}))
+                     || (!DATA.boost_invariant && DATA.output_vorticity == 1)
+                     || DATA.output_OAM_density_Evolution == 2
+                     || (DATA.output_OAM_density_Evolution == 1
+                         && it == it_source_max)
+                     || DATA.output_hydro_debug_info == 1);
+            }
+            if (isFreezeStartStep || outputStep || freezeStep || checkStep
+                || itSince == 0 || itSince == 10 || itSince == 30
+                || itSince == 50) {
+                syncAll();
+            }
+        }
         if (isFreezeStartStep) {
             freezeStarted = true;
             itFreezeStart = it;
@@ -244,6 +299,7 @@ int Evolve::EvolveIt(
             }
         }
         if (evoFileStatus == -1) {
+            syncAll();
             DATA.reRunHydro = true;
             return (-1);
         }
@@ -269,10 +325,14 @@ int Evolve::EvolveIt(
                 }
             }
 
+            if (onDevice)
+                deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
             grid_info.output_momentum_anisotropy_vs_tau(
                 tau, -0.5, 0.5, *fpCurr);
 
             if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+                if (onDevice)
+                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
                 grid_info.output_average_phase_diagram_trajectory(
                     tau, -0.5, 0.5, *fpCurr);
                 grid_info.output_average_phase_diagram_trajectory(
@@ -286,8 +346,35 @@ int Evolve::EvolveIt(
             }
             // check energy conservation
             if (!DATA.boost_invariant) {
-                grid_info.check_conservation_law(
-                    *fpCurr, *fpPrev, tau, &pressureCurr, &gridMaxima);
+                if (onDevice && !deviceHydro_->hostCurrent()) {
+                    // the sums from the device, the outflow from the
+                    // outermost cells
+                    deviceHydro_->conservationRows(tau, deviceRows);
+                    deviceHydro_->syncShell(
+                        *fpCurr, fpPrev, 1, 1, fpCurr->nEta() > 1 ? 1 : 0);
+                    grid_info.check_conservation_law(
+                        *fpCurr, *fpPrev, tau, nullptr, &gridMaxima,
+                        &deviceRows);
+                } else {
+                    grid_info.check_conservation_law(
+                        *fpCurr, *fpPrev, tau, pressureCurr, &gridMaxima);
+                }
+            } else if (onDevice && !deviceHydro_->hostCurrent()) {
+                // the grid maxima from the device
+                deviceHydro_->conservationRows(tau, deviceRows);
+                gridMaxima.valid = true;
+                for (size_t r = 0; r + 12 <= deviceRows.size(); r += 12) {
+                    gridMaxima.e = std::max(gridMaxima.e, deviceRows[r + 7]);
+                    gridMaxima.rhob =
+                        std::max(gridMaxima.rhob, deviceRows[r + 8]);
+                    gridMaxima.rhoq =
+                        std::max(gridMaxima.rhoq, deviceRows[r + 9]);
+                    gridMaxima.rhos =
+                        std::max(gridMaxima.rhos, deviceRows[r + 10]);
+                    gridMaxima.T = std::max(gridMaxima.T, deviceRows[r + 11]);
+                }
+            }
+            if (!DATA.boost_invariant) {
                 if (DATA.output_vorticity == 1) {
                     if (std::abs(tau - 1.0) < 1e-8 || std::abs(tau - 2.0) < 1e-8
                         || std::abs(tau - 5.0) < 1e-8
@@ -374,6 +461,7 @@ int Evolve::EvolveIt(
                 store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
             }
             if (DATA.reRunHydro) {
+                syncAll();
                 return (-1);
             }
         }
@@ -387,6 +475,7 @@ int Evolve::EvolveIt(
                       << itmax << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
+            syncAll();
             if (DATA.outputEvolutionData > 1 && DATA.outputEvolutionData < 5) {
                 double emax_loc = 0.;
                 double Tmax_curr = 0.;
@@ -408,6 +497,8 @@ int Evolve::EvolveIt(
         tau += dt;
         it++;
     }
+    // the caller reads the final state
+    syncAll();
     if (!DATA.boost_invariant) {
         std::ofstream FOinfo;
         FOinfo.open("FO_nBvseta.dat");
@@ -838,6 +929,8 @@ bool Evolve::fluidNearGridEdge(Fields &arena) {
         std::max(
             2 * DATA.fac_y + 2, static_cast<int>(std::ceil(
                                     0.5 * DATA.gridPadding / DATA.delta_y))));
+    if (deviceHydro_ && deviceHydro_->active())
+        deviceHydro_->syncShell(arena, nullptr, bandX, bandY, 0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         for (int iy = 0; iy < ny; iy++) {
             const bool yEdge = (iy < bandY || iy >= ny - bandY);

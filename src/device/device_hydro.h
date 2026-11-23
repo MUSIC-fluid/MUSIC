@@ -12,20 +12,24 @@
 // the device instead of rebuilding it from the primitive variables in every
 // stage, which in float accumulates rounding errors (doc/gpu_porting_*).
 //
-// The state stays on the device between steps. After each step the new
-// slice is copied into the Fields that AdvanceRK would have filled, so
-// freeze-out, output and the diagnostics run on the host as before. The
-// host Fields are uploaded again only when the device copy is stale: the
-// first step, a new slice pointer or grid, and after invalidate(), which
-// Evolve calls when it changes the fields itself (beastMode regrid,
-// change of delta_tau).
+// The state stays on the device between steps. After a step the host
+// Fields are not filled: Evolve asks for what it reads (syncHost for all
+// of the current and the previous slice on output and freeze-out steps,
+// syncEtaWindow and syncShell for the diagnostics that read part of the
+// grid), and takes the conservation sums and the grid maxima from the
+// device (conservationRows). Each filled cell holds what AdvanceRK would
+// have written. The host Fields are uploaded again only when the device
+// copy is stale: the first step, a new slice pointer or grid, and after
+// invalidate(), which Evolve calls when it changes the fields itself
+// (beastMode regrid, change of delta_tau), after syncHost.
 //
-// Supported, with or without source terms (evaluated on the host for each
-// RK stage from the u of the device slice, added on the device):
-//   ideal hydro (viscosity_flag 0) with EoS 0, 9, 91 and 10 - 14;
-//   viscous hydro (viscosity_flag 1) with shear and bulk, EoS 0, 9 and 91,
-//   without baryon diffusion, chemical bulk, FlagCausalityMethod = 1 and
-//   the transport coefficients from files (type 23).
+// Supported, with or without source terms: ideal hydro (viscosity_flag 0)
+// and viscous hydro (viscosity_flag 1, shear, bulk, baryon diffusion,
+// Pi_chem, FlagResetCausality) with EoS 0, 9, 91, 10 - 14 and 20, except
+// the transport coefficients from files (type 23). The strings source
+// (HydroSourceStrings) is evaluated on the device from the strings of the
+// tau frame, sent once per step; the other sources on the host for each
+// RK stage from the u of the device slice, added on the device.
 // Otherwise the CPU code runs and a warning says why.
 
 #ifndef SRC_DEVICE_DEVICE_HYDRO_H_
@@ -41,6 +45,7 @@
 class EOS;
 class Fields;
 class HydroSourceBase;
+class HydroSourceStrings;
 namespace music_device {
 template <typename Real>
 struct StepParams;
@@ -76,6 +81,15 @@ class Backend {
     virtual bool fetch(
         int which, int firstComp, int nComp, std::string &err) = 0;
     virtual bool download(std::string &err) = 0;
+    //! the packed strings (device_strings.h) for the stages with
+    //! StepParams::stringSource
+    virtual bool setStrings(
+        const void *data, size_t bytes, std::string &err) = 0;
+    //! kernelConservationRow for every (eta, x) row of the current slice
+    //! with the previous one (device_diag.h)
+    virtual bool conservation(
+        const void *params, size_t paramBytes, void *out, size_t outBytes,
+        std::string &err) = 0;
 };
 
 }  // namespace music_device
@@ -101,6 +115,23 @@ class DeviceHydro {
     //! the host changed the fields: upload before the next step
     void invalidate() { valid_ = false; }
 
+    //! the host Fields hold the state of the last step
+    bool hostCurrent() const { return (hostCurrent_); }
+    //! fills curr and prev (the slices of the last step, as advanceStep
+    //! left them) from the device, ghost cells included
+    void syncHost(Fields &curr, Fields &prev);
+    //! fills the cells of curr in the eta window (eta_min, eta_max) of the
+    //! Cell_info diagnostics (all eta slices if boost-invariant)
+    void syncEtaWindow(Fields &curr, double etaMin, double etaMax);
+    //! fills the cells of curr (and prev) within bandX (bandY) cells of
+    //! the x (y) edges, and with bandEta > 0 the first and last bandEta
+    //! eta slices
+    void syncShell(Fields &curr, Fields *prev, int bandX, int bandY,
+                   int bandEta);
+    //! the rows of Cell_info::check_conservation_law (kConsVals per (eta,
+    //! x) row, see device_diag.h) of the device state at tau
+    void conservationRows(double tau, std::vector<double> &rows);
+
   private:
     const InitData &DATA;
     const EOS &eos_;
@@ -114,11 +145,15 @@ class DeviceHydro {
     int maxIter_;
 
     bool valid_ = false;
+    bool hostCurrent_ = true;
+    const HydroSourceStrings *strings_ = nullptr;
     const Fields *lastCurr_ = nullptr;
     const Fields *lastPrev_ = nullptr;
     int nx_ = 0, ny_ = 0, neta_ = 0;
     int nSteps_ = 0;
     double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
+    double diagSeconds_ = 0.;
+    int nFullSyncs_ = 0, nPartialSyncs_ = 0;
 
     // the EoS descriptor and pressure table, in the backend's precision
     std::vector<unsigned char> eosDesc_;
@@ -131,13 +166,19 @@ class DeviceHydro {
     bool computeSource(const Real *s, double tauRk);
     bool buildEos(std::string &err);
     void upload(const Fields &curr, const Fields &prev, double tau);
-    void download(Fields &arena) const;
+    //! the cells of slice which (0: current, 1: previous) with
+    //! ix0 <= ix < ix1, ... that keep(ix, iy, ieta) into arena
+    template <typename Keep>
+    void downloadCells(Fields &arena, int which, const Keep &keep);
+    //! the strings of the current tau frame, packed for setStrings
+    template <typename Real>
+    void packStrings(std::vector<unsigned char> &out, int &nActive) const;
     template <typename Real>
     void uploadT(const Fields &arena, double tau, Real *s) const;
     template <typename Real>
     void fillViscParams(music_device::StepParams<Real> &P) const;
-    template <typename Real>
-    void downloadT(Fields &arena, const Real *s) const;
+    template <typename Real, typename Keep>
+    void downloadT(Fields &arena, const Real *s, const Keep &keep) const;
     template <typename Real>
     void fillParams(
         double tau, bool hasSource, std::vector<unsigned char> &out) const;

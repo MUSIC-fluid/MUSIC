@@ -156,10 +156,16 @@ class Cell_info {
     //! (optional): filled with the maxima of arena in the same sweep.
     //! The sums run over the (eta, x) rows in a fixed order, so the result
     //! does not depend on the number of threads.
+    //! deviceRows (optional): the sums and maxima of every (eta, x) row
+    //! from the device (DeviceHydro::conservationRows, 12 per row:
+    //! N_B, N_Q, N_S, T^{tau t,x,y,z}, then the maxima of e, n_B, n_Q, n_S,
+    //! T), in place of the sweep over arena; arena and arena_prev then only
+    //! need their outermost cells (boundary_outflow_rate)
     void check_conservation_law(
         Fields &arena, Fields &arena_prev, const double tau,
         const std::vector<double> *pressure = nullptr,
-        GridMaxima *maxima = nullptr);
+        GridMaxima *maxima = nullptr,
+        const std::vector<double> *deviceRows = nullptr);
 
     //! rate at which E, Px, Py, Pz [GeV] and N_B leave the grid faces
     void boundary_outflow_rate(

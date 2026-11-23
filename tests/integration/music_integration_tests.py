@@ -1442,7 +1442,8 @@ def test_gpu_backend_sources(r):
                 have[backend] = False
                 continue
             if backend > 0:
-                check("source terms from the host" in log,
+                check("source terms from the host" in log
+                      or "strings source on the device" in log,
                       "gpu_backend = {} fell back to the CPU code ({})"
                       .format(backend, name))
             res[backend] = (read_conservation(wd), t)
@@ -1463,6 +1464,107 @@ def test_gpu_backend_sources(r):
                 report("{} backend {} max |N_B diff| / N_B".format(
                     name, backend), np.max(np.abs(a[:, 5] - c[:, 5]))
                     / np.max(a[:, 5]), limits[backend])
+
+
+def test_gpu_backend_freezeout(r):
+    # freeze-out and output with the update on the device. The host Fields
+    # are filled only where they are read (DeviceHydro::syncHost on output
+    # and freeze-out steps, the eta window and the edge shell of the
+    # diagnostics), so these runs check that the surface, the evolution
+    # output and the beastMode 3 grid changes see the state of the step.
+    # Backends 1 and 2 against the CPU code.
+    tau0, e_fo = 0.6, 0.3
+    cases = []
+
+    def fireball(wd, backend):
+        x, eta, e, ux = _fireball_3d()
+        zero = np.zeros_like(e)
+        write_ipglasma_file(os.path.join(wd, "ic.dat"), x, x, e, ux, zero,
+                            zero, tau0, eta=eta)
+        return base_params(
+            Initial_profile=95, Initial_Distribution_input_filename="ic.dat",
+            boost_invariant=0, Initial_time_tau_0=tau0,
+            Total_evolution_time_tau=20., Delta_Tau=0.02,
+            X_grid_size_in_fm=x[-1] - x[0], Y_grid_size_in_fm=x[-1] - x[0],
+            Grid_size_in_x=len(x), Grid_size_in_y=len(x),
+            Eta_grid_size=eta[-1] - eta[0], Grid_size_in_eta=len(eta),
+            Eta_plateau_size=100., Viscosity_Flag_Yes_1_No_0=1,
+            Include_Shear_Visc_Yes_1_No_0=1, Shear_to_S_ratio=0.12,
+            output_evolution_data=2, output_evolution_every_N_timesteps=10,
+            output_evolution_e_cut=0.1, gpu_backend=backend,
+            **freeze_out_params(e_fo))
+    cases.append(("3D viscous fireball", fireball))
+
+    def beast(wd, backend):
+        x = _write_2d_fireball(wd, 45, 8.36, tau0)
+        return _fireball_2d_params(x, tau0, e_fo, beastMode=3,
+                                   gridPadding=2.0, gpu_backend=backend)
+    cases.append(("beastMode 3", beast))
+
+    have = {1: True, 2: True}
+    limits = {1: 1e-6, 2: 1e-4}
+    for name, make in cases:
+        res = {}
+        for backend in (0, 1, 2):
+            if backend and not have[backend]:
+                continue
+            wd = r.workdir("gpu_freezeout_{}_{}".format(
+                name.replace(" ", "_"), backend))
+            log, _, t = r.run(wd, make(wd, backend))
+            if backend > 0 and "built without" in log:
+                print("    gpu_backend = {}: not in this build, skipped"
+                      .format(backend))
+                have[backend] = False
+                continue
+            if backend > 0:
+                check("hydro on the device" in log,
+                      "gpu_backend = {} fell back to the CPU code ({})"
+                      .format(backend, name))
+            check("All cells frozen out" in log or "e < " in log,
+                  "{} backend {} did not freeze out".format(name, backend))
+            evo = os.path.join(wd, "evolution_all_xyeta.dat")
+            res[backend] = dict(
+                flux=surface_fluxes(read_surface(wd)), t=t,
+                # beastMode > 0 skips the conservation diagnostic
+                cons=(read_conservation(wd) if os.path.exists(os.path.join(
+                    wd, "global_conservation_laws.dat")) else None),
+                evo=(np.fromfile(evo, dtype=np.float32)
+                     if os.path.exists(evo) else None),
+                regrid=log.count("BeastMode: enlarged the grid")
+                + log.count(", dx = "))
+        a = res[0]
+        for backend in sorted(res):
+            c = res[backend]
+            print("    {} gpu_backend {}: {:.1f} s, {} surface cells, "
+                  "{} grid changes".format(name, backend, c["t"],
+                                           c["flux"]["n"], c["regrid"]))
+            if backend == 0:
+                continue
+            check(c["regrid"] == a["regrid"],
+                  "backend {} changed the grid {} times, the CPU code {}"
+                  .format(backend, c["regrid"], a["regrid"]))
+            for key in ("E", "S", "u_perp"):
+                report("{} backend {} |{}_surface / CPU - 1|".format(
+                    name, backend, key),
+                    rel(c["flux"][key], a["flux"][key]), limits[backend])
+            report("{} backend {} |surface cells / CPU - 1|".format(
+                name, backend),
+                abs(c["flux"]["n"] / a["flux"]["n"] - 1.), 10 * limits[backend])
+            if a["cons"] is None:
+                continue
+            n = min(len(a["cons"]), len(c["cons"]))
+            report("{} backend {} max |conservation diff| / E".format(
+                name, backend),
+                np.max(np.abs(a["cons"][:n, 1:] - c["cons"][:n, 1:]))
+                / np.max(np.abs(a["cons"][:, 1])), limits[backend])
+            if a["evo"] is not None:
+                check(c["evo"] is not None and len(c["evo"]) == len(a["evo"]),
+                      "backend {} wrote a different evolution file"
+                      .format(backend))
+                report("{} backend {} max |evolution diff| / max".format(
+                    name, backend),
+                    np.max(np.abs(a["evo"] - c["evo"]))
+                    / np.max(np.abs(a["evo"])), 10 * limits[backend])
 
 
 TESTS = [
@@ -1490,6 +1592,7 @@ TESTS = [
     ("gpu_backend_sources", test_gpu_backend_sources),
     ("gpu_backend_pi_chem", test_gpu_backend_pi_chem),
     ("gpu_backend_gubser_viscous", test_gpu_backend_gubser_viscous),
+    ("gpu_backend_freezeout", test_gpu_backend_freezeout),
 ]
 
 
