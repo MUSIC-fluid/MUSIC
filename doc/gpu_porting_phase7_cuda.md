@@ -46,9 +46,14 @@ cmake --build build_cuda -j
 
 `CMAKE_CUDA_ARCHITECTURES` defaults to `native` (sm_75 here).
 
-**The Eigen fallback was broken.** Without a system Eigen, `CMakeLists.txt` falls back to `eigen-3.4.0/` in the source tree, but `src/` still links `Eigen3::Eigen`, which the fallback never defined. It now defines that target as an `INTERFACE IMPORTED` library. Note:
-- `eigen-3.4.0/` is not in the repository, so a machine without Eigen still needs it, either installed or unpacked there.
-- On this machine Eigen 3.4.0 was installed to `~/.local` and found with `-DCMAKE_PREFIX_PATH=$HOME/.local`.
+**No external libraries are needed** (GSL stays optional). Eigen was removed after this phase: its only use was the eigenvalue solve of W^μ_ν in the causality limiter (`Advance::solveEigenvaluesWmunu`, `FlagResetCausality = 1`). That now uses the closed form the device code already had (`ViscSolver::wEigenvalues`):
+- W is transverse to u, so its eigenvalues are 0 and the three real roots of a cubic in tr A, tr A², tr A³.
+- **Host and device:** they now agree bit for bit in the unit test (before: up to 8e-12 after 4 steps).
+- **Against Eigen,** on the lumpy viscous event:
+  - conservation sums within 1.3e-16;
+  - W/(e+P) within 3e-16, or 3e-11 with η/s = 0.5, where the limiter acts on many cells;
+  - T and μ identical.
+- All 25 integration tests pass without Eigen.
 
 **`ptxas` resource use**, sm_75, from `nvcc -Xptxas -v`:
 
@@ -67,7 +72,7 @@ The large stack frames of cellVisc are its local arrays (the gradients, W, the t
 |---|---|---|
 | compile | `device_defs.h` | `flagOr` is now `__host__ __device__`: `atomicOr` under `__CUDA_ARCH__`, `__atomic_fetch_or` on the host pass |
 | correctness | `device_hydro.cpp` (`beginStep`) | host-evaluated source terms fetch u of the current slice in **both** RK stages (before: only the second) |
-| build | `CMakeLists.txt` | the local-Eigen fallback defines `Eigen3::Eigen` |
+| build | `CMakeLists.txt`, `advance.cpp` | Eigen removed: the causality limiter's eigenvalues in closed form (section 1) |
 | warnings | `device_hydro.cpp` | three `-Wenum-compare` (`kNCompVisc` and `kNComp` are in different anonymous enums) |
 
 **The source-term bug.**
@@ -247,5 +252,6 @@ CUDA results on this machine (worst case over the cases of each test):
 | `src/device/device_hydro.{h,cpp}` | `Backend::fetchCells`; gathered partial downloads (`storeCell`, `downloadGathered`); the source-term fetch in both stages; enum warnings |
 | `src/device/device_defs.h` | `flagOr` for nvcc |
 | `src/device/metal_backend.m` | `fetchCells = NULL` written out |
-| `CMakeLists.txt` | `Eigen3::Eigen` for the local-Eigen fallback |
+| `CMakeLists.txt`, `src/CMakeLists.txt`, `.github/workflows/BuildTest.yml` | no Eigen |
+| `src/advance.cpp` | closed-form eigenvalues of W^μ_ν instead of `Eigen::EigenSolver` |
 | `tests/integration/music_integration_tests.py` | CUDA double and float in the six GPU tests |

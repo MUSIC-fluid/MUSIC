@@ -4,8 +4,7 @@
 #include <omp.h>
 #endif
 
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -19,8 +18,6 @@
 #include "reconst.h"
 #include "util.h"
 
-using Eigen::EigenSolver;
-using Eigen::Matrix4d;
 using Util::hbarc;
 using Util::map_1d_idx_to_2d;
 using Util::map_2d_idx_to_1d;
@@ -1164,46 +1161,69 @@ double Advance::get_TJb(
     return (T_munu);
 }
 
+//! Lambdas = (min, -min - max, max) of the real eigenvalues of
+//! A = W^mu_nu. A u = 0 (transversality), so the eigenvalues are 0 and the
+//! three roots of the cubic with the power sums tr A, tr A^2, tr A^3; they
+//! are real, because on the space orthogonal to u, A is the spatial W of the
+//! local rest frame, a symmetric matrix. The roots come from the
+//! trigonometric form of the cubic. Written operation by operation like
+//! the device twin, ViscSolver::wEigenvalues in device/device_visc.h.
 void Advance::solveEigenvaluesWmunu(Cell_small &grid_pt) {
-    Matrix4d A = Matrix4d::Zero();
+    double A[4][4];
+    A[0][0] = -grid_pt.Wmunu[0];
+    A[0][1] = grid_pt.Wmunu[1];
+    A[0][2] = grid_pt.Wmunu[2];
+    A[0][3] = grid_pt.Wmunu[3];
 
-    A(0, 0) = -grid_pt.Wmunu[0];
-    A(0, 1) = grid_pt.Wmunu[1];
-    A(0, 2) = grid_pt.Wmunu[2];
-    A(0, 3) = grid_pt.Wmunu[3];
+    A[1][0] = -grid_pt.Wmunu[1];
+    A[1][1] = grid_pt.Wmunu[4];
+    A[1][2] = grid_pt.Wmunu[5];
+    A[1][3] = grid_pt.Wmunu[6];
 
-    A(1, 0) = -grid_pt.Wmunu[1];
-    A(1, 1) = grid_pt.Wmunu[4];
-    A(1, 2) = grid_pt.Wmunu[5];
-    A(1, 3) = grid_pt.Wmunu[6];
+    A[2][0] = -grid_pt.Wmunu[2];
+    A[2][1] = grid_pt.Wmunu[5];
+    A[2][2] = grid_pt.Wmunu[7];
+    A[2][3] = grid_pt.Wmunu[8];
 
-    A(2, 0) = -grid_pt.Wmunu[2];
-    A(2, 1) = grid_pt.Wmunu[5];
-    A(2, 2) = grid_pt.Wmunu[7];
-    A(2, 3) = grid_pt.Wmunu[8];
+    A[3][0] = -grid_pt.Wmunu[3];
+    A[3][1] = grid_pt.Wmunu[6];
+    A[3][2] = grid_pt.Wmunu[8];
+    A[3][3] = grid_pt.Wmunu[9];
 
-    A(3, 0) = -grid_pt.Wmunu[3];
-    A(3, 1) = grid_pt.Wmunu[6];
-    A(3, 2) = grid_pt.Wmunu[8];
-    A(3, 3) = grid_pt.Wmunu[9];
-
-    EigenSolver<Matrix4d> es;
-    es.compute(A, false);
-
-    double min = es.eigenvalues().real()[0];
-    double max = min;
-
-    for (int i = 1; i < 4; i++) {
-        double temp = es.eigenvalues().real()[i];
-        if (temp > max) {
-            max = temp;
-        } else if (temp < min) {
-            min = temp;
+    double t1 = 0., t2 = 0., t3 = 0.;
+    for (int i = 0; i < 4; i++) {
+        t1 += A[i][i];
+        for (int j = 0; j < 4; j++) {
+            t2 += A[i][j] * A[j][i];
+            double a2 = 0.;
+            for (int k = 0; k < 4; k++) a2 += A[i][k] * A[k][j];
+            t3 += a2 * A[j][i];
         }
     }
-    grid_pt.Lambdas[0] = min;
-    grid_pt.Lambdas[1] = -min - max;
-    grid_pt.Lambdas[2] = max;
+    // roots m + y_k: sum y = 0, sum y^2 = 6 q, prod y = 2 r
+    const double m = t1 / 3.;
+    const double q = (t2 - 3. * m * m) / 6.;
+    const double sumY3 = t3 - 3. * m * t2 + 6. * m * m * m;
+    const double r = sumY3 / 6.;
+    double roots[3] = {m, m, m};
+    if (q > 0.) {
+        const double sq = sqrt(q);
+        const double c = std::max(-1., std::min(1., r / (q * sq)));
+        const double phi = acos(c) / 3.;
+        const double twoPiOver3 = 2.0943951023931954923;
+        roots[0] = m + 2. * sq * cos(phi);
+        roots[1] = m + 2. * sq * cos(phi + twoPiOver3);
+        roots[2] = m + 2. * sq * cos(phi + 2. * twoPiOver3);
+    }
+    // the fourth eigenvalue is 0
+    double lmin = 0., lmax = 0.;
+    for (int k = 0; k < 3; k++) {
+        lmin = std::min(lmin, roots[k]);
+        lmax = std::max(lmax, roots[k]);
+    }
+    grid_pt.Lambdas[0] = lmin;
+    grid_pt.Lambdas[1] = -lmin - lmax;
+    grid_pt.Lambdas[2] = lmax;
 }
 
 void Advance::nCausalityConstraints(Cell_small &grid_pt) {

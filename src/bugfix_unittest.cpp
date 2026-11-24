@@ -2438,9 +2438,11 @@ TEST_CASE("Device kernels reproduce baryon diffusion and Pi_chem of Advance") {
 }
 
 TEST_CASE("Device kernels reproduce the causality limiter of Advance") {
-    // FlagCausalityMethod = 1: the host takes the eigenvalues of W^mu_nu
-    // from Eigen's EigenSolver, the device from the closed form, so they
-    // agree to rounding. W and Pi are scaled up so that the limiter acts.
+    // FlagCausalityMethod = 1: host and device take the eigenvalues of
+    // W^mu_nu from the same closed form (before: Eigen's EigenSolver on the
+    // host, agreeing to rounding); compilers that contract multiply-adds
+    // differently in the two still differ at rounding level. W and Pi are
+    // scaled up so that the limiter acts.
     std::vector<int> eosIds = {0};
     if (hotQCDTablesFound()) eosIds.push_back(9);
     gLumpyWScale = 8.;

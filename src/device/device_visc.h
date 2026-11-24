@@ -1301,12 +1301,11 @@ struct ViscSolver {
     }
 
     //! Advance::solveEigenvaluesWmunu: Lambdas = (min, -min - max, max) of
-    //! the real eigenvalues of A = W^mu_nu. The host uses Eigen's
-    //! EigenSolver; here the closed form: A u = 0 (transversality), so the
-    //! eigenvalues are 0 and the three roots of the cubic with the power
-    //! sums tr A, tr A^2, tr A^3. They are real: on the space orthogonal to
-    //! u, A is the spatial W of the local rest frame, a symmetric matrix.
-    //! The two agree to rounding, not bit for bit.
+    //! the real eigenvalues of A = W^mu_nu, in closed form: A u = 0
+    //! (transversality), so the eigenvalues are 0 and the three roots of
+    //! the cubic with the power sums tr A, tr A^2, tr A^3. They are real: on
+    //! the space orthogonal to u, A is the spatial W of the local rest
+    //! frame, a symmetric matrix. The host code does the same operations.
     MD_FN void wEigenvalues(
         MD_THREAD const VCell<Real> &g, MD_THREAD Real *Lambdas) const {
         Real A[4][4];
