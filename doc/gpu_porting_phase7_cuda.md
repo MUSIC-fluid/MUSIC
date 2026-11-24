@@ -264,6 +264,13 @@ The three upstream commits add three backend calls for Metal: `fetchUnwritten`, 
 | viscous, EoS 9 | 24.8 s | **23.9 s** |
 | viscous, EoS 20 | 35.9 s | **35.7 s** |
 
+**Note: Metal was not built or tested after the merge.** This machine has no Apple toolchain. The merge's only change to Metal is in `metal_backend.m`: the `kMetalApi` table keeps upstream's `metalFetchUnwritten`, `metalConservationBegin` and `metalConservationEnd`, then adds `NULL` for `fetchCells`. Because `fetchCells` is `NULL`, Metal keeps the whole-slice paths unchanged, in `downloadCells` and `outflowFaces` alike: `fetch` / `fetchUnwritten`, then the same `gatherOutflow` arithmetic. Metal results should therefore be unchanged.
+
+To confirm on an Apple machine:
+- build with `-Dmetal=ON`;
+- run the integration suite (its GPU tests include backend 2);
+- run `unittest_bugfix`.
+
 ## Files
 
 | file | change |
