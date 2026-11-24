@@ -707,7 +707,9 @@ void Init::initial_IPGlasma_XY_with_pi(
                          + uy * ueta * temp_profile_piyeta[idx])
                   - (utau * utau - ux * ux) * temp_profile_pixx[idx]
                   - (utau * utau - uy * uy) * temp_profile_piyy[idx])
-                 / (utau * utau - ueta * ueta));
+                 / std::max(utau * utau - ueta * ueta, 0.5));
+            // utau^2 - ueta^2 = 1 + ux^2 + uy^2 >= 1; the floor 0.5 only
+            // catches a cancellation to ~0 (utau ~ 1/sqrt(eps))
             temp_profile_pitaux[idx] =
                 (1. / utau
                  * (temp_profile_pixx[idx] * ux + temp_profile_pixy[idx] * uy
@@ -898,7 +900,9 @@ void Init::initial3D_IPGlasma_XY_with_pi(
                              + uy * ueta * temp_profile_piyeta[idx])
                       - (utau * utau - ux * ux) * temp_profile_pixx[idx]
                       - (utau * utau - uy * uy) * temp_profile_piyy[idx])
-                     / (utau * utau - ueta * ueta));
+                     / std::max(utau * utau - ueta * ueta, 0.5));
+                // utau^2 - ueta^2 = 1 + ux^2 + uy^2 >= 1; the floor 0.5 only
+                // catches a cancellation to ~0 (utau ~ 1/sqrt(eps))
                 temp_profile_pitaux[idx] =
                     (1. / utau
                      * (temp_profile_pixx[idx] * ux
@@ -1003,8 +1007,9 @@ void Init::regulationResummedTransCoeff(Cell_small &grid_pt) {
          + 2. * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
     double pi_local = grid_pt.pi_b;
 
-    double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
+    // e + P >= 0; the max keeps the guard positive for any input
+    double Rshear = sqrt(pisize) / (std::max(e_local + p_local, 0.) + 1e-16);
+    double Rbulk = std::abs(pi_local) / (std::max(e_local + p_local, 0.) + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., DATA.preEqVisFactor / r_combined);
     for (int mu = 0; mu < 10; mu++) {

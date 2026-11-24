@@ -428,7 +428,7 @@ void EOS_4D::FourDEval(
                 - 0.5
                       * (TildeVar[1] * dXdmubtilde + TildeVar[2] * dXdmuqtilde
                          + TildeVar[3] * dXdmustilde)
-                      / eLocal;
+                      / std::max(eLocal, Util::tiny_normal);
     // dXoverdrhob
     ResArr[2] =
         ((5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde) / (T * T));
@@ -654,7 +654,7 @@ void EOS_4D::FourDLInterp(
                 - 0.5
                       * (TildeVar[1] * dXdmubtilde + TildeVar[2] * dXdmuqtilde
                          + TildeVar[3] * dXdmustilde)
-                      / eLocal;
+                      / std::max(eLocal, Util::tiny_normal);
     // dXoverdrhob
     ResArr[2] =
         ((5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde) / (T * T));
@@ -670,10 +670,12 @@ void EOS_4D::get_tilde_variables(
     double e, double rhob, double rhoq, double rhos,
     std::array<float, 4> &TildeVar) const {
     double Ttilde_sq = sqrt(e / 3.0 * OneoveralphaNf);
-    double Ttilde = sqrt(Ttilde_sq);                             // fm-1
-    double mubtilde = (5 * rhob - rhoq + 2 * rhos) / Ttilde_sq;  // fm-1
-    double muqtilde = (-rhob + 2 * rhoq - rhos) / Ttilde_sq;     // fm-1
-    double mustilde = (2 * rhob - rhoq + 2 * rhos) / Ttilde_sq;  // fm-1
+    double Ttilde = sqrt(Ttilde_sq);  // fm-1
+    // Ttilde^2 = 0 at e = 0: the floor gives mu-tilde = 0 there at n = 0
+    const double Tsq_div = std::max(Ttilde_sq, Util::tiny_normal);
+    double mubtilde = (5 * rhob - rhoq + 2 * rhos) / Tsq_div;  // fm-1
+    double muqtilde = (-rhob + 2 * rhoq - rhos) / Tsq_div;     // fm-1
+    double mustilde = (2 * rhob - rhoq + 2 * rhos) / Tsq_div;  // fm-1
 
     TildeVar[0] = static_cast<float>(Ttilde);
     TildeVar[1] = static_cast<float>(mubtilde);
@@ -783,7 +785,9 @@ void EOS_4D::get_pressure_with_gradients(
         // P = e g(mu-tilde) with g = P_ref / e_ref at the same mu-tilde, and
         // mu-tilde ~ n / sqrt(e): dP/de|_n = g - sum_a n_a dg/dn_a / 2 and
         // dP/dn_a = scale^2 (dP/dn_a)_ref, with n_ref = n / scale^2.
-        const double s2 = static_cast<double>(scale) * scale;
+        // scale = Ttilde / Tref is 0 at e = 0
+        const double s2 =
+            std::max(static_cast<double>(scale) * scale, Util::tiny_normal);
         const double Tsq = static_cast<double>(TildeVar[0]) * TildeVar[0];
         const double eref = 3. * alphaNf * (Tsq * Tsq);
         const double pref = ResArr[0];
@@ -814,7 +818,9 @@ void EOS_4D::pressureWithGradients(
         // P = e g(mu-tilde) with g = P_ref / e_ref at the same mu-tilde, and
         // mu-tilde ~ n / sqrt(e): dP/de|_n = g - sum_a n_a dg/dn_a / 2 and
         // dP/dn_a = scale^2 (dP/dn_a)_ref, with n_ref = n / scale^2.
-        const double s2 = static_cast<double>(scale) * scale;
+        // scale = Ttilde / Tref is 0 at e = 0
+        const double s2 =
+            std::max(static_cast<double>(scale) * scale, Util::tiny_normal);
         const double Tsq = static_cast<double>(TildeVar[0]) * TildeVar[0];
         const double eref = 3. * alphaNf * (Tsq * Tsq);
         const double pref = ResArr[0];
@@ -839,7 +845,7 @@ void EOS_4D::get_pressure_with_gradients_and_cs2(
     double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
     get_pressure_with_gradients(
         e, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos);
-    const double enthalpy = e + p + Util::small_eps;
+    const double enthalpy = std::max(e + p, 0.) + Util::small_eps;
     cs2 = dpde + (rhob * dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos) / enthalpy;
     cs2 = std::max(0.01, std::min(1. / 3, cs2));
 }
@@ -899,7 +905,7 @@ void EOS_4D::getThermalVariables(
     pressureWithGradients(
         rhob, rhoq, rhos, TildeVar, scale, c, p, dpde, dpdrhob, dpdrhoq,
         dpdrhos);
-    const double enthalpy = epsilon + p + Util::small_eps;
+    const double enthalpy = std::max(epsilon + p, 0.) + Util::small_eps;
     double cs2 =
         dpde + (rhob * dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos) / enthalpy;
     cs2 = std::max(0.01, std::min(1. / 3, cs2));
@@ -929,7 +935,7 @@ void EOS_4D::getThermalVariables(
     double entropy =
         ((epsilon + p - thermalVec[7] * rhob - thermalVec[8] * rhos
           - thermalVec[10] * rhoq)
-         / (thermalVec[6] + Util::small_eps));
+         / (std::max(thermalVec[6], 0.) + Util::small_eps));
     entropy = std::max(Util::small_eps, entropy);
     thermalVec[12] = entropy;
     thermalVec[13] = dpdrhoq;

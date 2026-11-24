@@ -629,8 +629,9 @@ void Diss::computeInverseReynoldsNumbers(
          - 2. * (pi_01 * pi_01 + pi_02 * pi_02 + pi_03 * pi_03)
          + 2. * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
 
-    R_shear = sqrt(pisize) / enthalpy;
-    R_bulk = std::abs(grid_pt.pi_b) / enthalpy;
+    const double h = std::max(enthalpy, Util::tiny_normal);
+    R_shear = sqrt(pisize) / h;
+    R_bulk = std::abs(grid_pt.pi_b) / h;
 }
 
 void Diss::Make_uWSource(
@@ -1478,7 +1479,8 @@ void Diss::output_kappa_T_and_muB_dependence() {
                 continue;  // discard points out of the table
             double p_local = eos.get_pressure(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
-            double alpha_local = mu_B_local / T_local;
+            double alpha_local =
+                mu_B_local / std::max(T_local, Util::tiny_normal);
 
             double denorm_safe = std::copysign(
                 std::max(small_eps, std::abs(3. * T_local * tanh(alpha_local))),
@@ -1527,7 +1529,8 @@ void Diss::output_kappa_along_const_sovernB() {
             double mu_B = eos.get_muB(e_local, nB_local);
             if (mu_B * hbarc > 0.78)
                 continue;  // discard points out of the table
-            double alpha_local = mu_B / temperature;
+            double alpha_local =
+                mu_B / std::max(temperature, Util::tiny_normal);
 
             double denorm_safe = std::copysign(
                 std::max(
@@ -1585,7 +1588,7 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
             double eta_over_s = shear_to_s;
             if (DATA.muB_dependent_shear_to_s != 0) {
                 eta_over_s =
-                    shear_to_s * (e_local + p_local) / (T_local * s_local);
+                    shear_to_s * (e_local + p_local) / std::max(T_local * s_local, Util::tiny_normal);
             }
 
             // output
@@ -1635,7 +1638,7 @@ void Diss::output_eta_over_s_along_const_sovernB() {
             double eta_over_s = shear_to_s;
             if (DATA.muB_dependent_shear_to_s != 0) {
                 eta_over_s =
-                    shear_to_s * (e_local + p_local) / (T_local * s_local);
+                    shear_to_s * (e_local + p_local) / std::max(T_local * s_local, Util::tiny_normal);
             }
 
             // output
@@ -1682,7 +1685,7 @@ void Diss::output_zeta_over_s_T_and_muB_dependence() {
 
             double bulk = transport_coeffs_.get_zeta_over_s(T_local, mu_B);
             double zeta_over_s =
-                bulk * (e_local + p_local) / (T_local * s_local);
+                bulk * (e_local + p_local) / std::max(T_local * s_local, Util::tiny_normal);
 
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
@@ -1727,7 +1730,7 @@ void Diss::output_zeta_over_s_along_const_sovernB() {
 
             double bulk = transport_coeffs_.get_zeta_over_s(T_local, mu_B);
             double zeta_over_s =
-                bulk * (e_local + p_local) / (T_local * s_local);
+                bulk * (e_local + p_local) / std::max(T_local * s_local, Util::tiny_normal);
 
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)

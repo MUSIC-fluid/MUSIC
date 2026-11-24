@@ -325,8 +325,10 @@ MD_FN Real idealMuBOverT(
                      / (Real(81.) * Real(3.14159265358979323846)
                         * Real(3.14159265358979323846)));
         const Real N3 = N * N * N, D2 = D * D;
-        const Real dx =
-            -(N3 * N - C * D2 * D) / (Real(4.) * N3 * dN - Real(3.) * C * D2 * N);
+        // EOS_idealgas::get_muB_over_T: a slope <= 0, the robust solve
+        const Real slope = Real(4.) * N3 * dN - Real(3.) * C * D2 * N;
+        if (!(slope > Real(0.))) break;
+        const Real dx = -(N3 * N - C * D2 * D) / slope;
         x += dx;
         if (fabs(dx) < Real(1e-13) * x) {
             return (dmin(x, d.xMax));
@@ -355,19 +357,21 @@ MD_FN void eos4DTilde(
     MD_THREAD float *TildeVar) {
     Real Ttilde_sq = sqrt(mdDiv(e, Real(3.0)) * d.oneOverAlphaNf4);
     Real Ttilde = sqrt(Ttilde_sq);
+    // EOS_4D::get_tilde_variables: Ttilde^2 floored at the smallest normal
+    const Real Tsq_div = dmax(Ttilde_sq, tinyNormal<Real>());
     Real mubtilde, muqtilde, mustilde;
     // the divisions (device_defs.h): mdDivF for finite densities over a
-    // normal Ttilde^2 (e > 0), mdDiv otherwise
-    if (Ttilde_sq >= Real(1.1754943508222875e-38)
-        && Ttilde_sq < Real(8.507059173023462e37)
+    // normal Ttilde^2, mdDiv otherwise
+    if (Tsq_div >= Real(1.1754943508222875e-38)
+        && Tsq_div < Real(8.507059173023462e37)
         && isfinite(rhob) && isfinite(rhoq) && isfinite(rhos)) {
-        mubtilde = mdDivF(Real(5) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
-        muqtilde = mdDivF(-rhob + Real(2) * rhoq - rhos, Ttilde_sq);
-        mustilde = mdDivF(Real(2) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+        mubtilde = mdDivF(Real(5) * rhob - rhoq + Real(2) * rhos, Tsq_div);
+        muqtilde = mdDivF(-rhob + Real(2) * rhoq - rhos, Tsq_div);
+        mustilde = mdDivF(Real(2) * rhob - rhoq + Real(2) * rhos, Tsq_div);
     } else {
-        mubtilde = mdDiv(Real(5) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
-        muqtilde = mdDiv(-rhob + Real(2) * rhoq - rhos, Ttilde_sq);
-        mustilde = mdDiv(Real(2) * rhob - rhoq + Real(2) * rhos, Ttilde_sq);
+        mubtilde = mdDiv(Real(5) * rhob - rhoq + Real(2) * rhos, Tsq_div);
+        muqtilde = mdDiv(-rhob + Real(2) * rhoq - rhos, Tsq_div);
+        mustilde = mdDiv(Real(2) * rhob - rhoq + Real(2) * rhos, Tsq_div);
     }
     TildeVar[0] = float(Ttilde);
     TildeVar[1] = float(mubtilde);
@@ -625,7 +629,7 @@ MD_FN void eos4DEval(
                     * Real(TildeVar[1] * dXdmubtilde
                            + TildeVar[2] * dXdmuqtilde
                            + TildeVar[3] * dXdmustilde),
-                eLocal));
+                dmax(eLocal, tinyNormal<Real>())));
     ResArr[2] = float(mdDivF(
         Real(5.0) * Real(dXdmubtilde) - Real(dXdmuqtilde)
          + Real(2.0) * Real(dXdmustilde),
@@ -652,7 +656,7 @@ MD_FN void eos4DPressureGrad(
     float ResArr[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
     eos4DEval(d, tab, eos4DTable(d, tab, kEos4DP), TildeVar, c, ResArr, true);
     if (scale < 1.f) {
-        const Real s2 = Real(scale) * Real(scale);
+        const Real s2 = dmax(Real(scale) * Real(scale), tinyNormal<Real>());
         const Real Tsq = Real(TildeVar[0]) * Real(TildeVar[0]);
         const Real eref = Real(3.) * d.alphaNf4 * (Tsq * Tsq);
         const Real pref = ResArr[0];
@@ -689,7 +693,7 @@ MD_FN EosGrad<Real> eos4DGrad(
     eos4DPressureGrad(
         d, tab, rhob, rhoq, rhos, TildeVar, scale, c, g.p, g.dpde, g.dpdrhob,
         dpdrhoq, dpdrhos);
-    const Real enthalpy = e + g.p + smallEps;
+    const Real enthalpy = dmax(e + g.p, Real(0.)) + smallEps;
     Real cs2 =
         g.dpde
         + mdDiv(rhob * g.dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos, enthalpy);
@@ -792,7 +796,7 @@ MD_FN Thermal<Real> eosThermal(
         const Real rhobT = (fabs(rhob) <= nEdge ? rhob : copysign(nEdge, rhob));
         const Real rhoQ = Real(0.4) * rhobT, rhoS = Real(0.);
         Real entropy = ((e + t.p - t.muB * rhobT - muS * rhoS - muQ * rhoQ)
-                        / (t.T + smallEps));
+                        / (dmax(t.T, Real(0.)) + smallEps));
         t.s = dmax(smallEps, entropy);
         return (t);
     }
@@ -806,7 +810,7 @@ MD_FN Thermal<Real> eosThermal(
         eos4DPressureGrad(
             d, tab, rhob, rhoq, rhos, TildeVar, scale, c, t.p, t.dpde,
             t.dpdrhob, dpdrhoq, dpdrhos);
-        const Real enthalpy = e + t.p + smallEps;
+        const Real enthalpy = dmax(e + t.p, Real(0.)) + smallEps;
         Real cs2 = t.dpde
                    + (rhob * t.dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos)
                          / enthalpy;
@@ -830,7 +834,7 @@ MD_FN Thermal<Real> eosThermal(
         const Real muQ = Real(ResArr[0]);
         Real entropy =
             ((e + t.p - t.muB * rhob - muS * rhos - muQ * rhoq)
-             / (t.T + smallEps));
+             / (dmax(t.T, Real(0.)) + smallEps));
         t.s = dmax(smallEps, entropy);
         return (t);
     }
@@ -846,7 +850,7 @@ MD_FN Thermal<Real> eosThermal(
     const Real muS = Real(0.), muQ = Real(0.);
     const Real rhobT = rhob, rhoS = Real(0.), rhoQ = Real(0.4) * rhob;
     Real entropy = ((e + t.p - t.muB * rhobT - muS * rhoS - muQ * rhoQ)
-                    / (t.T + smallEps));
+                    / (dmax(t.T, Real(0.)) + smallEps));
     t.s = dmax(smallEps, entropy);
     return (t);
 }
@@ -891,7 +895,7 @@ MD_FN EosGrad<Real> eosPressureGrad(
     }
     Real cs2 = g.dpde
                + (g.dpdrhob * rhob + Real(0) * rhos + Real(0) * rhoq)
-                     / (e + g.p);
+                     / dmax(e + g.p, tinyNormal<Real>());
     g.cs2 = dmax(Real(0.01), dmin(Real(1) / Real(3), cs2));
     return g;
 }
@@ -972,7 +976,7 @@ MD_FN Real eosCs2(
         dpdrho = (qR - qL) / (rhobRight - rhobLeft);
     }
     const Real pressure = eosPressure(d, tab, e, rhob, Real(0.), Real(0.));
-    Real v_sound = dpde + rhob / (e + pressure + smallEps) * dpdrho;
+    Real v_sound = dpde + rhob / (dmax(e + pressure, Real(0.)) + smallEps) * dpdrho;
     v_sound = dmax(Real(0.01), dmin(Real(1.0), v_sound));
     return (v_sound);
 }

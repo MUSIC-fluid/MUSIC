@@ -746,6 +746,57 @@ void set_parameter(
         parameter_list.bulk_3_lambda_asymm = value;
 }
 
+//! the input parameters that the code divides by: stop with an error
+//! instead of dividing by 0 (or by a width of the wrong sign). Each check
+//! applies only to the initial profiles that use the parameter.
+void check_parameter_denominators(const InitData &p) {
+    auto require = [](const bool ok, const std::string &what) {
+        if (!ok) {
+            music_message << what;
+            music_message.flush("error");
+            exit(1);
+        }
+    };
+    const int prof = p.Initial_profile;
+    // the cell sizes x_size / (nx - 1), y_size / (ny - 1) and
+    // eta_size / (neta - 1) divide the gradients
+    require(p.nx >= 2 && p.ny >= 2,
+            "Grid_size_in_x and Grid_size_in_y must be >= 2");
+    require(p.x_size > 0. && p.y_size > 0.,
+            "X_grid_size_in_fm and Y_grid_size_in_fm must be > 0");
+    require(p.boost_invariant || p.eta_size > 0.,
+            "Eta_grid_size must be > 0 for a (3+1)-d run");
+    require(p.delta_tau > 0., "Delta_Tau must be > 0");
+    require(p.dtaudxRatio > 0., "dtaudxRatio must be > 0");
+    // these profiles set tau0 from their sources
+    if (prof != 13 && prof != 131 && prof != 30)
+        require(p.tau0 > 0., "Initial_time_tau_0 must be > 0");
+
+    const bool lightCone =
+        (prof == 11 || prof == 111 || prof == 112 || prof == 113);
+    const bool glasma3D =
+        (!p.boost_invariant
+         && (prof == 9 || (prof >= 91 && prof <= 95)));
+    if (lightCone) {
+        // y_beam = acosh(ecm / (2 m_N)) divides tau_overlap and the
+        // eta envelopes
+        require(p.beam_rapidity > 0., "ecm must be > 2 m_N");
+        if (p.turn_on_rhob == 1)
+            require(p.eta_rhob_width_1 > 0. && p.eta_rhob_width_2 > 0.,
+                    "eta_rhob_width_1 and eta_rhob_width_2 must be > 0");
+    }
+    if (lightCone || glasma3D)
+        require(p.eta_fall_off > 0., "Eta_fall_off must be > 0");
+    if (prof == 112 || prof == 113) {
+        require(p.nucleonWidth > 0., "nucleon_width must be > 0");
+        if (p.tilted_fraction > 0.)
+            require(p.eta_m > 0., "eta_m must be > 0 for tilted_fraction > 0");
+    }
+    if (prof == 13 || prof == 131)
+        require(p.stringSourceSigmaX > 0. && p.stringSourceSigmaEta > 0.,
+                "string_source_sigma_x and string_source_sigma_eta must be > 0");
+}
+
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");
 
@@ -875,6 +926,8 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.delta_eta = 0.1;
         parameter_list.eta_size = 0.0;
     }
+
+    check_parameter_denominators(parameter_list);
 
     // reset_dtau_use_CFL_condition: read it unconditionally, because the
     // initial-condition and source code also check it after changing dx

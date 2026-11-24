@@ -165,6 +165,13 @@ struct Solver {
 
     //! the pressure at e, n_B = rhob and n_{Q,S} = J0{Q,S} f, as the
     //! solves of Reconst compute them
+    //! Reconst::secant_denominator: d + absErr, or -absErr (= d) where
+    //! that is 0 or subnormal
+    MD_FN Real secantDenominator(Real d) const {
+        const Real s = d + P_->absErr;
+        return (fabs(s) >= tinyNormal<Real>() ? s : -P_->absErr);
+    }
+
     MD_FN Real pressure(Real e, Real rhob, Real f) const {
         return eosPressure(*d_, tab, e, rhob, J0Q_ * f, J0S_ * f);
     }
@@ -214,7 +221,7 @@ struct Solver {
             }
             const Real fNext = velocityF(vNext, T00, M, J0B);
             if (!isfinite(fNext)) return 0;
-            dfdv = (fNext - fv) / (vNext - v + P_->absErr);
+            dfdv = (fNext - fv) / secantDenominator(vNext - v);
             v = vNext;
             fv = fNext;
         }
@@ -266,8 +273,10 @@ struct Solver {
             iter++;
             const Real vPrev = vr;
             const Real fPrev = fv;
+            // bisect also if the slope is 0
             if (((vr - vh) * dfdv - fv) * ((vr - vl) * dfdv - fv) > Real(0)
-                || (fabs(Real(2) * fv) > fabs(dvPrev * dfdv))) {
+                || (fabs(Real(2) * fv) > fabs(dvPrev * dfdv))
+                || dfdv == Real(0)) {
                 dvPrev = dvCurr;
                 dvCurr = (vh - vl) / Real(2);
                 vr = vl + dvCurr;
@@ -277,12 +286,12 @@ struct Solver {
                 vr = vr - dvCurr;
             }
             absE = fabs(dvCurr);
-            relE = absE / (vr + P_->absErr);
+            relE = absE / (dmax(vr, Real(0)) + P_->absErr);
             if (fabs(vr - vPrev) > Real(0.1) * vr) {
                 velocityFdf(vr, T00, M, J0B, fv, dfdv);
             } else {
                 fv = velocityF(vr, T00, M, J0B);
-                dfdv = (fv - fPrev) / (vr - vPrev + P_->absErr);
+                dfdv = (fv - fPrev) / secantDenominator(vr - vPrev);
             }
             if (fv * fl < Real(0)) {
                 vh = vr;
@@ -308,7 +317,7 @@ struct Solver {
         const Real rhob = J0B * u0_inv;
         const Real p = pressure(epsilon, rhob, u0_inv);
         const Real temp1 = Real(1) - K00 / ((T00 + p) * (T00 + p));
-        return u0 - Real(1) / sqrt(temp1);
+        return u0 - Real(1) / sqrt(dmax(temp1, P_->absErr * P_->absErr));
     }
 
     // Reconst::solve_u0_Hybrid
@@ -345,8 +354,10 @@ struct Solver {
             iter++;
             const Real uPrev = root;
             const Real fPrev = fu;
+            // bisect also if the slope is 0
             if (((root - h) * df - fu) * ((root - l) * df - fu) > Real(0)
-                || (fabs(Real(2) * fu) > fabs(duPrev * df))) {
+                || (fabs(Real(2) * fu) > fabs(duPrev * df))
+                || df == Real(0)) {
                 duPrev = duCurr;
                 duCurr = (h - l) / Real(2);
                 root = l + duCurr;
@@ -360,9 +371,18 @@ struct Solver {
                 break;
             }
             fu = u0F(root, T00, K00, M, J0B);
-            df = (fu - fPrev) / (root - uPrev);
             absE = duCurr;
             relE = duCurr / root;
+            // Reconst::solve_u0_Hybrid: the step did not move the root (so
+            // fu = fPrev): stop, and fail unless converged, as the slope
+            // 0 / 0 = NaN did
+            const Real du = root - uPrev;
+            if (du == Real(0)) {
+                if (fabs(absE) > P_->absErr && fabs(relE) > P_->relErr)
+                    status = 0;
+                break;
+            }
+            df = (fu - fPrev) / du;
             if (fu * fl < Real(0)) {
                 h = root;
                 fh = fu;

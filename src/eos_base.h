@@ -189,7 +189,7 @@ class EOS_base {
             epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos);
         cs2 = dpde
               + (dpdrhob * rhob + dpdrhos * rhos + dpdrhoq * rhoq)
-                    / (epsilon + p);
+                    / std::max(epsilon + p, 2.2250738585072014e-308);
         cs2 = std::max(0.01, std::min(1. / 3., cs2));
     }
 

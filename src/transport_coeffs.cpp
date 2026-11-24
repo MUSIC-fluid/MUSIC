@@ -24,6 +24,34 @@ TransportCoeffs::TransportCoeffs(const InitData &Data_in)
     if (bulk_T_ == 23) {
         read_in_bulk_from_file();
     }
+    check_denominators();
+}
+
+//! the parameters that the coefficients divide by: stop with an error
+//! instead of dividing by 0 (or by a width of the wrong sign)
+void TransportCoeffs::check_denominators() const {
+    if (DATA.viscosity_flag != 1) return;
+    auto fail = [](const std::string &what) {
+        std::cerr << "TransportCoeffs: " << what << std::endl;
+        exit(1);
+    };
+    if (!(shear_relax_time_factor_ > 0.))
+        fail("shear_relax_time_factor must be > 0");
+    if (!(bulk_relax_time_factor_ > 0.))
+        fail("bulk_relax_time_factor must be > 0");
+    if ((shear_T_ == 23 || bulk_T_ == 23) && !(TArr_[1] > TArr_[0]))
+        fail("the T grid of the viscosity file must increase");
+    if (shear_muB_ == 10 && !(DATA.shear_muBDep_scale > 0.))
+        fail("shear_muBDep_scale must be > 0");
+    if (bulk_T_ == 2 && !(DATA.bulk_2_width_in_GeV > 0.))
+        fail("bulk_2_width_in_GeV must be > 0");
+    if (bulk_T_ == 3
+        && !(DATA.bulk_3_width_in_GeV > 0.
+             && std::abs(DATA.bulk_3_lambda_asymm) < 1.))
+        fail("bulk_3 needs width_in_GeV > 0 and |lambda_asymm| < 1");
+    if (bulk_T_ == 10
+        && !(DATA.bulk_10_width_low > 0. && DATA.bulk_10_width_high > 0.))
+        fail("bulk_10_width_low and bulk_10_width_high must be > 0");
 }
 
 void TransportCoeffs::read_in_shear_from_file() {

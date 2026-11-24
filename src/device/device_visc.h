@@ -564,16 +564,24 @@ struct ViscSolver {
                     sCurr[3 * n + i]);
                 const Real Pp = eg.p;
                 const Real cs2 = eg.cs2;
-                const Real enthalpy = eps + Pp;
+                const Real enthalpy = dmax(eps + Pp, tinyNormal<Real>());
                 const Real K = enthalpy * cs2;
                 Real spatialDiv = Real(0.);
                 for (int nn = 1; nn < 4; nn++) spatialDiv += dUsup[nn][nn];
                 Real dtu[4];
                 Real th = Real(0.);
                 Real theta0 = Real(0.), slope = Real(0.);
+                // c_s^2 v^2 >= 1: no solution, keep the backward difference
+                bool causal = true;
                 for (int pass = 0; pass < 3; pass++) {
                     if (pass == 1) th = Real(1.);
-                    if (pass == 2) th = theta0 / (Real(1.) - slope);
+                    if (pass == 2) {
+                        if (!(slope < Real(1.))) {
+                            causal = false;
+                            break;
+                        }
+                        th = theta0 / (Real(1.) - slope);
+                    }
                     Real udtu = Real(0.);
                     for (int ii = 1; ii < 4; ii++) {
                         Real conv = Real(0.);
@@ -590,7 +598,7 @@ struct ViscSolver {
                     if (pass == 0) theta0 = thetaOut;
                     if (pass == 1) slope = thetaOut - theta0;
                 }
-                bool finite = true;
+                bool finite = causal;
                 for (int m = 0; m < 4; m++) {
                     if (!isfinite(dtu[m])) finite = false;
                 }
@@ -649,7 +657,7 @@ struct ViscSolver {
                          + u[2] * u[3] * sigma_local[2][3])
                   - (u[0] * u[0] - u[1] * u[1]) * sigma_local[1][1]
                   - (u[0] * u[0] - u[2] * u[2]) * sigma_local[2][2])
-                 / (u[0] * u[0] - u[3] * u[3]));
+                 / dmax(u[0] * u[0] - u[3] * u[3], Real(0.5)));
             for (int a = 1; a < 4; a++) {
                 Real temp = Real(0.0);
                 for (int b = 1; b < 4; b++) {
@@ -770,7 +778,7 @@ struct ViscSolver {
     MD_FN Real muBOverT(MD_GLOBAL const Real *s, int n, int I) const {
         Real T, muB;
         eosTMuB(*d_, tab, s[I], s[n + I], s[2 * n + I], s[3 * n + I], T, muB);
-        return (muB / T);
+        return (muB / dmax(T, Real(1e-16)));
     }
 
     //! Diss::D_muB_over_T_ideal (the EoS at n_Q = n_S = 0, as on the host)
@@ -943,8 +951,9 @@ struct ViscSolver {
             (pi_00 * pi_00 + pi_11 * pi_11 + pi_22 * pi_22 + pi_33 * pi_33
              - Real(2.) * (pi_01 * pi_01 + pi_02 * pi_02 + pi_03 * pi_03)
              + Real(2.) * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
-        R_shear = sqrt(pisize) / enthalpy;
-        R_bulk = fabs(grid_pt.pi) / enthalpy;
+        const Real h = dmax(enthalpy, tinyNormal<Real>());
+        R_shear = sqrt(pisize) / h;
+        R_bulk = fabs(grid_pt.pi) / h;
     }
 
     //! Diss::Make_uWSource
@@ -1241,7 +1250,9 @@ struct ViscSolver {
             for (int ii = 0; ii < 4; ii++) grid_pt.W[10 + ii] = Real(0.0);
         }
         Real rhob_local = grid_pt.c.rhob;
-        Real rho_q = sqrt(q_size / (rhob_local * rhob_local)) / factor;
+        Real rho_q =
+            sqrt(q_size / dmax(rhob_local * rhob_local, tinyNormal<Real>()))
+            / dmax(factor, tinyNormal<Real>());
         Real rho_q_max = Real(0.1);
         if (rho_q > rho_q_max) {
             for (int ii = 0; ii < 4; ii++) {
@@ -1274,7 +1285,11 @@ struct ViscSolver {
         Real bulksize = Real(3.) * pi_local * pi_local;
         Real p_local =
             eosPressure(*d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
-        Real eq_size = e_local * e_local + Real(3.) * p_local * p_local;
+        Real eq_size = dmax(
+            e_local * e_local + Real(3.) * p_local * p_local,
+            tinyNormal<Real>());
+        factor = dmax(factor, tinyNormal<Real>());
+        factor_bulk = factor;
         Real rho_shear = sqrt(pisize / eq_size) / factor;
         Real rho_bulk = sqrt(bulksize / eq_size) / factor_bulk;
         Real rho_shear_max = Real(0.1);
@@ -1343,7 +1358,11 @@ struct ViscSolver {
         Real roots[3] = {m, m, m};
         if (q > Real(0.)) {
             const Real sq = sqrt(q);
-            const Real c = dmax(Real(-1.), dmin(Real(1.), r / (q * sq)));
+            // q * sq underflows to 0 only for (numerically) equal roots
+            const Real qsq = q * sq;
+            const Real c =
+                (qsq > Real(0.) ? dmax(Real(-1.), dmin(Real(1.), r / qsq))
+                                : Real(0.));
             const Real phi = acos(c) / Real(3.);
             const Real twoPiOver3 = Real(2.0943951023931954923);
             roots[0] = m + Real(2.) * sq * cos(phi);
@@ -1389,18 +1408,19 @@ struct ViscSolver {
             delta_pipi + Real(1.) / Real(3.) * tau_pipi
             + lambda_bulkPipi * (Real(1.) / Real(3.) - cs2) + cs2;
 
+        const Real enthalpy = dmax(eps + Pr, tinyNormal<Real>());
         Real n1 = transportPart_n13
-                  + viscousPart1_n13 * grid_pt.pi / (eps + Pr)
-                  + viscousPart2_n13 * fabs(Lambdas[0]) / (eps + Pr);
+                  + viscousPart1_n13 * grid_pt.pi / enthalpy
+                  + viscousPart2_n13 * fabs(Lambdas[0]) / enthalpy;
         Real n3 = transportPart_n13
-                  + viscousPart1_n13 * grid_pt.pi / (eps + Pr)
-                  + viscousPart2_n13 * Lambdas[2] / (eps + Pr);
+                  + viscousPart1_n13 * grid_pt.pi / enthalpy
+                  + viscousPart2_n13 * Lambdas[2] / enthalpy;
         Real n5 = transportPart_n56
-                  + viscousPart1_n56 * grid_pt.pi / (eps + Pr)
-                  + viscousPart2_n56 * Lambdas[0] / (eps + Pr);
+                  + viscousPart1_n56 * grid_pt.pi / enthalpy
+                  + viscousPart2_n56 * Lambdas[0] / enthalpy;
         Real n6 = (Real(1.) - transportPart_n56)
-                  + (Real(1.) - viscousPart1_n56) * grid_pt.pi / (eps + Pr)
-                  + (Real(1.) - viscousPart2_n56) * Lambdas[2] / (eps + Pr);
+                  + (Real(1.) - viscousPart1_n56) * grid_pt.pi / enthalpy
+                  + (Real(1.) - viscousPart2_n56) * Lambdas[2] / enthalpy;
 
         Real minAlp = Real(1.);
         Real alp = Real(1.);
@@ -1417,8 +1437,9 @@ struct ViscSolver {
             minAlp = dmax(Real(0.), dmin(minAlp, alp));
         }
         if (n6 < Real(0.)) {
-            alp = -(Real(1.) - transportPart_n56)
-                  / (n6 - (Real(1.) - transportPart_n56));
+            const Real den6 = n6 - (Real(1.) - transportPart_n56);
+            alp = (den6 < Real(0.) ? -(Real(1.) - transportPart_n56) / den6
+                                   : Real(0.));
             minAlp = dmax(Real(0.), dmin(minAlp, alp));
         }
         for (int k = 0; k < 14; k++) grid_pt.W[k] = grid_pt.W[k] * minAlp;
@@ -1446,8 +1467,10 @@ struct ViscSolver {
              - Real(2.) * (pi_01 * pi_01 + pi_02 * pi_02 + pi_03 * pi_03)
              + Real(2.) * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
         Real pi_local = grid_pt.pi;
-        Real Rshear = sqrt(pisize) / (e_local + p_local + Real(1e-16));
-        Real Rbulk = fabs(pi_local) / (e_local + p_local + Real(1e-16));
+        Real Rshear =
+            sqrt(pisize) / (dmax(e_local + p_local, Real(0.)) + Real(1e-16));
+        Real Rbulk =
+            fabs(pi_local) / (dmax(e_local + p_local, Real(0.)) + Real(1e-16));
         Real r_combined = Real(1.5) * (Rshear + Rbulk) + Real(1e-16);
         Real renorm = dmin(Real(1.), (Real(1.) - Real(1e-6)) / r_combined);
         for (int mu = 0; mu < 10; mu++) {
@@ -1540,7 +1563,7 @@ struct ViscSolver {
                      + grid_f.c.u[2] * grid_f.c.u[3] * grid_f.W[8])
               - (u0sq - grid_f.c.u[1] * grid_f.c.u[1]) * grid_f.W[4]
               - (u0sq - grid_f.c.u[2] * grid_f.c.u[2]) * grid_f.W[7])
-             / (u0sq - grid_f.c.u[3] * grid_f.c.u[3]));
+             / dmax(u0sq - grid_f.c.u[3] * grid_f.c.u[3], Real(0.5)));
         for (int mu = 1; mu < 4; mu++) {
             tempf = Real(0.0);
             for (int nu = 1; nu < 4; nu++) {
@@ -1730,7 +1753,7 @@ MD_FN void kernelCellVisc(
     if (kStage < 0 ? P.rkFlag == 1 : kStage == 1) {
         // Advance::stage2ViscousFixedPoint
         const Real tau_np2 = P.tau + Real(2.) * P.dtau;
-        const Real scaleT = fabs(qi[0]);
+        const Real scaleT = dmax(fabs(qi[0]), tinyNormal<Real>());
         const Real scaleJ = fabs(qi[4]) + Real(1e-12) * scaleT;
         const Real tolerance = Real(1e-8);
         const int maxIterations = 16;

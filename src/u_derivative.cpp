@@ -431,7 +431,10 @@ void U_derivative::calculate_velocity_shear_tensor(
                 * sigma_local[1][1]
           - (u_local[0] * u_local[0] - u_local[2] * u_local[2])
                 * sigma_local[2][2])
-         / (u_local[0] * u_local[0] - u_local[3] * u_local[3]));
+         / std::max(u_local[0] * u_local[0] - u_local[3] * u_local[3], 0.5));
+    // u0^2 - u3^2 = 1 + u1^2 + u2^2 >= 1; rounding takes it below 1
+    // (to 0 only for u0 ~ 1/sqrt(eps)), so a floor of 0.5 changes no
+    // result short of that
     // make sigma[0][i] using transversality
     for (int a = 1; a < 4; a++) {
         double temp = 0.0;
@@ -534,23 +537,29 @@ int U_derivative::MakeDSpatial(
                     (eos.get_muB(
                          arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
                          arena.rhos_[Ic])
-                     / eos.get_temperature(
-                         arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
-                         arena.rhos_[Ic]));
+                     / std::max(
+                         eos.get_temperature(
+                             arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
+                             arena.rhos_[Ic]),
+                         Util::small_eps));
                 double fp1 =
                     (eos.get_muB(
                          arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
                          arena.rhos_[Ip1])
-                     / eos.get_temperature(
-                         arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
-                         arena.rhos_[Ip1]));
+                     / std::max(
+                         eos.get_temperature(
+                             arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
+                             arena.rhos_[Ip1]),
+                         Util::small_eps));
                 double fm1 =
                     (eos.get_muB(
                          arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
                          arena.rhos_[Im1])
-                     / eos.get_temperature(
-                         arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
-                         arena.rhos_[Im1]));
+                     / std::max(
+                         eos.get_temperature(
+                             arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
+                             arena.rhos_[Im1]),
+                         Util::small_eps));
                 dUsup[4][direction] =
                     (minmod.minmod_dx(fp1, f, fm1) / delta[direction]);
             }
@@ -605,7 +614,7 @@ void U_derivative::MakeDTauIdealEoM(
     eos.get_pressure_with_gradients_and_cs2(
         eps, arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
         arena.rhos_[fieldIdx], P, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
-    const double enthalpy = eps + P;
+    const double enthalpy = std::max(eps + P, Util::tiny_normal);
     // De = -(e + P) theta and Dn = -n theta for each charge, so
     // DP = -(e + P) c_s^2 theta
     const double K = enthalpy * cs2;  // DP = -K theta
@@ -632,6 +641,9 @@ void U_derivative::MakeDTauIdealEoM(
     double dtu[4];
     const double theta0 = solve(0., dtu);
     const double slope = solve(1., dtu) - theta0;  // = c_s^2 v^2 < 1
+    // c_s^2 v^2 >= 1 (an acausal EoS): no solution, keep the backward
+    // difference
+    if (!(slope < 1.)) return;
     const double theta = theta0 / (1. - slope);
     solve(theta, dtu);
     for (int m = 0; m < 4; m++) {
@@ -705,10 +717,10 @@ int U_derivative::MakeDTau(
     int m = 4;
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
-    const double tildemu = muB / T;
+    const double tildemu = muB / std::max(T, Util::small_eps);
     const double muB_prev =
         eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
-    const double tildemu_prev = muB_prev / T_prev;
+    const double tildemu_prev = muB_prev / std::max(T_prev, Util::small_eps);
     f = (tildemu - tildemu_prev) / (DATA.delta_tau);
     dUsup[m][0] = -f;  // g^{00} = -1
     return 1;

@@ -123,6 +123,18 @@ class Reconst {
     void regulate_grid(
         ReconstCell &grid_cell, double elocal, double J0B, double J0Q,
         double J0S) const;
+
+    //! the secant denominator d + abs_err (d a difference of iterates),
+    //! which vanishes at d = -abs_err: there (and where it is subnormal)
+    //! it is -abs_err = d, the plain secant step. Equal to d + abs_err
+    //! wherever that is normal, so every secant step that did not divide
+    //! by 0 is unchanged; |result| >= tiny_normal and the numerator, a
+    //! difference of f in (-1, 1), keep the slope finite. The device solver
+    //! uses the same statement (device_ideal.h, Solver::secantDenominator)
+    double secant_denominator(const double d) const {
+        const double s = d + abs_err;
+        return (std::abs(s) >= Util::tiny_normal ? s : -abs_err);
+    }
 };
 
 #endif  // SRC_RECONST_H_

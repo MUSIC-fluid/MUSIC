@@ -208,8 +208,20 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     compute_norm_for_strings();
 
     if (DATA.dynamicGridDetermination) {
-        DATA.beam_rapidity =
-            acosh(total_energy / (total_baryon_number * Util::m_N));
+        // E / (N_B m_N) >= 1 for N_B > 0; with no baryons (or a ratio
+        // below 1) keep the beam rapidity from ecm instead of acosh(inf)
+        // or acosh(< 1) = NaN
+        if (total_baryon_number > 0.
+            && total_energy >= total_baryon_number * Util::m_N) {
+            DATA.beam_rapidity =
+                acosh(total_energy / (total_baryon_number * Util::m_N));
+        } else {
+            music_message << "[HydroSource] total baryon number = "
+                          << total_baryon_number << ", total energy = "
+                          << total_energy << " GeV: keep the beam rapidity "
+                          << DATA.beam_rapidity << " from ecm";
+            music_message.flush("warning");
+        }
         // a boost-invariant run has a single eta slice at eta = 0; keep
         // eta_size = 0 and the delta_eta set in read_in_parameters
         if (!DATA.boost_invariant && DATA.neta > 1) {

@@ -120,7 +120,9 @@ void HydroSourceTmunu::readIPGevent() {
                          + uy * ueta * piyeta)
                   - (utau * utau - ux * ux) * pixx
                   - (utau * utau - uy * uy) * piyy)
-                 / (utau * utau - ueta * ueta));
+                 / std::max(utau * utau - ueta * ueta, 0.5));
+            // utau^2 - ueta^2 = 1 + ux^2 + uy^2 >= 1; the floor 0.5 only
+            // catches a cancellation to ~0 (utau ~ 1/sqrt(eps))
             pitaux = (pixx * ux + pixy * uy + pixeta * ueta) / utau;
             pitauy = (pixy * ux + piyy * uy + piyeta * ueta) / utau;
             pitaueta = (pixeta * ux + piyeta * uy + pietaeta * ueta) / utau;

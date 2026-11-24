@@ -71,13 +71,18 @@ void HydroSourceAMPT::read_in_AMPT_partons() {
         new_parton->eta_s =
             0.5
             * log((t_local + z_local) / (t_local - z_local + Util::small_eps));
-        new_parton->rapidity =
-            0.5 * log((new_parton->E + pz_local) / (new_parton->E - pz_local));
+        // E - pz >= 0 (E = sqrt(m^2 + pT^2 + pz^2) >= |pz|), = 0 only for
+        // m = pT = 0 or in rounding; the floor gives a large finite rapidity
+        new_parton->rapidity = 0.5
+            * log((new_parton->E + pz_local)
+                  / std::max(new_parton->E - pz_local, Util::tiny_normal));
+        // a massless parton: u_perp = inf for pT > 0 (y_perp = inf), 0 for
+        // pT = 0, instead of x / 0
         double u_perp =
             (sqrt(
                  new_parton->px * new_parton->px
                  + new_parton->py * new_parton->py)
-             / new_parton->mass);
+             / std::max(new_parton->mass, Util::tiny_normal));
         new_parton->rapidity_perp = asinh(u_perp);
         if (pid == 1) {
             // d quark

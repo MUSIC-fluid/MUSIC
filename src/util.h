@@ -22,6 +22,9 @@ namespace Util {
 const double hbarc = 0.19733;
 const double default_tol = 1.0e-8;
 const double small_eps = 1e-16;
+//! the smallest normal double: a floor for a denominator that is >= 0 by
+//! construction, which changes no result unless it is 0 or subnormal
+const double tiny_normal = 2.2250738585072014e-308;
 
 // the mass of a nucleon (averaged over proton and neutron)
 const double m_N = 0.939;  // [GeV]

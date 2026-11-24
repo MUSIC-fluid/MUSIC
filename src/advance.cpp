@@ -196,7 +196,8 @@ void Advance::stage2ViscousFixedPoint(
     const double tau_next = tau + DATA.delta_tau;
     const double tau_np2 = tau + 2. * DATA.delta_tau;
     const auto guess = arenaFieldsCurr.getCellIdeal(fieldIdx);
-    const double scaleT = std::abs(qiFinal[0]);
+    // > 0, so that the scaled misses below never divide by 0
+    const double scaleT = std::max(std::abs(qiFinal[0]), Util::tiny_normal);
     const double scaleJ = std::abs(qiFinal[4]) + 1e-12 * scaleT;
 
     auto applyShift = [&](const TJbVec &shift) {
@@ -572,7 +573,10 @@ void Advance::FirstRKStepW(
                  + grid_f.u[2] * grid_f.u[3] * grid_f.Wmunu[8])
           - (u0sq - grid_f.u[1] * grid_f.u[1]) * grid_f.Wmunu[4]
           - (u0sq - grid_f.u[2] * grid_f.u[2]) * grid_f.Wmunu[7])
-         / (u0sq - grid_f.u[3] * grid_f.u[3]));
+         / std::max(u0sq - grid_f.u[3] * grid_f.u[3], 0.5));
+    // u0^2 - u3^2 = 1 + u1^2 + u2^2 >= 1; rounding takes it below 1
+    // (to 0 only for u0 ~ 1/sqrt(eps)), so a floor of 0.5 changes no
+    // result short of that
 
     // make Wmunu[i][0] using the transversality
     for (int mu = 1; mu < 4; mu++) {
@@ -641,8 +645,9 @@ void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {
          + 2. * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
     double pi_local = grid_pt.pi_b;
 
-    double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
+    // e + P >= 0; the max keeps the guard positive for any input
+    double Rshear = sqrt(pisize) / (std::max(e_local + p_local, 0.) + 1e-16);
+    double Rbulk = std::abs(pi_local) / (std::max(e_local + p_local, 0.) + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., (1. - 1e-6) / r_combined);
     for (int mu = 0; mu < 10; mu++) {
@@ -689,7 +694,12 @@ void Advance::QuestRevert(
     double bulksize = 3. * pi_local * pi_local;
 
     double p_local = eos.get_pressure(e_local, rhob, rhoq, rhos);
-    double eq_size = e_local * e_local + 3. * p_local * p_local;
+    // eq_size and factor are >= 0 and vanish only at e = 0 (or a strength
+    // of 0); the floors then give rho = inf instead of 0 / 0 or x / 0
+    double eq_size = std::max(
+        e_local * e_local + 3. * p_local * p_local, Util::tiny_normal);
+    factor = std::max(factor, Util::tiny_normal);
+    factor_bulk = factor;
 
     // In default MUSIC
     double rho_shear = sqrt(pisize / eq_size) / factor;
@@ -789,7 +799,10 @@ void Advance::QuestRevert_qmu(
     // reduce the size of q^mu according to rhoB
     double e_local = grid_pt.epsilon;
     double rhob_local = grid_pt.rhob;
-    double rho_q = sqrt(q_size / (rhob_local * rhob_local)) / factor;
+    // n_B = 0 or a factor of 0: rho_q = inf (q is removed) instead of x / 0
+    double rho_q =
+        sqrt(q_size / std::max(rhob_local * rhob_local, Util::tiny_normal))
+        / std::max(factor, Util::tiny_normal);
     double rho_q_max = 0.1;
     if (rho_q > rho_q_max) {
         if (e_local > eps_scale && DATA.echo_level > 5) {
@@ -1208,7 +1221,10 @@ void Advance::solveEigenvaluesWmunu(Cell_small &grid_pt) {
     double roots[3] = {m, m, m};
     if (q > 0.) {
         const double sq = sqrt(q);
-        const double c = std::max(-1., std::min(1., r / (q * sq)));
+        // q * sq underflows to 0 only for (numerically) equal roots
+        const double qsq = q * sq;
+        const double c =
+            (qsq > 0. ? std::max(-1., std::min(1., r / qsq)) : 0.);
         const double phi = acos(c) / 3.;
         const double twoPiOver3 = 2.0943951023931954923;
         roots[0] = m + 2. * sq * cos(phi);
@@ -1234,6 +1250,7 @@ void Advance::nCausalityConstraints(Cell_small &grid_pt) {
     double rhob = grid_pt.rhob;
     double cs2 = eos.get_cs2(eps, rhob, grid_pt.rhoq, grid_pt.rhos);
     double P = eos.get_pressure(eps, rhob, grid_pt.rhoq, grid_pt.rhos);
+    const double enthalpy = std::max(eps + P, Util::tiny_normal);
     double transportPart_n13 =
         2. * 1. / transport_coeffs_.get_shear_relax_time_factor();
     double viscousPart1_n13 = transport_coeffs_.get_lambda_pibulkPi_coeff();
@@ -1250,15 +1267,15 @@ void Advance::nCausalityConstraints(Cell_small &grid_pt) {
         + 1. / 3. * transport_coeffs_.get_tau_pipi_coeff()
         + transport_coeffs_.get_lambda_bulkPipi_coeff() * (1. / 3. - cs2) + cs2;
 
-    double n1 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / (eps + P)
-                + viscousPart2_n13 * std::abs(grid_pt.Lambdas[0]) / (eps + P);
-    double n3 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / (eps + P)
-                + viscousPart2_n13 * grid_pt.Lambdas[2] / (eps + P);
-    double n5 = transportPart_n56 + viscousPart1_n56 * grid_pt.pi_b / (eps + P)
-                + viscousPart2_n56 * grid_pt.Lambdas[0] / (eps + P);
+    double n1 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / enthalpy
+                + viscousPart2_n13 * std::abs(grid_pt.Lambdas[0]) / enthalpy;
+    double n3 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / enthalpy
+                + viscousPart2_n13 * grid_pt.Lambdas[2] / enthalpy;
+    double n5 = transportPart_n56 + viscousPart1_n56 * grid_pt.pi_b / enthalpy
+                + viscousPart2_n56 * grid_pt.Lambdas[0] / enthalpy;
     double n6 = (1. - transportPart_n56)
-                + (1. - viscousPart1_n56) * grid_pt.pi_b / (eps + P)
-                + (1. - viscousPart2_n56) * grid_pt.Lambdas[2] / (eps + P);
+                + (1. - viscousPart1_n56) * grid_pt.pi_b / enthalpy
+                + (1. - viscousPart2_n56) * grid_pt.Lambdas[2] / enthalpy;
 
     double minAlp = 1;
     double alp = 1.;
@@ -1278,7 +1295,10 @@ void Advance::nCausalityConstraints(Cell_small &grid_pt) {
     }
 
     if (n6 < 0) {
-        alp = -(1. - transportPart_n56) / (n6 - (1. - transportPart_n56));
+        // n6 - (1 - t) < 0 for 1 - t >= 0; for 1 - t < 0 no alpha in [0, 1]
+        // satisfies the constraint
+        const double den6 = n6 - (1. - transportPart_n56);
+        alp = (den6 < 0. ? -(1. - transportPart_n56) / den6 : 0.);
         minAlp = std::max(0., std::min(minAlp, alp));
     }
 

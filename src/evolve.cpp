@@ -696,7 +696,9 @@ void Evolve::coarseGrainAndEnlargeGrid(
         std::vector<double> dampSum(nBase, 0.);
         for (const Stencil &st : stencils) dampSum[st.base] += st.damp;
         for (Stencil &st : stencils) {
-            const double share = st.damp / dampSum[st.base];
+            // dampSum >= st.damp; both are 0 only if exp underflows
+            const double share =
+                (dampSum[st.base] > 0. ? st.damp / dampSum[st.base] : 0.);
             for (int k = 0; k < st.n; k++) st.w[k] *= share;
         }
         return stencils;
@@ -842,7 +844,8 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 arenaCurr.rhoq_[idxNew] = rhoq;
                 arenaCurr.rhos_[idxNew] = rhos;
                 for (int nu = 1; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] = u[nu] / wSum;
+                    arenaCurr.u_[nu][idxNew] =
+                        (wSum > 0. ? u[nu] / wSum : 0.);
                 }
                 arenaCurr.u_[0][idxNew] = sqrt(
                     1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
@@ -1472,6 +1475,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                     music_message.flush("error");
                     exit(1);
                 }
+                // T > 0 for e_FO > 0; the floor keeps the divisions below finite
+                const double TFOdiv = std::max(TFO, Util::tiny_normal);
                 const double muB = eos.get_muB(
                     epsFO, fluid_center.rhob, fluid_center.rhoq,
                     fluid_center.rhos);
@@ -1485,7 +1490,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                 const double pressure = eos.get_pressure(
                     epsFO, fluid_center.rhob, fluid_center.rhoq,
                     fluid_center.rhos);
-                const double eps_plus_p_over_T_FO = (epsFO + pressure) / TFO;
+                const double eps_plus_p_over_T_FO = (epsFO + pressure) / TFOdiv;
 
                 // finally output results !!!!
                 if (surface_in_binary) {
@@ -1524,14 +1529,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                             // no minus sign because its definition is
                             // opposite to the kinetic vorticity
                             FOarray[36 + ii] =
-                                fluid_aux_center.omega_kSP[ii] / TFO;
+                                fluid_aux_center.omega_kSP[ii] / TFOdiv;
                             // the extra minus sign is from metric
                             // output quantities for g = (1, -1, -1, -1)
                             FOarray[42 + ii] =
-                                -fluid_aux_center.omega_k[ii] / TFO;
+                                -fluid_aux_center.omega_k[ii] / TFOdiv;
                             FOarray[48 + ii] = -fluid_aux_center.omega_th[ii];
                             FOarray[54 + ii] =
-                                (-fluid_aux_center.omega_T[ii] / TFO / TFO);
+                                (-fluid_aux_center.omega_T[ii] / TFOdiv / TFOdiv);
                         }
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
@@ -1766,6 +1771,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
                 music_message.flush("error");
                 exit(1);
             }
+            // T = 0 in empty cells: the floor keeps the divisions finite
+            const double T_div = std::max(T_local, Util::tiny_normal);
             double muB_local =
                 eos.get_muB(e_local, rhob_center, rhoq_center, rhos_center);
             double muS_local =
@@ -1775,7 +1782,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
 
             double pressure = eos.get_pressure(
                 e_local, rhob_center, rhoq_center, rhos_center);
-            double eps_plus_p_over_T = (e_local + pressure) / T_local;
+            double eps_plus_p_over_T = (e_local + pressure) / T_div;
 
             // finally output results
             if (surface_in_binary) {
@@ -1822,14 +1829,14 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
                         // no minus sign because its definition is opposite to
                         // the kinetic vorticity
                         FOarray[36 + ii] =
-                            fluid_aux_center.omega_kSP[ii] / T_local;
+                            fluid_aux_center.omega_kSP[ii] / T_div;
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         FOarray[42 + ii] =
-                            -fluid_aux_center.omega_k[ii] / T_local;
+                            -fluid_aux_center.omega_k[ii] / T_div;
                         FOarray[48 + ii] = -fluid_aux_center.omega_th[ii];
                         FOarray[54 + ii] =
-                            (-fluid_aux_center.omega_T[ii] / T_local / T_local);
+                            (-fluid_aux_center.omega_T[ii] / T_div / T_div);
                     }
                     // the extra minus sign is from metric
                     // output quantities for g = (1, -1, -1, -1)
@@ -2108,11 +2115,13 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         music_message.flush("error");
                         exit(1);
                     }
+                    // T > 0 for e_FO > 0; the floor keeps the divisions below finite
+                    const double TFOdiv = std::max(TFO, Util::tiny_normal);
 
                     double pressure = eos.get_pressure(
                         epsFO, fluid_center.rhob, fluid_center.rhoq,
                         fluid_center.rhos);
-                    double eps_plus_p_over_T_FO = (epsFO + pressure) / TFO;
+                    double eps_plus_p_over_T_FO = (epsFO + pressure) / TFOdiv;
 
                     // finally output results !!!!
                     if (surface_in_binary) {

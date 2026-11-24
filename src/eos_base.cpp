@@ -332,7 +332,8 @@ double EOS_base::get_entropy(
     double rhobT, rhoQ, rhoS;
     get_densities_in_table(epsilon, rhob, rhoq, rhos, rhobT, rhoQ, rhoS);
     auto f =
-        (epsilon + P - muB * rhobT - muS * rhoS - muQ * rhoQ) / (T + small_eps);
+        (epsilon + P - muB * rhobT - muS * rhoS - muQ * rhoQ)
+        / (std::max(T, 0.) + small_eps);
     return (std::max(small_eps, f));
 }
 
@@ -362,7 +363,7 @@ void EOS_base::getThermalVariables(
     double entropy =
         ((epsilon + p - thermalVec[7] * rhobT - thermalVec[8] * rhoS
           - thermalVec[10] * rhoQ)
-         / (thermalVec[6] + small_eps));
+         / (std::max(thermalVec[6], 0.) + small_eps));
     entropy = std::max(small_eps, entropy);
     thermalVec[12] = entropy;
     thermalVec[13] = dpdrhoq;
@@ -382,7 +383,8 @@ double EOS_base::calculate_velocity_of_sound_sq(
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
-    double v_sound = dpde + rhob / (e + pressure + small_eps) * dpdrho;
+    double v_sound =
+        dpde + rhob / (std::max(e + pressure, 0.) + small_eps) * dpdrho;
     v_sound = std::max(v_min, std::min(v_max, v_sound));
     return (v_sound);
 }
@@ -450,7 +452,7 @@ double EOS_base::get_T2e_finite_rhob(
     double abs_accuracy = small_eps;
     double T_mid;
     int iter = 0;
-    while (((eps_upper - eps_lower) / eps_mid > rel_accuracy
+    while (((eps_upper - eps_lower) > rel_accuracy * eps_mid
             && (eps_upper - eps_lower) > abs_accuracy)
            && iter < ntol) {
         T_mid = get_temperature(eps_mid, rhob);
@@ -497,7 +499,7 @@ double EOS_base::get_s2e_finite_rhob(
     double abs_accuracy = small_eps;
     double s_mid;
     int iter = 0;
-    while (((eps_upper - eps_lower) / eps_mid > rel_accuracy
+    while (((eps_upper - eps_lower) > rel_accuracy * eps_mid
             && (eps_upper - eps_lower) > abs_accuracy)
            && iter < ntol) {
         s_mid = get_entropy(eps_mid, rhob);
@@ -548,7 +550,7 @@ void EOS_base::map_TmuB2erhoB(
     double muB_mid;
     double e_mid = (e_lower + e_upper) / 2.;
     int iter = 0;
-    while (((rhob_upper - rhob_lower) / rhob_mid > rel_accuracy
+    while (((rhob_upper - rhob_lower) > rel_accuracy * rhob_mid
             && (rhob_upper - rhob_lower) > abs_accuracy)
            && iter < ntol) {
         e_mid = get_T2e_finite_rhob(T, rhob_mid);

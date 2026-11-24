@@ -176,6 +176,8 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
 
                 // Entropy with other conserved charges ??
                 double enthropy = thermalVec[0] + thermalVec[2];  // [1/fm^4]
+                // e + P >= 0, = 0 only in empty cells
+                const double enthalpyDiv = std::max(enthropy, Util::tiny_normal);
                 double trace_anomaly = thermalVec[0] - 3.0 * thermalVec[2];
 
                 double Wtautau = 0.0;
@@ -189,16 +191,16 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double Wyeta = 0.0;
                 double Wetaeta = 0.0;
                 if (DATA.turn_on_shear == 1) {
-                    Wtautau = arena.Wmunu_[0][fieldIdx] / enthropy;
-                    Wtaux = arena.Wmunu_[1][fieldIdx] / enthropy;
-                    Wtauy = arena.Wmunu_[2][fieldIdx] / enthropy;
-                    Wtaueta = arena.Wmunu_[3][fieldIdx] / enthropy;
-                    Wxx = arena.Wmunu_[4][fieldIdx] / enthropy;
-                    Wxy = arena.Wmunu_[5][fieldIdx] / enthropy;
-                    Wxeta = arena.Wmunu_[6][fieldIdx] / enthropy;
-                    Wyy = arena.Wmunu_[7][fieldIdx] / enthropy;
-                    Wyeta = arena.Wmunu_[8][fieldIdx] / enthropy;
-                    Wetaeta = arena.Wmunu_[9][fieldIdx] / enthropy;
+                    Wtautau = arena.Wmunu_[0][fieldIdx] / enthalpyDiv;
+                    Wtaux = arena.Wmunu_[1][fieldIdx] / enthalpyDiv;
+                    Wtauy = arena.Wmunu_[2][fieldIdx] / enthalpyDiv;
+                    Wtaueta = arena.Wmunu_[3][fieldIdx] / enthalpyDiv;
+                    Wxx = arena.Wmunu_[4][fieldIdx] / enthalpyDiv;
+                    Wxy = arena.Wmunu_[5][fieldIdx] / enthalpyDiv;
+                    Wxeta = arena.Wmunu_[6][fieldIdx] / enthalpyDiv;
+                    Wyy = arena.Wmunu_[7][fieldIdx] / enthalpyDiv;
+                    Wyeta = arena.Wmunu_[8][fieldIdx] / enthalpyDiv;
+                    Wetaeta = arena.Wmunu_[9][fieldIdx] / enthalpyDiv;
                 }
 
                 double bulk_Pi = 0.0;
@@ -218,7 +220,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double qy = 0.0;
                 double qeta = 0.0;
                 if (DATA.turn_on_diff == 1) {
-                    common_term_q = thermalVec[1] * thermalVec[6] / enthropy;
+                    common_term_q = thermalVec[1] * thermalVec[6] / enthalpyDiv;
                     double kappa_hat =
                         get_deltaf_qmu_coeff(thermalVec[6], thermalVec[7]);
                     qtau = arena.Wmunu_[10][fieldIdx] / kappa_hat;
@@ -377,8 +379,10 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
          - 2. * (pi_01 * pi_01 + pi_02 * pi_02 + pi_03 * pi_03)
          + 2. * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
 
-    R_pi = sqrt(pisize) / P_local;
-    R_Pi = arena.piBulk_[Idx] / P_local;
+    // P_local is e + P >= 0 here, = 0 only in empty cells
+    const double enthalpy = std::max(P_local, Util::tiny_normal);
+    R_pi = sqrt(pisize) / enthalpy;
+    R_Pi = arena.piBulk_[Idx] / enthalpy;
 }
 
 //! This function outputs hydro evolution file into memory for JETSCAPE
@@ -552,7 +556,9 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
 
                 ShearVisVecLRF piLRF;
                 get_LRF_shear_stress_tensor(arena, fieldIdx, eta_local, piLRF);
-                double div_factor = e_local + p_local;  // 1/fm^4
+                // e + P >= 0, = 0 only in empty cells
+                double div_factor =
+                    std::max(e_local + p_local, Util::tiny_normal);  // 1/fm^4
                 double Wxx = 0.0;
                 double Wxy = 0.0;
                 double Wxz = 0.0;
@@ -713,7 +719,9 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
                 double uy = arena.u_[2][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
 
-                double div_factor = e_local + p_local;  // 1/fm^4
+                // e + P >= 0, = 0 only in empty cells
+                double div_factor =
+                    std::max(e_local + p_local, Util::tiny_normal);  // 1/fm^4
                 double Wxx = arena.Wmunu_[4][fieldIdx] / div_factor;
                 double Wxy = arena.Wmunu_[5][fieldIdx] / div_factor;
                 double Wxeta = arena.Wmunu_[6][fieldIdx] / div_factor;
@@ -822,7 +830,9 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                     }
                 }
 
-                double div_factor = e_local + p_local;  // 1/fm^4
+                // e + P >= 0, = 0 only in empty cells
+                double div_factor =
+                    std::max(e_local + p_local, Util::tiny_normal);  // 1/fm^4
                 double Wxx = 0.0;
                 double Wxy = 0.0;
                 double Wxeta = 0.0;
@@ -1817,13 +1827,13 @@ void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
                 pizz_analytic[i] - arena.Wmunu_[9][fieldIdx] * Util::hbarc));
             pizz_sum += fabs(pizz_analytic[i]);
         }
-        music_message << "Autocheck: T_diff = " << T_diff / T_sum
-                      << ", ux_diff = " << ux_diff / ux_sum
-                      << ", uy_diff = " << uy_diff / uy_sum
-                      << ", pixx_diff = " << pixx_diff / pixx_sum
-                      << ", pixy_diff = " << pixy_diff / pixy_sum
-                      << ", piyy_diff = " << piyy_diff / piyy_sum
-                      << ", pizz_diff = " << pizz_diff / pizz_sum;
+        music_message << "Autocheck: T_diff = " << T_diff / std::max(T_sum, small_eps)
+                      << ", ux_diff = " << ux_diff / std::max(ux_sum, small_eps)
+                      << ", uy_diff = " << uy_diff / std::max(uy_sum, small_eps)
+                      << ", pixx_diff = " << pixx_diff / std::max(pixx_sum, small_eps)
+                      << ", pixy_diff = " << pixy_diff / std::max(pixy_sum, small_eps)
+                      << ", piyy_diff = " << piyy_diff / std::max(piyy_sum, small_eps)
+                      << ", pizz_diff = " << pizz_diff / std::max(pizz_sum, small_eps);
         music_message.flush("info");
     }
 
@@ -2899,8 +2909,8 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                        << "  "
                        << meanpT_est_num[1] * hbarc * DATA.delta_x
                               * DATA.delta_y
-                       << "  " << meanpT_est_num[2] / meanpT_est_den[0] << "  "
-                       << meanpT_est_num[3] / meanpT_est_den[0] << endl;
+                       << "  " << meanpT_est_num[2] / std::max(meanpT_est_den[0], small_eps) << "  "
+                       << meanpT_est_num[3] / std::max(meanpT_est_den[0], small_eps) << endl;
     }
     for (int ieta = 0; ieta < neta; ieta++) {
         of << lines[ieta][0].str();
@@ -3264,8 +3274,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     of3 << scientific << setw(18) << setprecision(8) << tau << "  "
         << meanpT_est_num[0] * DATA.delta_x * DATA.delta_y << "  "
         << meanpT_est_num[1] * hbarc * DATA.delta_x * DATA.delta_y << "  "
-        << meanpT_est_num[2] / meanpT_est_den[0] << "  "
-        << meanpT_est_num[3] / meanpT_est_den[0] << endl;
+        << meanpT_est_num[2] / std::max(meanpT_est_den[0], small_eps) << "  "
+        << meanpT_est_num[3] / std::max(meanpT_est_den[0], small_eps) << endl;
     of3.close();
 }
 

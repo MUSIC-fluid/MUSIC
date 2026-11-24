@@ -518,8 +518,10 @@ void Polygon::calculate_centroid() {
     }
     // Now we can determine centroid as a weighted average of the centroids
     // of the triangles
+    // a degenerate element (all points on a line or plane) has zero
+    // weight; its centroid is then the mean of the points
     for (int i = 0; i < DIM; i++) {
-        centroid[i] = sum_up[i] / sum_down;
+        centroid[i] = (sum_down > 0 ? sum_up[i] / sum_down : mean[i]);
     }
     // centroid is now calculated and memory is freed
     centroid_calculated = 1;
@@ -869,8 +871,10 @@ void Polyhedron::calculate_centroid() {
     }
     // Now the centroid is the volume weighted average of individual
     // tetrahedra
+    // a degenerate element (all points on a line or plane) has zero
+    // weight; its centroid is then the mean of the points
     for (int i = 0; i < DIM; i++) {
-        centroid[i] = sum_up[i] / sum_down;
+        centroid[i] = (sum_down > 0 ? sum_up[i] / sum_down : mean[i]);
     }
     // Centroid is now calculated and we can free memory
     centroid_calculated = 1;

@@ -96,8 +96,11 @@ double EOS_idealgas::get_muB_over_T(const double e, const double rhob) const {
         const double N = N_of_x(x), D = D_of_x(x);
         const double dN = b * (1. / 27. + x * x / (81. * M_PI * M_PI));
         const double N3 = N * N * N, D2 = D * D;
-        const double dx =
-            -(N3 * N - C * D2 * D) / (4. * N3 * dN - 3. * C * D2 * N);
+        // the slope of N^4 - C D^3 is > 0 where N / D^{3/4} rises; if not,
+        // the robust solve below
+        const double slope = 4. * N3 * dN - 3. * C * D2 * N;
+        if (!(slope > 0.)) break;
+        const double dx = -(N3 * N - C * D2 * D) / slope;
         x += dx;
         if (std::abs(dx) < 1e-13 * x) {
             return (std::min(x, double(muB_over_T_max_)));

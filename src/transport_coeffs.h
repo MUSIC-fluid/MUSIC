@@ -50,6 +50,8 @@ class TransportCoeffs {
         const double B_width2, const double Tpeak) const;
 
     // Second-order coefficients
+    void check_denominators() const;
+
     double get_shear_relax_time_factor() const {
         return (shear_relax_time_factor_);
     }

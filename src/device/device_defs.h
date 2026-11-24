@@ -199,6 +199,19 @@ MD_FN Real realMax() {
 #endif
 }
 
+//! the smallest normal Real (Util::tiny_normal in double): a floor for a
+//! denominator that is >= 0 by construction, which changes no result unless
+//! it is 0 or subnormal
+template <typename Real>
+MD_FN Real tinyNormal() {
+#if defined(__METAL_VERSION__)
+    return (FLT_MIN);
+#else
+    return (sizeof(Real) == 8 ? Real(2.2250738585072014e-308)
+                              : Real(1.17549435082228751e-38f));
+#endif
+}
+
 //! exp(y) - 1 without the cancellation at small y (MSL has no expm1):
 //! Kahan's (u - 1) y / log(u), u = exp(y)
 template <typename Real>

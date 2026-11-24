@@ -243,6 +243,11 @@ int Reconst::solve_velocity_Newton(
     do {
         iter++;
         reconst_velocity_fdf(v_prev, T00, M, J0B, J0Q, J0S, fv, dfdv);
+        if (dfdv == 0.) {
+            // a flat f: no Newton step
+            v_status = 0;
+            break;
+        }
         v_next = v_prev - (fv / dfdv);
         v_next = std::max(0.0, std::min(1.0, v_next));
         abs_error_v = fv;
@@ -317,8 +322,10 @@ int Reconst::solve_v_Hybrid(
         iter_v++;
         double v_prev = v_root;
         double fv_prev = fv;
+        // bisect if the Newton step leaves the bracket, converges too
+        // slowly, or the slope is 0 (fv / dfdv would divide by 0)
         if (((v_root - v_h) * dfdv - fv) * ((v_root - v_l) * dfdv - fv) > 0.
-            || (std::abs(2. * fv) > std::abs(dv_prev * dfdv))) {
+            || (std::abs(2. * fv) > std::abs(dv_prev * dfdv)) || dfdv == 0.) {
             dv_prev = dv_curr;
             dv_curr = (v_h - v_l) / 2.;
             v_root = v_l + dv_curr;
@@ -328,12 +335,12 @@ int Reconst::solve_v_Hybrid(
             v_root = v_root - dv_curr;
         }
         abs_error_v = std::abs(dv_curr);
-        rel_error_v = abs_error_v / (v_root + abs_err);
+        rel_error_v = abs_error_v / (std::max(v_root, 0.) + abs_err);
         if (std::abs(v_root - v_prev) > 0.1 * v_root) {
             reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
         } else {
             reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
-            dfdv = (fv - fv_prev) / (v_root - v_prev + abs_err);
+            dfdv = (fv - fv_prev) / secant_denominator(v_root - v_prev);
         }
         if (fv * fv_l < 0.) {
             v_h = v_root;
@@ -401,7 +408,7 @@ int Reconst::solve_v_from_guess(
         double fv_next;
         reconst_velocity_f(v_next, T00, M, J0B, J0Q, J0S, fv_next);
         if (!std::isfinite(fv_next)) return (0);
-        dfdv = (fv_next - fv) / (v_next - v + abs_err);
+        dfdv = (fv_next - fv) / secant_denominator(v_next - v);
         v = v_next;
         fv = fv_next;
     }
@@ -421,6 +428,11 @@ int Reconst::solve_u0_Newton(
     do {
         iter_u0++;
         reconst_u0_fdf(u0_prev, T00, K00, M, J0B, J0Q, J0S, fu0, dfdu0);
+        if (dfdu0 == 0.) {
+            // a flat f: no Newton step
+            u0_status = 0;
+            break;
+        }
         u0_next = u0_prev - fu0 / dfdu0;
         u0_next = std::max(1.0, u0_next);
         abs_error_u0 = fu0;
@@ -493,9 +505,11 @@ int Reconst::solve_u0_Hybrid(
         iter_u0++;
         double u0_prev = u0_root;
         double fu0_prev = fu0;
+        // bisect also if the slope is 0 (fu0 / dfdu0 would divide by 0)
         if (((u0_root - u0_h) * dfdu0 - fu0) * ((u0_root - u0_l) * dfdu0 - fu0)
                 > 0.
-            || (std::abs(2. * fu0) > std::abs(du0_prev * dfdu0))) {
+            || (std::abs(2. * fu0) > std::abs(du0_prev * dfdu0))
+            || dfdu0 == 0.) {
             du0_prev = du0_curr;
             du0_curr = (u0_h - u0_l) / 2.;
             u0_root = u0_l + du0_curr;
@@ -509,9 +523,18 @@ int Reconst::solve_u0_Hybrid(
             break;
         }
         reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
-        dfdu0 = (fu0 - fu0_prev) / (u0_root - u0_prev);
         abs_error_u0 = du0_curr;
         rel_error_u0 = du0_curr / u0_root;
+        // the step did not move u0 (so fu0 = fu0_prev): stop, and fail
+        // unless converged, which is what the slope 0 / 0 = NaN led to
+        const double du0 = u0_root - u0_prev;
+        if (du0 == 0.) {
+            if (std::abs(abs_error_u0) > abs_err
+                && std::abs(rel_error_u0) > rel_err)
+                u0_status = 0;
+            break;
+        }
+        dfdu0 = (fu0 - fu0_prev) / du0;
         if (fu0 * fu0_l < 0.) {
             u0_h = u0_root;
             fu0_h = fu0;
@@ -620,7 +643,9 @@ void Reconst::reconst_u0_f(
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
     const double temp1 = 1. - K00 / ((T00 + pressure) * (T00 + pressure));
-    fu0 = u0 - 1. / sqrt(temp1);
+    // temp1 = 1/u0^2 of the solution > 0, but it rounds to <= 0 for
+    // |M| -> T00 + P: keep sqrt(temp1) >= abs_err
+    fu0 = u0 - 1. / sqrt(std::max(temp1, abs_err * abs_err));
     // fu0 = u0*sqrt(temp1) - 1.;
 }
 

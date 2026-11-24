@@ -255,7 +255,9 @@ void HydroinfoMUSIC::getHydroValues(
         }
     }
 
-    double eta_local = 0.5 * log((t + z) / (t - z));
+    // outside the light cone (cartesian coordinates) eta is undefined;
+    // use 0 as the tau-eta branch above does, instead of x / 0 at t = z
+    double eta_local = (t * t > z * z ? 0.5 * log((t + z) / (t - z)) : 0.);
     double sinh_eta, cosh_eta;
     if (fabs(eta_local) < 1e-6) {
         // use Taylor expansion for small eta_s to speed up
