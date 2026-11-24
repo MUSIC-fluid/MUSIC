@@ -5,6 +5,7 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <cstdio>
 #include <memory>
@@ -226,16 +227,22 @@ void removeOldOutputDatFiles(const InitData &DATA) {
         const std::string name = entry->d_name;
         if (name.size() <= 4 || name.compare(name.size() - 4, 4, ".dat") != 0)
             continue;
+        // an input may be reached through a symbolic link, so compare the
+        // link target; a dangling link is never an input
         struct stat st;
-        if (lstat(name.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
         bool isInput = false;
-        for (const auto &k : keep) {
-            if (k.first == st.st_dev && k.second == st.st_ino) {
-                isInput = true;
-                break;
+        if (stat(name.c_str(), &st) == 0) {
+            if (S_ISDIR(st.st_mode)) continue;  // not ours to delete
+            for (const auto &k : keep) {
+                if (k.first == st.st_dev && k.second == st.st_ino) {
+                    isInput = true;
+                    break;
+                }
             }
         }
-        if (!isInput) std::remove(name.c_str());
+        // unlink any other output name whatever its type (a stale link
+        // would make fopen(..., "w") truncate its target, a FIFO block)
+        if (!isInput) unlink(name.c_str());
     }
     closedir(dir);
 }

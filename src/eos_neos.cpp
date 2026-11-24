@@ -267,6 +267,9 @@ void EOS_neos::get_pressure_with_gradients(
     interpolate2D_with_gradients(
         e, std::abs(rhob), table_idx, pressure_tb, p, dpde, dpdrhob);
     p = std::max(Util::small_eps, p);
+    // the table holds P(e, |n_B|), so dP/dn_B is odd in n_B: restore the
+    // sign, which keeps the n_B dP/dn_B term in c_s^2 even (and positive)
+    if (rhob < 0.) dpdrhob = -dpdrhob;
     // dpde = std::max(Util::small_eps, dpde);
     // dpdrhob = std::max(Util::small_eps, dpdrhob);
     cs2 = dpde + rhob / (e + p + Util::small_eps) * dpdrhob;

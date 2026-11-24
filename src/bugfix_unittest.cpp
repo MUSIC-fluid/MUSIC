@@ -27,6 +27,7 @@
 #include "eos.h"
 #include "eos_base.h"
 #include "eos_idealgas.h"
+#include "eos_neos.h"
 #include "evolve.h"
 #include "fields.h"
 #include "grid_info.h"
@@ -221,6 +222,41 @@ TEST_CASE("removeOldOutputDatFiles keeps the input files") {
     CHECK_FALSE(fileExists(dir + "/evolution_xyeta.dat"));
 }
 
+TEST_CASE("removeOldOutputDatFiles unlinks non-regular outputs") {
+    // a stale symbolic link at an output name made fopen(..., "w") truncate
+    // its target; it must be removed, while a link to an input is kept
+    auto isPresent = [](const std::string &path) {
+        struct stat st;
+        return (lstat(path.c_str(), &st) == 0);
+    };
+    const std::string outside = makeTempDir();
+    writeFile(outside, "victim.dat", "keep me\n");
+    writeFile(outside, "freeze_list.dat", "x\n");
+    const std::string dir = makeTempDir();
+    REQUIRE(symlink((outside + "/victim.dat").c_str(),
+                    (dir + "/evolution_xyeta.dat").c_str()) == 0);
+    REQUIRE(symlink((outside + "/freeze_list.dat").c_str(),
+                    (dir + "/freeze_link.dat").c_str()) == 0);
+    REQUIRE(symlink((outside + "/missing.dat").c_str(),
+                    (dir + "/dangling.dat").c_str()) == 0);
+    REQUIRE(mkfifo((dir + "/fifo.dat").c_str(), 0644) == 0);
+    REQUIRE(mkdir((dir + "/folder.dat").c_str(), 0755) == 0);
+    InitData DATA;
+    DATA.freeze_list_filename = "freeze_link.dat";
+    inDirectory(
+        dir, [&] { MUSICRunControl::removeOldOutputDatFiles(DATA); });
+
+    CHECK_FALSE(isPresent(dir + "/evolution_xyeta.dat"));
+    CHECK_FALSE(isPresent(dir + "/dangling.dat"));
+    CHECK_FALSE(isPresent(dir + "/fifo.dat"));
+    CHECK(isPresent(dir + "/freeze_link.dat"));
+    CHECK(isPresent(dir + "/folder.dat"));
+    std::ifstream victim(outside + "/victim.dat");
+    std::string line;
+    std::getline(victim, line);
+    CHECK(line == "keep me");
+}
+
 // ---------------------------------------------------------------------------
 // item 4: EoS interpolation across a table seam
 // ---------------------------------------------------------------------------
@@ -317,6 +353,48 @@ class CappedTableEOS : public EOS_base {
     }
 };
 }  // namespace
+
+TEST_CASE("EOS_neos: c_s^2 and dP/dn_B have the right parity in n_B") {
+    // the table holds P(e, |n_B|); dP/dn_B must flip sign with n_B so that
+    // the n_B dP/dn_B term of c_s^2 is the same for n_B and -n_B
+    constexpr int Ne = 4, Nnb = 10;
+    constexpr double de = 1., dnb = 0.1;
+    auto P = [](double e, double nb) { return (0.2 * e + nb * nb); };
+    EOS_neos eos(10);
+    eos.set_number_of_tables(1);
+    eos.resize_table_info_arrays();
+    eos.e_bounds[0] = 1.;
+    eos.e_spacing[0] = de;
+    eos.e_length[0] = Ne;
+    eos.nb_bounds[0] = 0.;
+    eos.nb_spacing[0] = dnb;
+    eos.nb_length[0] = Nnb;
+    eos.pressure_tb = new double **[1];
+    eos.temperature_tb = new double **[1];
+    eos.mu_B_tb = new double **[1];
+    eos.pressure_tb[0] = Util::mtx_malloc(Nnb, Ne);
+    eos.temperature_tb[0] = Util::mtx_malloc(Nnb, Ne);
+    eos.mu_B_tb[0] = Util::mtx_malloc(Nnb, Ne);
+    for (int j = 0; j < Ne; j++) {
+        for (int i = 0; i < Nnb; i++) {
+            eos.pressure_tb[0][i][j] = P(1. + j * de, i * dnb);
+            eos.temperature_tb[0][i][j] = 1.;
+            eos.mu_B_tb[0][i][j] = i * dnb;
+        }
+    }
+    const double e = 2.5, n = 0.35;
+    double pPos, dpdePos, dpdnPos, cs2Pos;
+    double pNeg, dpdeNeg, dpdnNeg, cs2Neg;
+    eos.get_pressure_with_gradients(e, n, pPos, dpdePos, dpdnPos, cs2Pos);
+    eos.get_pressure_with_gradients(e, -n, pNeg, dpdeNeg, dpdnNeg, cs2Neg);
+    // bilinear interpolation: dP/dn = (0.4^2 - 0.3^2) / 0.1 = 0.7
+    CHECK(dpdnPos == doctest::Approx(0.7));
+    CHECK(dpdnNeg == doctest::Approx(-0.7));
+    CHECK(pNeg == doctest::Approx(pPos));
+    CHECK(dpdeNeg == doctest::Approx(dpdePos));
+    CHECK(cs2Pos == doctest::Approx(0.2 + n * 0.7 / (e + pPos)).epsilon(1e-6));
+    CHECK(cs2Neg == doctest::Approx(cs2Pos));
+}
 
 TEST_CASE("EOS_base: s is evaluated at the edge of an (e, n_B) table") {
     CappedTableEOS eos;
