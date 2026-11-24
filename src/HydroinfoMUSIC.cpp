@@ -22,9 +22,7 @@ void HydroinfoMUSIC::getHydroValues(
     fluidCell *info) {
     // For interpolation of evolution files in tau-eta coordinates. Only the
     // reading of MUSIC's evolution_xyeta.dat file is implemented here.
-    // For simplicity, hydro_eta_max refers to MUSIC's eta_size, and similarly
-    // for hydroDeta; however, x, y, z, and t are as usual to stay compatible
-    // with MARTINI.
+    // The query uses Cartesian x, y, z, and t for MARTINI compatibility.
     double tau, eta;
     if (use_tau_eta_coordinate == 1) {
         if (t * t > z * z) {
@@ -41,7 +39,7 @@ void HydroinfoMUSIC::getHydroValues(
         eta = z;
     }
 
-    int ieta = static_cast<int>((hydro_eta_max + eta) / hydroDeta + 0.0001);
+    int ieta = static_cast<int>((eta - hydro_eta_min) / hydroDeta + 0.0001);
     if (boost_invariant) {
         ieta = 0;
     }
@@ -55,7 +53,7 @@ void HydroinfoMUSIC::getHydroValues(
     double yfrac =
         (y - (static_cast<double>(iy) * hydroDy - hydroYmax)) / hydroDy;
     double etafrac =
-        ((hydro_eta_max + eta) / hydroDeta - static_cast<double>(ieta));
+        ((eta - hydro_eta_min) / hydroDeta - static_cast<double>(ieta));
     if (boost_invariant) {
         etafrac = 0.;
     }
@@ -126,7 +124,8 @@ void HydroinfoMUSIC::getHydroValues(
         info->vz = 0.0;
         return;
     }
-    if (ieta < 0 || ieta >= ietamax) {
+    if (ieta < 0 || ieta >= ietamax
+        || (!boost_invariant && eta < hydro_eta_min - 1e-8 * hydroDeta)) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "eta out of range, ieta=" << ieta
                       << ", ietamax=" << ietamax;
@@ -358,20 +357,15 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
         (static_cast<int>((DATA.nx - 1) / DATA.output_evolution_every_N_x) + 1);
     iymax =
         (static_cast<int>((DATA.ny - 1) / DATA.output_evolution_every_N_y) + 1);
-    hydro_eta_max = DATA.eta_size / 2.;
-    ietamax = static_cast<int>(DATA.neta / DATA.output_evolution_every_N_eta);
     hydroDx = DATA.delta_x * DATA.output_evolution_every_N_x;
     hydroDy = DATA.delta_y * DATA.output_evolution_every_N_y;
     hydroDeta = DATA.delta_eta * DATA.output_evolution_every_N_eta;
 
-    hydroXmax = DATA.x_size / 2.;
-    hydro_eta_max = DATA.eta_size / 2.;
-
-    ixmax =
-        (static_cast<int>((DATA.nx - 1) / DATA.output_evolution_every_N_x) + 1);
+    hydro_eta_min = DATA.etaMin();
     ietamax =
         (static_cast<int>((DATA.neta - 1) / DATA.output_evolution_every_N_eta)
          + 1);
+    hydro_eta_max = hydro_eta_min + (ietamax - 1) * hydroDeta;
 }
 
 void HydroinfoMUSIC::print_grid_information() {

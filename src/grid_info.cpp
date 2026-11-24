@@ -152,9 +152,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
         double cosh_eta = cosh(eta);
         double sinh_eta = sinh(eta);
@@ -397,9 +395,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 double eta = 0.0;
                 if (!DATA.boost_invariant) {
-                    eta =
-                        ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                         - (DATA.eta_size) / 2.0);
+                    eta = DATA.etaAt(ieta);
                 }
                 double e_local = arena.e_[fieldIdx];        // 1/fm^4
                 double rhob_local = arena.rhob_[fieldIdx];  // 1/fm^3
@@ -475,7 +471,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     const double output_deta = DATA.delta_eta * n_skip_eta;
     const double output_xmin = -DATA.x_size / 2.;
     const double output_ymin = -DATA.y_size / 2.;
-    const double output_etamin = -DATA.eta_size / 2.;
+    const double output_etamin = DATA.etaMin();
 
     int nVar_per_cell =
         (11 + DATA.turn_on_rhob * 2 + DATA.turn_on_QS * 4
@@ -512,7 +508,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     }
     ThermalVec thermalVec;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
-        double eta_local = -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+        double eta_local = DATA.etaAt(ieta);
         double cosh_eta = cosh(eta_local);
         double sinh_eta = sinh(eta_local);
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
@@ -681,7 +677,7 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
     const double output_deta = DATA.delta_eta * n_skip_eta;
     const double output_xmin = -DATA.x_size / 2.;
     const double output_ymin = -DATA.y_size / 2.;
-    const double output_etamin = -DATA.eta_size / 2.;
+    const double output_etamin = DATA.etaMin();
 
     int nVar_per_cell = 13;
 
@@ -794,7 +790,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                     * n_skip_eta * deta;
 
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
-        double eta_local = -DATA.eta_size / 2. + ieta * deta;
+        double eta_local = DATA.etaAt(ieta);
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -950,7 +946,7 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
     const double output_deta = DATA.delta_eta * n_skip_eta;
     const double output_xmin = -DATA.x_size / 2.;
     const double output_ymin = -DATA.y_size / 2.;
-    const double output_etamin = -DATA.eta_size / 2.;
+    const double output_etamin = DATA.etaMin();
 
     const int nVar_per_cell = 35;
 
@@ -970,7 +966,7 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
         fwrite(header, sizeof(float), 12, out_file_xyeta);
     }
     for (int ieta = 0; ieta < arena_curr.nEta(); ieta += n_skip_eta) {
-        double eta_local = -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+        double eta_local = DATA.etaAt(ieta);
         for (int iy = 0; iy < arena_curr.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena_curr.nX(); ix += n_skip_x) {
                 int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
@@ -1184,7 +1180,7 @@ void Cell_info::compute_Lmunu(
             for (int iy = 0; iy < ny; iy++) {
                 const int Idx = arena.getFieldIdx(ix, iy, ieta);
 
-                double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+                double eta_s = DATA.etaAt(ieta);
                 const double cosh_eta = cosh(eta_s);
                 const double sinh_eta = sinh(eta_s);
                 const double t_local = tau * cosh_eta;
@@ -1297,7 +1293,7 @@ void Cell_info::compute_angular_momentum(
             for (int iy = 0; iy < ny; iy++) {
                 const int Idx = arena.getFieldIdx(ix, iy, ieta);
 
-                double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+                double eta_s = DATA.etaAt(ieta);
                 if (DATA.boost_invariant) {
                     eta_s = 0.0;
                 }
@@ -1405,7 +1401,7 @@ void Cell_info::check_conservation_law(
     // cosh and sinh of eta_s, once per eta slice
     std::vector<double> coshEta(neta), sinhEta(neta);
     for (int ieta = 0; ieta < neta; ieta++) {
-        const double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+        const double eta_s = DATA.etaAt(ieta);
         coshEta[ieta] = cosh(eta_s);
         sinhEta[ieta] = sinh(eta_s);
     }
@@ -1715,10 +1711,9 @@ void Cell_info::outflowRate(
         rate[6] += f * rhos * u[mu];
     };
 
-    // the cells cover [-eta_size/2 - deta/2, eta_size/2 + deta/2]; the eta
-    // faces sit half a cell beyond the outermost cell centres
-    const double eta_m = -DATA.eta_size / 2.0 - deta / 2.0;
-    const double eta_p = DATA.eta_size / 2.0 + deta / 2.0;
+    // The eta faces sit half a cell beyond the outermost cell centers.
+    const double eta_m = DATA.etaMin() - deta / 2.0;
+    const double eta_p = DATA.etaMax() + deta / 2.0;
     const int nFaces = outflowFaceCount(nx, ny, neta);
     for (int j = 0; j < nFaces; j++) {
         int ix, iy, ieta, mu, side;
@@ -1728,7 +1723,7 @@ void Cell_info::outflowRate(
         if (mu == 3) {
             addFace(v, side == 0 ? eta_m : eta_p, 3, sign, dx * dy);
         } else {
-            const double eta = deta * ieta - DATA.eta_size / 2.0;
+            const double eta = DATA.etaAt(ieta);
             addFace(v, eta, mu, sign,
                     (mu == 1 ? tau * dy * deta : tau * dx * deta));
         }
@@ -1877,10 +1872,8 @@ void Cell_info::output_1p1D_check_file(Fields &arena, const double tau) {
     filename << "1+1D_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
-    double deta = DATA.delta_eta;
-    double eta_min = -6.94;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        double eta_local = eta_min + ieta * deta;
+        const double eta_local = DATA.etaAt(ieta);
         int fieldIdx = arena.getFieldIdx(1, 1, ieta);
         double e_local = arena.e_[fieldIdx];
 
@@ -1933,7 +1926,7 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
         const double output_deta = DATA.delta_eta * n_skip_eta;
         const double output_xmin = -DATA.x_size / 2.;
         const double output_ymin = -DATA.y_size / 2.;
-        const double output_etamin = -DATA.eta_size / 2.;
+        const double output_etamin = DATA.etaMin();
         float header[] = {static_cast<float>(DATA.tau0),
                           static_cast<float>(output_dtau),
                           static_cast<float>(output_nx),
@@ -1949,7 +1942,7 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
         fwrite(header, sizeof(float), 12, out_file_xyeta);
     }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
-        double eta_local = -DATA.eta_size / 2. + ieta * deta;
+        double eta_local = DATA.etaAt(ieta);
         if (DATA.boost_invariant) eta_local = 0.;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -2177,7 +2170,7 @@ void Cell_info::output_vorticity_distribution(
             double weight = 0.0;
             for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
                 int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
-                double eta_local = -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+                double eta_local = DATA.etaAt(ieta);
                 if (DATA.boost_invariant) eta_local = 0.0;
                 if (eta_local < eta_max && eta_local > eta_min) {
                     const double e_local = arena_curr.e_[fieldIdx];
@@ -2315,9 +2308,7 @@ void Cell_info::output_vorticity_time_evolution(
     for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
         if (eta < eta_max && eta > eta_min) {
             for (int iy = 0; iy < arena_curr.nY(); iy++)
@@ -2571,9 +2562,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
         if (eta < eta_max && eta > eta_min) {
             double cosh_eta = cosh(eta);
@@ -2703,9 +2692,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         ThermalVec thermalVec;
         double eta = 0.0;
         if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
 
         // compute the central of mass position
@@ -3026,9 +3013,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
         if (eta < eta_max && eta > eta_min) rowEta.push_back(ieta);
     }

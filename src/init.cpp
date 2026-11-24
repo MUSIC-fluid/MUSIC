@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "util.h"
@@ -45,6 +47,8 @@ void Init::InitArena(
         DATA.delta_x = 0.1;
         DATA.delta_y = 0.1;
         DATA.delta_eta = 0.02;
+        DATA.eta_size = DATA.delta_eta * (DATA.neta - 1);
+        DATA.eta_min = -DATA.eta_size / 2.;
         music_message << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << ", dx=" << DATA.delta_x << " fm, dy=" << DATA.delta_y
                       << " fm. ";
@@ -161,11 +165,37 @@ void Init::InitArena(
         music_message.info(
             "Initialize hydro with source terms from pre-equilibrium model");
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
-        DATA.tau0 =
-            (hydro_source_terms_ptr.lock()->get_source_tau_min()
-             - DATA.delta_tau);
-        DATA.tau0 = static_cast<int>(DATA.tau0 / 0.02) * 0.02;
-        DATA.tau0 = std::max(0.1, DATA.tau0);
+        const auto source = hydro_source_terms_ptr.lock();
+        const double firstSource = source->get_source_tau_min();
+        if (firstSource <= 0.)
+            throw std::runtime_error(
+                "String deposition must start at positive proper time");
+        DATA.tau0 = std::max(
+            0.1, 0.02 * std::floor((firstSource - DATA.delta_tau) / 0.02));
+        // The first RK stage has no preceding corrector to deposit its
+        // other half. Start early enough that its source bin is empty.
+        if (DATA.tau0 + DATA.delta_tau / 2. >= firstSource) {
+            DATA.tau0 = firstSource / 2.;
+            DATA.delta_tau = std::min(DATA.delta_tau, DATA.tau0);
+        }
+        if (DATA.dynamicGridDetermination && DATA.resetDtau
+            && !DATA.boost_invariant) {
+            DATA.delta_tau = std::min(
+                DATA.delta_tau, DATA.tau0 * DATA.delta_eta * DATA.dtaudxRatio);
+        }
+        const double lastSource = source->get_source_tau_max();
+        const double duration =
+            std::max(DATA.tau_size, lastSource - DATA.tau0 + DATA.delta_tau);
+        const double steps = std::ceil(duration / DATA.delta_tau);
+        if (steps >= std::numeric_limits<int>::max() || !std::isfinite(steps))
+            throw std::runtime_error(
+                "String deposition requires too many hydro time steps");
+        DATA.nt = static_cast<int>(steps);
+        DATA.tau_size = duration;
+        music_message << "String evolution: tau0 = " << DATA.tau0
+                      << " fm/c, dtau = " << DATA.delta_tau
+                      << " fm/c, time steps = " << DATA.nt;
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
@@ -595,7 +625,7 @@ void Init::initial_IPGlasma_XY(
     }
     profile.close();
 
-    double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+    double eta = DATA.etaAt(ieta);
     double eta_envelop_ed =
         eta_profile_plateau(eta, DATA.eta_flat / 2.0, DATA.eta_fall_off);
     int entropy_flag = DATA.initializeEntropy;
@@ -742,7 +772,7 @@ void Init::initial_IPGlasma_XY_with_pi(
     }
     profile.close();
 
-    double eta = (DATA.delta_eta) * (ieta) - (DATA.eta_size) / 2.0;
+    double eta = DATA.etaAt(ieta);
     double eta_envelop_ed =
         eta_profile_plateau(eta, DATA.eta_flat / 2.0, DATA.eta_fall_off);
     for (int ix = 0; ix < nx; ix++) {
@@ -1071,7 +1101,7 @@ void Init::initial_MCGlb_with_rhob(
     double T_tau_t = 0.0;
 #pragma omp parallel for reduction(+ : T_tau_t)
     for (int ieta = 0; ieta < neta; ieta++) {
-        double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+        double eta = DATA.etaAt(ieta);
         if (DATA.boost_invariant) {
             eta = 0.0;
         }
@@ -1264,7 +1294,7 @@ void Init::initial_AMPT_XY(
     double u[4] = {1.0, 0.0, 0.0, 0.0};
     EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
 
-    double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+    double eta = DATA.etaAt(ieta);
     double tau0 = DATA.tau0;
     const int nx = arenaFieldsCurr.nX();
     const int ny = arenaFieldsCurr.nY();
@@ -1568,7 +1598,7 @@ void Init::output_initial_density_profiles(Fields &arena) {
     }
     of << std::endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        double eta_local = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+        double eta_local = DATA.etaAt(ieta);
         for (int ix = 0; ix < arena.nX(); ix++) {
             double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
             for (int iy = 0; iy < arena.nY(); iy++) {

@@ -27,24 +27,24 @@
 namespace music_device {
 
 enum StrHead {
-    kStrNStrings,     // strings in the buffer
-    kStrNEnergy,      // QCD_strings_list_current_tau.size()
-    kStrNRemnant,     // QCD_strings_remnant_list_current_tau.size()
-    kStrNBaryon,      // QCD_strings_baryon_list_current_tau.size()
-    kStrNElectric,    // QCD_strings_electric_list_current_tau.size()
-    kStrPreEqFlow,    // preEqFlowFactor_
-    kStrQuench,       // parton_quench_factor
-    kStrUseBQ,        // DATA.use_BQ_ratios
-    kStrRhob,         // DATA.turn_on_rhob
-    kStrQS,           // DATA.turn_on_QS
-    kStrDtau,         // DATA.delta_tau
-    kStrXSize,        // DATA.x_size, y_size, eta_size
+    kStrNStrings,   // strings in the buffer
+    kStrNEnergy,    // QCD_strings_list_current_tau.size()
+    kStrNRemnant,   // QCD_strings_remnant_list_current_tau.size()
+    kStrNBaryon,    // QCD_strings_baryon_list_current_tau.size()
+    kStrNElectric,  // QCD_strings_electric_list_current_tau.size()
+    kStrPreEqFlow,  // preEqFlowFactor_
+    kStrQuench,     // parton_quench_factor
+    kStrUseBQ,      // DATA.use_BQ_ratios
+    kStrRhob,       // DATA.turn_on_rhob
+    kStrQS,         // DATA.turn_on_QS
+    kStrDtau,       // DATA.delta_tau
+    kStrXSize,      // DATA.x_size, y_size, etaMin()
     kStrYSize,
-    kStrEtaSize,
-    kStrDx,           // DATA.delta_x, delta_y, delta_eta
+    kStrEtaMin,
+    kStrDx,  // DATA.delta_x, delta_y, delta_eta
     kStrDy,
     kStrDeta,
-    kStrHbarc,        // Util::hbarc
+    kStrHbarc,  // Util::hbarc
     kStrHead
 };
 
@@ -56,6 +56,7 @@ enum StrRec {
     kRInElectric,
     // QCD_string
     kRNorm,
+    kRRapidityShift,
     kRTilt,
     kRERemL,
     kRERemR,
@@ -74,31 +75,94 @@ enum StrRec {
     kREtaR,
     kRYL,
     kRYR,
-    kRRemL,
-    kRRemR,
+    kRRemnantYL,
+    kRRemnantYR,
     kRTauBL,
     kRTauBR,
     kREtaBL,
     kREtaBR,
     kRYBL,
     kRYBR,
-    kRFracL,
-    kRFracR,
+    kRBaryonNormL,
+    kRBaryonNormR,
     kRTauQL,
     kRTauQR,
-    kRQL,
-    kRQR,
+    kRElectricNormL,
+    kRElectricNormR,
     kREtaQL,
     kREtaQR,
     // per string, as in the loops of HydroSourceStrings
-    kRPrefPrep,    // energy: 1 / (2 pi preFlowNorm)
-    kRPrefEtas,    // 1 / (sqrt(2 pi) sigma_eta)
-    kRPrefactors,  // remnants: prefactor_prep * prefactor_etas
-    kRPrefPrepB,   // n_B, n_Q: 1 / (2 pi sigma_x^2)
-    kRSkipX,       // n_sigma_skip sigma_x
-    kRSkipEta,     // n_sigma_skip sigma_eta
+    kRSkipX,    // n_sigma_skip sigma_x
+    kRSkipEta,  // n_sigma_skip sigma_eta
     kStrRec
 };
+
+template <typename Real>
+MD_FN Real stringEtaFraction(Real eta, Real left, Real right) {
+    if (left == right) return Real(0.5);
+    return dmax(Real(0.), dmin(Real(1.), (eta - left) / (right - left)));
+}
+
+// Gaussian convolution of a uniform line segment. Use erfc in the tails
+// to avoid subtracting two values rounded to the same erf asymptote.
+template <typename Real>
+MD_FN Real stringEtaProfile(Real eta, Real left, Real right, Real sigma) {
+    if (left >= right) return Real(0.);
+    const Real a = (left - eta) / (sqrt(Real(2.)) * sigma);
+    const Real b = (right - eta) / (sqrt(Real(2.)) * sigma);
+    if (a > Real(0.)) return Real(0.5) * (derfcPositive(a) - derfcPositive(b));
+    if (b < Real(0.))
+        return Real(0.5) * (derfcPositive(-b) - derfcPositive(-a));
+    return Real(0.5) * (derf(b) - derf(a));
+}
+
+template <typename Real>
+MD_FN Real stringFrontShift(Real tau, Real tau0, Real form, Real maxShift) {
+    const Real elapsed = tau - tau0;
+    if (elapsed <= form) return Real(0.);
+    if (tau0 == Real(0.)) return maxShift;
+    const Real scaled =
+        ((elapsed - form) / tau0) * ((elapsed + form) / (Real(4.) * tau));
+    return dmin(maxShift, Real(2.) * asinh(sqrt(scaled)));
+}
+
+// Construct the right edge from the next stage's center so adjacent bins share
+// an edge even when the half-step is rounded.
+template <typename Real>
+MD_FN Real stringBinStart(Real tau, Real dtau) {
+    return tau - dtau / Real(2.);
+}
+template <typename Real>
+MD_FN Real stringBinEnd(Real tau, Real dtau) {
+    return stringBinStart(tau + dtau, dtau);
+}
+
+// The two formation fronts sweep up disjoint segments. Over successive
+// time bins the segments tile the whole string.
+template <typename Real>
+MD_FN Real stringEtaProfileForStep(
+    Real eta, Real left, Real right, Real center, Real sigma, Real tau,
+    Real dtau, Real tau0, Real form, Real tauEnd) {
+    const Real begin = stringBinStart(tau, dtau);
+    const Real end = stringBinEnd(tau, dtau);
+    if (left == right) {
+        if (tauEnd < begin || tauEnd >= end) return Real(0.);
+        const Real d = (eta - left) / sigma;
+        return exp(-Real(0.5) * d * d);
+    }
+    if (tau0 == Real(0.)) {
+        if (form < begin || form >= end) return Real(0.);
+        return stringEtaProfile(eta, left, right, sigma);
+    }
+    const Real maxShift = dmax(fabs(left - center), fabs(right - center));
+    const Real now = stringFrontShift(begin, tau0, form, maxShift);
+    const Real next = stringFrontShift(end, tau0, form, maxShift);
+    return stringEtaProfile(
+               eta, dmax(left, center - next), dmin(right, center - now), sigma)
+           + stringEtaProfile(
+               eta, dmax(left, center + now), dmin(right, center + next),
+               sigma);
+}
 
 //! HydroSourceStrings::getStringTransverseCoord
 template <typename Real>
@@ -128,27 +192,20 @@ MD_FN void stringEnergySource(
     if (S[kStrNEnergy] == Real(0) && S[kStrNRemnant] == Real(0)) return;
     const int nStr = int(S[kStrNStrings]);
     MD_GLOBAL const Real *R0 = S + kStrHead;
-    const Real small_eps = Real(1e-16);
     const Real preEqFlowFactor_ = S[kStrPreEqFlow];
     const Real dtau = S[kStrDtau];
     const Real exp_tau = Real(1.) / tau;
     for (int k = 0; k < nStr; k++) {
         MD_GLOBAL const Real *it = R0 + k * kStrRec;
-        if (it[kRInEnergy] == Real(0)) continue;
+        if (it[kRInEnergy] == Real(0) || it[kRNorm] == Real(0.)) continue;
         const Real sigma_x = it[kRSigmaX];
         const Real sigma_eta = it[kRSigmaEta];
-        const Real prefactor_prep = it[kRPrefPrep];
-        const Real prefactor_etas = it[kRPrefEtas];
         const Real skip_dis_x = it[kRSkipX];
         const Real skip_dis_eta = it[kRSkipEta];
-        const Real tau_0 = it[kRTau0];
-        const Real delta_tau = it[kRTauForm];
         if (eta_s < it[kREtaL] - skip_dis_eta
             || eta_s > it[kREtaR] + skip_dis_eta)
             continue;
-        Real eta_frac =
-            ((eta_s - it[kREtaL]) / dmax(small_eps, it[kREtaR] - it[kREtaL]));
-        eta_frac = dmax(Real(0.), dmin(Real(1.), eta_frac));
+        const Real eta_frac = stringEtaFraction(eta_s, it[kREtaL], it[kREtaR]);
         const Real x_perp =
             stringTransverseCoord(it[kRXl], it[kRXr], eta_frac, it[kRTilt]);
         Real x_dis = x - x_perp;
@@ -157,48 +214,11 @@ MD_FN void stringEnergySource(
             stringTransverseCoord(it[kRYl], it[kRYr], eta_frac, it[kRTilt]);
         Real y_dis = y - y_perp;
         if (fabs(y_dis) > skip_dis_x) continue;
-        Real eta_s_shift = Real(0.0);
-        Real tau_L = tau - dtau / Real(2.);
-        if (tau_L > tau_0 + delta_tau) {
-            eta_s_shift = acosh(
-                (tau_L * tau_L + tau_0 * tau_0 - delta_tau * delta_tau)
-                / dmax(small_eps, Real(2.) * tau_L * tau_0));
-        }
-        Real eta_s_L = dmin(it[kREtaR], it[kREta0] - eta_s_shift);
-        Real eta_s_R = dmax(it[kREtaL], it[kREta0] + eta_s_shift);
-        Real eta_s_next_shift = Real(0.0);
-        Real tau_next = tau + dtau / Real(2.);
-        if (tau_next > tau_0 + delta_tau) {
-            eta_s_next_shift = acosh(
-                (tau_next * tau_next + tau_0 * tau_0 - delta_tau * delta_tau)
-                / dmax(small_eps, Real(2.) * tau_next * tau_0));
-        }
-        Real eta_s_L_next = dmax(it[kREtaL], it[kREta0] - eta_s_next_shift);
-        Real eta_s_R_next = dmin(it[kREtaR], it[kREta0] + eta_s_next_shift);
-        bool flag_left = true;
-        if (eta_s_L_next > eta_s_L) flag_left = false;
-        bool flag_right = true;
-        if (eta_s_R_next < eta_s_R) flag_right = false;
-        Real exp_eta_s = Real(0.);
-        if (flag_left) {
-            if (eta_s > eta_s_L_next - skip_dis_eta
-                && eta_s < eta_s_L + skip_dis_eta) {
-                exp_eta_s +=
-                    Real(0.5)
-                    * (-derf((eta_s_L_next - eta_s) / (sqrt(Real(2.)) * sigma_eta))
-                       + derf((eta_s_L - eta_s) / (sqrt(Real(2.)) * sigma_eta)));
-            }
-        }
-        if (flag_right) {
-            if (eta_s > eta_s_R - skip_dis_eta
-                && eta_s < eta_s_R_next + skip_dis_eta) {
-                exp_eta_s +=
-                    Real(0.5)
-                    * (-derf((eta_s_R - eta_s) / (sqrt(Real(2.)) * sigma_eta))
-                       + derf((eta_s_R_next - eta_s)
-                              / (sqrt(Real(2.)) * sigma_eta)));
-            }
-        }
+        const Real exp_eta_s = stringEtaProfileForStep(
+            eta_s, it[kREtaL], it[kREtaR], it[kREta0], sigma_eta, tau, dtau,
+            it[kRTau0], it[kRTauForm], it[kRTauEndL]);
+        if (exp_eta_s == Real(0.)) continue;
+
         Real exp_xperp =
             exp(-(x_dis * x_dis + y_dis * y_dis) / (Real(2.) * sigma_x * sigma_x));
         Real cosh_perp =
@@ -209,15 +229,11 @@ MD_FN void stringEnergySource(
                   / sigma_x));
         Real phi_perp = atan2(y_dis, x_dis);
         Real e_local = exp_tau * exp_xperp * exp_eta_s * it[kRNorm];
-        Real Delta_eta = it[kREtaR] - it[kREtaL];
-        Real denorm_safe =
-            copysign(dmax(small_eps, fabs(Delta_eta)), Delta_eta);
-        Real y_string =
-            (it[kRYL]
-             + (it[kRYR] - it[kRYL]) / denorm_safe * (eta_s - it[kREtaL]));
-        Real cosh_long = cosh(y_string - eta_s);
-        Real sinh_long = sinh(y_string - eta_s);
-        Real local_eperp = prefactor_etas * prefactor_prep * e_local;
+        const Real y_string =
+            it[kRYL] + (it[kRYR] - it[kRYL]) * eta_frac + it[kRRapidityShift];
+        const Real cosh_long = cosh(y_string - eta_s);
+        const Real sinh_long = sinh(y_string - eta_s);
+        const Real local_eperp = e_local;
         j_mu[0] += local_eperp * cosh_long * cosh_perp;
         j_mu[1] += local_eperp * sinh_perp * cos(phi_perp);
         j_mu[2] += local_eperp * sinh_perp * sin(phi_perp);
@@ -228,78 +244,32 @@ MD_FN void stringEnergySource(
         if (it[kRInRemnant] == Real(0)) continue;
         const Real sigma_x = it[kRSigmaX];
         const Real sigma_eta = it[kRSigmaEta];
-        const Real prefactors = it[kRPrefactors];
         const Real skip_dis_x = it[kRSkipX];
         const Real skip_dis_eta = it[kRSkipEta];
-        bool flag_left = false;
-        if (it[kRTauEndL] >= tau - dtau / Real(2.)
-            && it[kRTauEndL] < tau + dtau / Real(2.) && it[kRRemL] > Real(0.)) {
-            flag_left = true;
-        }
-        bool flag_right = false;
-        if (it[kRTauEndR] >= tau - dtau / Real(2.)
-            && it[kRTauEndR] < tau + dtau / Real(2.) && it[kRRemR] > Real(0.)) {
-            flag_right = true;
-        }
-        Real exp_eta_s_left = Real(0.0);
-        if (flag_left) {
-            Real eta_dis_left = fabs(eta_s - it[kREtaL]);
-            if (eta_dis_left < skip_dis_eta) {
-                exp_eta_s_left =
-                    (exp(-eta_dis_left * eta_dis_left
-                         / (Real(2.) * sigma_eta * sigma_eta)));
-            }
-        }
-        Real exp_eta_s_right = Real(0.0);
-        if (flag_right) {
-            Real eta_dis_right = fabs(eta_s - it[kREtaR]);
-            if (eta_dis_right < skip_dis_eta) {
-                exp_eta_s_right =
-                    (exp(-eta_dis_right * eta_dis_right
-                         / (Real(2.) * sigma_eta * sigma_eta)));
-            }
-        }
         for (int side = 0; side < 2; side++) {
-            if (side == 0 ? !flag_left : !flag_right) continue;
-            const Real xEnd = it[side == 0 ? kRXl : kRXr];
-            const Real yEnd = it[side == 0 ? kRYl : kRYr];
-            const Real expEta = (side == 0 ? exp_eta_s_left : exp_eta_s_right);
-            const Real rem = it[side == 0 ? kRRemL : kRRemR];
-            const Real remNorm = it[side == 0 ? kRERemL : kRERemR];
-            const Real yEndRap = it[side == 0 ? kRYL : kRYR];
-            Real x_dis = x - xEnd;
-            if (fabs(x_dis) <= skip_dis_x) {
-                Real y_dis = y - yEnd;
-                if (fabs(y_dis) <= skip_dis_x) {
-                    Real cosh_long = exp_tau * expEta * (rem) * (remNorm)
-                                     * cosh(yEndRap - eta_s);
-                    Real sinh_long = exp_tau * expEta * (rem) * (remNorm)
-                                     * sinh(yEndRap - eta_s);
-                    Real cosh_perp = Real(1.);
-                    Real sinh_perp = Real(0.);
-                    Real phi_perp = Real(0.);
-                    Real exp_xperp = Real(0.);
-                    if (cosh_long > Real(0)) {
-                        exp_xperp =
-                            (prefactors
-                             * exp(-(x_dis * x_dis + y_dis * y_dis)
-                                   / (Real(2.) * sigma_x * sigma_x)));
-                        cosh_perp =
-                            (cosh(preEqFlowFactor_
-                                  * sqrt(x_dis * x_dis + y_dis * y_dis)
-                                  / sigma_x));
-                        sinh_perp =
-                            (sinh(preEqFlowFactor_
-                                  * sqrt(x_dis * x_dis + y_dis * y_dis)
-                                  / sigma_x));
-                        phi_perp = atan2(y_dis, x_dis);
-                    }
-                    j_mu[0] += exp_xperp * cosh_long * cosh_perp;
-                    j_mu[1] += exp_xperp * sinh_perp * cos(phi_perp);
-                    j_mu[2] += exp_xperp * sinh_perp * sin(phi_perp);
-                    j_mu[3] += exp_xperp * sinh_long * cosh_perp;
-                }
-            }
+            const Real tauEnd = it[side == 0 ? kRTauEndL : kRTauEndR];
+            const Real norm = it[side == 0 ? kRERemL : kRERemR];
+            if (norm == Real(0.) || tauEnd < stringBinStart(tau, dtau)
+                || tauEnd >= stringBinEnd(tau, dtau))
+                continue;
+            const Real eta_dis = eta_s - it[side == 0 ? kREtaL : kREtaR];
+            const Real x_dis = x - it[side == 0 ? kRXl : kRXr];
+            const Real y_dis = y - it[side == 0 ? kRYl : kRYr];
+            if (fabs(eta_dis) > skip_dis_eta || fabs(x_dis) > skip_dis_x
+                || fabs(y_dis) > skip_dis_x)
+                continue;
+            const Real exp_eta =
+                exp(-eta_dis * eta_dis / (Real(2.) * sigma_eta * sigma_eta));
+            const Real r2 = x_dis * x_dis + y_dis * y_dis;
+            const Real exp_xperp = exp(-r2 / (Real(2.) * sigma_x * sigma_x));
+            const Real flow = preEqFlowFactor_ * sqrt(r2) / sigma_x;
+            const Real yEndRap = it[side == 0 ? kRRemnantYL : kRRemnantYR];
+            const Real local_e = exp_tau * exp_eta * norm * exp_xperp;
+            const Real phi = atan2(y_dis, x_dis);
+            j_mu[0] += local_e * cosh(yEndRap - eta_s) * cosh(flow);
+            j_mu[1] += local_e * sinh(flow) * cos(phi);
+            j_mu[2] += local_e * sinh(flow) * sin(phi);
+            j_mu[3] += local_e * sinh(yEndRap - eta_s) * cosh(flow);
         }
     }
     const Real prefactor_tau = Real(1.) / dtau;
@@ -359,24 +329,21 @@ MD_FN Real stringRhobSource(
         if (it[kRInBaryon] == Real(0)) continue;
         const Real sigma_x = it[kRSigmaX];
         const Real sigma_eta = it[kRSigmaEta];
-        const Real prefactor_prep = it[kRPrefPrepB];
-        const Real prefactor_etas = it[kRPrefEtas];
         const Real skip_dis_x = it[kRSkipX];
         const Real skip_dis_eta = it[kRSkipEta];
         int flag_left = 0;
-        if (it[kRTauBL] >= tau - dtau / Real(2.)
-            && it[kRTauBL] < tau + dtau / Real(2.) && it[kRFracL] > Real(0.)) {
+        if (it[kRTauBL] >= stringBinStart(tau, dtau)
+            && it[kRTauBL] < stringBinEnd(tau, dtau)
+            && it[kRBaryonNormL] != Real(0.)) {
             flag_left = 1;
         }
         int flag_right = 0;
-        if (it[kRTauBR] >= tau - dtau / Real(2.)
-            && it[kRTauBR] < tau + dtau / Real(2.) && it[kRFracR] > Real(0.)) {
+        if (it[kRTauBR] >= stringBinStart(tau, dtau)
+            && it[kRTauBR] < stringBinEnd(tau, dtau)
+            && it[kRBaryonNormR] != Real(0.)) {
             flag_right = 1;
         }
         if (flag_left == 0 && flag_right == 0) continue;
-        if (eta_s < it[kREtaL] - skip_dis_eta
-            || eta_s > it[kREtaR] + skip_dis_eta)
-            continue;
         for (int side = 0; side < 2; side++) {
             if ((side == 0 ? flag_left : flag_right) != 1) continue;
             Real eta_dis = eta_s - it[side == 0 ? kREtaBL : kREtaBR];
@@ -390,11 +357,12 @@ MD_FN Real stringRhobSource(
                         Real exp_xperp =
                             exp(-(x_dis * x_dis + y_dis * y_dis)
                                 / (Real(2.) * sigma_x * sigma_x));
-                        Real fsmear =
-                            exp_tau
-                            * (exp_xperp * exp_eta
-                               * (it[side == 0 ? kRFracL : kRFracR]));
-                        if (fsmear > Real(0.)) {
+                        Real fsmear = exp_tau
+                                      * (exp_xperp * exp_eta
+                                         * (it
+                                                [side == 0 ? kRBaryonNormL
+                                                           : kRBaryonNormR]));
+                        if (fsmear != Real(0.)) {
                             Real rapidity_local = it[side == 0 ? kRYBL : kRYBR];
                             Real y_dump =
                                 ((Real(1.) - parton_quench_factor) * rapidity_local
@@ -406,8 +374,7 @@ MD_FN Real stringRhobSource(
                                 p_dot_u = stringPDotU(
                                     u_mu, eta_s, y_dump, y_dump_perp, fl);
                             }
-                            res += prefactor_etas * prefactor_prep * p_dot_u
-                                   * fsmear;
+                            res += p_dot_u * fsmear;
                         }
                     }
                 }
@@ -448,28 +415,23 @@ MD_FN Real stringRhoQSource(
         if (it[kRInElectric] == Real(0)) continue;
         const Real sigma_x = it[kRSigmaX];
         const Real sigma_eta = it[kRSigmaEta];
-        const Real prefactor_prep = it[kRPrefPrepB];
-        const Real prefactor_etas = it[kRPrefEtas];
         const Real skip_dis_x = it[kRSkipX];
         const Real skip_dis_eta = it[kRSkipEta];
         const bool flag_left =
-            (it[kRTauQL] >= tau - dtau / Real(2.)
-             && it[kRTauQL] < tau + dtau / Real(2.)
-             && fabs(it[kRQL]) > Real(1e-8));
+            (it[kRTauQL] >= stringBinStart(tau, dtau)
+             && it[kRTauQL] < stringBinEnd(tau, dtau)
+             && it[kRElectricNormL] != Real(0.));
         const bool flag_right =
-            (it[kRTauQR] >= tau - dtau / Real(2.)
-             && it[kRTauQR] < tau + dtau / Real(2.)
-             && fabs(it[kRQR]) > Real(1e-8));
+            (it[kRTauQR] >= stringBinStart(tau, dtau)
+             && it[kRTauQR] < stringBinEnd(tau, dtau)
+             && it[kRElectricNormR] != Real(0.));
         if (!flag_left && !flag_right) continue;
-        if (eta_s < it[kREtaL] - skip_dis_eta
-            || eta_s > it[kREtaR] + skip_dis_eta)
-            continue;
         for (int side = 0; side < 2; side++) {
             if (side == 0 ? !flag_left : !flag_right) continue;
             const Real eta_end = it[side == 0 ? kREtaQL : kREtaQR];
             const Real x_end = it[side == 0 ? kRXl : kRXr];
             const Real y_end = it[side == 0 ? kRYl : kRYr];
-            const Real Qe = it[side == 0 ? kRQL : kRQR];
+            const Real Qe = it[side == 0 ? kRElectricNormL : kRElectricNormR];
             const Real eta_dis = eta_s - eta_end;
             if (fabs(eta_dis) > skip_dis_eta) continue;
             const Real x_dis = x - x_end;
@@ -480,8 +442,7 @@ MD_FN Real stringRhoQSource(
                 exp(-(eta_dis * eta_dis) / (Real(2.) * sigma_eta * sigma_eta));
             const Real exp_xperp =
                 exp(-(x_dis * x_dis + y_dis * y_dis) / (Real(2.) * sigma_x * sigma_x));
-            res += (prefactor_etas * prefactor_prep * p_dot_u * exp_tau
-                    * exp_xperp * exp_eta * Qe);
+            res += p_dot_u * exp_tau * exp_xperp * exp_eta * Qe;
         }
     }
     const Real prefactor_tau = Real(1.) / dtau;
@@ -502,7 +463,7 @@ MD_FN void kernelStringSource(
     const int ieta = i / (nx * ny);
     const Real tauRk = P.tau + Real(P.rkFlag) * P.dtau;
     // as in Advance::AdvanceIt and FirstRKStepT
-    Real eta_s_local = -S[kStrEtaSize] / Real(2.) + Real(ieta) * S[kStrDeta];
+    Real eta_s_local = S[kStrEtaMin] + Real(ieta) * S[kStrDeta];
     Real x_local = -S[kStrXSize] / Real(2.) + Real(ix) * S[kStrDx];
     Real y_local = -S[kStrYSize] / Real(2.) + Real(iy) * S[kStrDy];
     Real qi_source[7] = {Real(0.), Real(0.), Real(0.), Real(0.),

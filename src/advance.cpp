@@ -81,8 +81,7 @@ void Advance::AdvanceIt(
             for (int iy = 0; iy < grid_ny; iy++) {
                 int fieldIdx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
 
-                double eta_s_local =
-                    -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+                double eta_s_local = DATA.etaAt(ieta);
                 double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
                 double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
 

@@ -129,7 +129,13 @@ int Evolve::EvolveIt(
     while (tau < tauMax) {
         const std::vector<Fields *> allFields = {
             fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
-        if (DATA.beastMode > 1 && it > 0 && (it % NtauBlock == 0)) {
+        // String norms use the initial grid and RK source bins. Finish
+        // depositing them before changing the mesh or time step.
+        const bool stringsActive =
+            (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
+            && tau <= source_tau_max + DATA.delta_tau / 2.;
+        if (!stringsActive && DATA.beastMode > 1 && it > 0
+            && (it % NtauBlock == 0)) {
             bool doubleDtau = false;
             bool coarsenGrid = false;
             if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
@@ -178,7 +184,7 @@ int Evolve::EvolveIt(
         }
         // enlarge the transverse grid whenever the fluid above the
         // freeze-out energy density approaches the grid edge
-        if (DATA.beastMode == 3 && DATA.gridPadding > 0.
+        if (!stringsActive && DATA.beastMode == 3 && DATA.gridPadding > 0.
             && fluidNearGridEdge(*fpCurr)) {
             // add at least one cell per side; a padding smaller than dx
             // would leave the grid unchanged and repeat this every step
@@ -446,11 +452,13 @@ int Evolve::EvolveIt(
                     grid_info.output_vorticity_time_evolution(
                         *fpCurr, *fpPrev, tau, -1.0, 1.0);
                     grid_info.compute_angular_momentum(
-                        *fpCurr, *fpPrev, tau, -DATA.eta_size / 2.,
-                        DATA.eta_size / 2.);
+                        *fpCurr, *fpPrev, tau,
+                        DATA.etaMin() - DATA.delta_eta / 2.,
+                        DATA.etaMax() + DATA.delta_eta / 2.);
                     grid_info.output_vorticity_time_evolution(
-                        *fpCurr, *fpPrev, tau, -DATA.eta_size / 2.,
-                        DATA.eta_size / 2.);
+                        *fpCurr, *fpPrev, tau,
+                        DATA.etaMin() - DATA.delta_eta / 2.,
+                        DATA.etaMax() + DATA.delta_eta / 2.);
                 }
             }
 
@@ -558,7 +566,7 @@ int Evolve::EvolveIt(
         std::ofstream FOinfo;
         FOinfo.open("FO_nBvseta.dat");
         for (unsigned int ieta = 0; ieta < FO_nBvsEta_.size(); ieta++) {
-            double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+            double eta = DATA.etaAt(ieta);
             FOinfo << std::scientific << std::setprecision(5) << eta << "  "
                    << FO_nBvsEta_[ieta] / DATA.delta_eta << "  "
                    << FO_nQvsEta_[ieta] / DATA.delta_eta << "  "
@@ -1255,7 +1263,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
     }
 
     double x_fraction[2][4];
-    double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+    double eta = DATA.etaAt(ieta);
     // set when a freeze-out cell touches the grid edge; this function runs
     // inside an OpenMP loop, so it must not write the shared DATA itself
     bool hitGridBoundary = false;
@@ -1667,7 +1675,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
     const double DY = fac_y * DATA.delta_y;
     const double DETA = fac_eta * DATA.delta_eta;
 
-    double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
+    double eta = DATA.etaAt(ieta);
     for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
         double x = ix * (DATA.delta_x) - (DATA.x_size / 2.0);
         for (int iy = 0; iy < ny - fac_y; iy += fac_y) {

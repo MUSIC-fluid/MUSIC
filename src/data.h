@@ -8,6 +8,8 @@
 #include <stdlib.h>
 
 #include <array>
+#include <cmath>
+#include <limits>
 #include <string>
 
 //! This is a data structure contains all the parameters for simulation
@@ -17,8 +19,8 @@ typedef struct init_data {
 
     int echo_level;
 
-    bool reRunHydro;
-    int reRunCount;
+    bool reRunHydro = false;
+    int reRunCount = 0;
 
     int beastMode;
     bool dynamicGridDetermination;
@@ -86,10 +88,18 @@ typedef struct init_data {
     int ny;
     int neta;
     int nt;
+    std::array<int, 3> inputGridPoints {};  // explicit x, y and eta counts
 
     double x_size;    //!< in fermi -x_size/2 < x < x_size/2
     double y_size;    //!< in fermi, -y_size/2 < y < y_size/2
-    double eta_size;  //!< -eta_size/2 < eta < eta_size/2
+    double eta_size;  //!< span between the outermost eta cell centers
+    // An unset origin uses the legacy symmetric bounds.
+    double eta_min = std::numeric_limits<double>::quiet_NaN();
+    double etaMin() const {
+        return (std::isnan(eta_min) ? -eta_size / 2. : eta_min);
+    }
+    double etaMax() const { return etaMin() + (neta - 1) * delta_eta; }
+    double etaAt(int ieta) const { return etaMin() + ieta * delta_eta; }
     double tau_size;  //!< tau_0 < tau < tau0+tau_size
     double tau0;
 

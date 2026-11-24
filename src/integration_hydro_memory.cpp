@@ -61,9 +61,7 @@ int main(int argc, char *argv[]) {
         const double tau =
             music.get_hydro_tau0() + itau * music.get_hydro_dtau();
         for (int ieta = 0; ieta < neta; ieta += seta) {
-            const double eta = DATA.boost_invariant
-                                   ? 0.
-                                   : ieta * DATA.delta_eta - DATA.eta_size / 2.;
+            const double eta = DATA.boost_invariant ? 0. : DATA.etaAt(ieta);
             for (int iy = 0; iy < ny; iy += sy) {
                 const double y = iy * DATA.delta_y - DATA.y_size / 2.;
                 for (int ix = 0; ix < nx; ix += sx) {

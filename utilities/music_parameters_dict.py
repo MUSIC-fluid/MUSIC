@@ -80,7 +80,7 @@ hydro_dict = {
                                         # need to be set to some large enough number
     'Delta_Tau': 0.04,                  # time step to use in the evolution [fm/c]
     'Eta_grid_size': 14.0,              # spatial rapidity range
-                                        # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
+                                        # [-Eta_grid_size/2, Eta_grid_size/2]
     'Grid_size_in_eta': 4,              # number of the grid points in spatial rapidity direction
                                         # have at least 4 cells per processor.
                                         # Must be an even number.

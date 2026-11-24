@@ -184,16 +184,33 @@ InitData read_in_parameters(std::string input_file) {
     // Hydro Parameters
     //////////////////////////////////////////////////////////////////////////
     // Grid_size_in_*
-    // number of cells in x,y direction
-    parameter_list.nx = getParameter(input_file, "Grid_size_in_x", 10);
-    parameter_list.ny = getParameter(input_file, "Grid_size_in_y", 10);
-    parameter_list.neta = getParameter(input_file, "Grid_size_in_eta", 1);
+    const auto gridPoints = [&](const char *name, int axis, int defaultCount) {
+        const string value = Util::StringFind4(input_file, name);
+        if (value == "empty") return defaultCount;
+        int count = defaultCount;
+        istringstream(value) >> count;
+        parameter_list.inputGridPoints[axis] = count;
+        return count;
+    };
+    parameter_list.nx = gridPoints("Grid_size_in_x", 0, 10);
+    parameter_list.ny = gridPoints("Grid_size_in_y", 1, 10);
+    parameter_list.neta = gridPoints("Grid_size_in_eta", 2, 1);
 
     // grid_size_in_fm:
     // total length of box in x,y direction in fm (minus delta_*)
     parameter_list.x_size = getParameter(input_file, "X_grid_size_in_fm", 25.);
     parameter_list.y_size = getParameter(input_file, "Y_grid_size_in_fm", 25.);
     parameter_list.eta_size = getParameter(input_file, "Eta_grid_size", 8.);
+    const double default_eta_min = -parameter_list.eta_size / 2.;
+    const double default_eta_max = parameter_list.eta_size / 2.;
+    const double eta_min =
+        getParameter(input_file, "Eta_grid_min", default_eta_min);
+    const double eta_max =
+        getParameter(input_file, "Eta_grid_max", default_eta_max);
+    if (eta_min != default_eta_min || eta_max != default_eta_max) {
+        parameter_list.eta_min = eta_min;
+        parameter_list.eta_size = eta_max - eta_min;
+    }
 
     parameter_list.delta_x =
         parameter_list.x_size / static_cast<double>(parameter_list.nx - 1);
@@ -764,8 +781,11 @@ void check_parameter_denominators(const InitData &p) {
             "Grid_size_in_x and Grid_size_in_y must be >= 2");
     require(p.x_size > 0. && p.y_size > 0.,
             "X_grid_size_in_fm and Y_grid_size_in_fm must be > 0");
-    require(p.boost_invariant || p.eta_size > 0.,
-            "Eta_grid_size must be > 0 for a (3+1)-d run");
+    require(
+        p.boost_invariant
+            || (std::isfinite(p.etaMin()) && std::isfinite(p.eta_size)
+                && p.eta_size > 0.),
+        "Eta_grid_max must exceed Eta_grid_min for a (3+1)-d run");
     require(p.delta_tau > 0., "Delta_Tau must be > 0");
     require(p.dtaudxRatio > 0., "dtaudxRatio must be > 0");
     // these profiles set tau0 from their sources
@@ -902,7 +922,8 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("warning");
     }
 
-    if (parameter_list.neta < 2 && !parameter_list.boost_invariant) {
+    if (parameter_list.neta < 2 && !parameter_list.boost_invariant
+        && !parameter_list.dynamicGridDetermination) {
         music_message << "Grid size in eta = " << parameter_list.neta
                       << "is too small for a (3+1)-d run! "
                       << "Please increase Grid_size_in_eta to be "
@@ -925,6 +946,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("info");
         parameter_list.delta_eta = 0.1;
         parameter_list.eta_size = 0.0;
+        parameter_list.eta_min = std::numeric_limits<double>::quiet_NaN();
     }
 
     check_parameter_denominators(parameter_list);

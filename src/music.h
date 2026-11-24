@@ -113,6 +113,9 @@ class MUSIC {
         return (hydro_info_ptr->get_hydro_x_max());
     }
     double get_hydro_deta() const { return (hydro_info_ptr->get_hydro_deta()); }
+    double get_hydro_eta_min() const {
+        return hydro_info_ptr->get_hydro_eta_min();
+    }
     double get_hydro_eta_max() const {
         return (hydro_info_ptr->get_hydro_eta_max());
     }

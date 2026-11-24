@@ -163,8 +163,7 @@ MD_FN T mdDiv(T a, T b) {
 //! Chebyshev fit with relative error below 1.2e-7 everywhere), so erf has an
 //! absolute error below 1.2e-7, the rounding of float near 1
 #if defined(__METAL_VERSION__)
-MD_FN float derf(float x) {
-    const float z = fabs(x);
+MD_FN float derfcPositive(float z) {
     const float t = 1.f / (1.f + 0.5f * z);
     const float ans =
         t
@@ -178,12 +177,20 @@ MD_FN float derf(float x) {
                                                         + t * (1.48851587f
                                                                + t * (-0.82215223f
                                                                       + t * 0.17087277f)))))))));
+    return ans;
+}
+MD_FN float derf(float x) {
+    const float ans = derfcPositive(fabs(x));
     return (x >= 0.f ? 1.f - ans : ans - 1.f);
 }
 #elif defined(__CUDACC__)
+MD_FN double derfcPositive(double x) { return erfc(x); }
+MD_FN float derfcPositive(float x) { return erfc(x); }
 MD_FN double derf(double x) { return erf(x); }
 MD_FN float derf(float x) { return erf(x); }
 #else
+inline double derfcPositive(double x) { return std::erfc(x); }
+inline float derfcPositive(float x) { return std::erfc(x); }
 inline double derf(double x) { return std::erf(x); }
 inline float derf(float x) { return std::erf(x); }
 #endif

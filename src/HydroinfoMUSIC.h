@@ -19,8 +19,8 @@ class HydroinfoMUSIC {
                            // [-xmax, +xmax] for both x and y
     double hydroYmax;      // maximum y in fm in the hydro data files
                            // [-ymax, +ymax] for both x and y
-    double hydro_eta_max;  // maximum z in fm in the hydro data files
-                           // [-zmax, +zmax] for 3D hydro
+    double hydro_eta_min, hydro_eta_max;  // stored rapidity range
+                                          // [-zmax, +zmax] for 3D hydro
     double hydroDx;        // step dx in fm in the hydro data files
     double hydroDy;        // step dy in fm in the hydro data files
     double hydroDeta;      // step dz in fm in the hydro data files in
@@ -45,6 +45,7 @@ class HydroinfoMUSIC {
     double get_hydro_dx() const { return (hydroDx); }
     double get_hydro_dy() const { return (hydroDy); }
     double get_hydro_deta() const { return (hydroDeta); }
+    double get_hydro_eta_min() const { return hydro_eta_min; }
     double get_hydro_eta_max() const { return (hydro_eta_max); }
     double get_hydro_x_max() const { return (hydroXmax); }
     double get_hydro_y_max() const { return (hydroYmax); }

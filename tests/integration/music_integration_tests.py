@@ -1388,8 +1388,8 @@ def _write_strings_event(path, ncopy=40, seed=11):
     """a strings event (Initial_profile 13) from the three strings of
     tests/test_source_terms: copies moved in the transverse plane and
     boosted in eta (positions and rapidities together, so each stays a
-    valid string), with collision times tau_0 in [0, 0.4] fm/c so that the
-    string ends deposit over the whole run. The first string carries its
+    valid string), with collision times chosen so that all sources deposit
+    within the integration run. The first string carries its
     baryon number at eta_s = -0.4 (fraction 1 at the left end) so that n_B
     is deposited at mid-rapidity during the run."""
     src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
@@ -1412,10 +1412,22 @@ def _write_strings_event(path, ncopy=40, seed=11):
         keep = [c for c in etacols if c in (4, 11, 12, 13, 14, 17, 18)
                 or r[c] != 0.]
         r[keep] += rng.uniform(-0.8, 0.8)
-        r[3] = rng.uniform(0., 0.4)
+        last_deposit = 2.0
+        max_delta = max(abs(r[c] - r[4]) for c in (11, 12, 19, 20, 27, 28))
+        max_tau0 = ((last_deposit**2 - r[2]**2)
+                    / (last_deposit * np.cosh(max_delta)
+                       + np.hypot(r[2], last_deposit * np.sinh(max_delta))))
+        r[3] = rng.uniform(0., min(0.4, max_tau0))
         out.append(r)
+    def event_moment(moment):
+        return sum(r[0] * (moment(r[17]) + moment(r[18])
+                           - (1. - r[15]) * moment(r[13])
+                           - (1. - r[16]) * moment(r[14])) for r in out)
+
     with open(path, "w") as f:
-        f.writelines(head)
+        f.write("# total_energy = {:.12g} GeV, net_Pz = {:.12g} GeV\n"
+                .format(event_moment(np.cosh), event_moment(np.sinh)))
+        f.write(head[1])
         for r in out:
             f.write("  ".join("{:.8e}".format(v) for v in r) + "\n")
 

@@ -75,8 +75,8 @@ struct StepParams {
     // the stage adds the source terms qi_source (kNTJ components of the
     // cells, computed by the host as in Advance::FirstRKStepT)
     int hasSource;
-    // the conservation diagnostic: DATA.eta_size
-    Real etaSize;
+    // the conservation diagnostic: DATA.etaMin()
+    Real etaMin;
 };
 
 template <typename Real>

@@ -60,6 +60,19 @@ a default value. Example input files can be found under the folder `example_inpu
 The list of possible parameters and default values, along
 with a brief description, can be found in `utilities/music_parameters_dict.py`.
 
+For 3+1D runs, `Eta_grid_min` and `Eta_grid_max` set the rapidities of the
+first and last cell centers. Omitted bounds default to the corresponding
+edge of the symmetric `Eta_grid_size` interval. With
+`dynamicGridDetermination 1` and string initial conditions (profiles 13 and
+131), MUSIC sets the rapidity bounds from the string and charge deposition
+sites and pads them by five Gaussian widths. It increases the grid point
+counts to target a spacing of one transverse width and half the
+narrowest string rapidity width. For each axis with an explicit
+`Grid_size_in_*` value, the count is capped at twice that value.
+Near beam rapidity, MUSIC reduces each string's Gaussian width to keep both ends'
+three-sigma edges inside the beam rapidity when a width of at least 0.1
+allows it.
+
 To run hydro simulation, one can start by running the python script
 `generate_music_inputfile.py` (can be found in `utilites` folder) to generate input files and job running script.
 The job script can run under bash and qsub systems.  For some help information

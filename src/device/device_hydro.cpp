@@ -704,7 +704,7 @@ void DeviceHydro::fillParams(
     if (viscous_) fillViscParams(P);
     P.hasSource = (hasSource ? 1 : 0);
     P.stringSource = (hasSource && strings_ != nullptr ? 1 : 0);
-    P.etaSize = Real(DATA.eta_size);
+    P.etaMin = Real(DATA.etaMin());
     out.resize(sizeof(P));
     std::memcpy(out.data(), &P, sizeof(P));
 }
@@ -893,8 +893,7 @@ bool DeviceHydro::computeSource(const Real *s, double tauRk) {
             for (int ix = 0; ix < nx_; ix++) {
                 const int i = ix + nx_ * (iy + ny_ * ieta);
                 // as in Advance::AdvanceIt and FirstRKStepT
-                double eta_s_local =
-                    -DATA.eta_size / 2. + ieta * DATA.delta_eta;
+                double eta_s_local = DATA.etaAt(ieta);
                 double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
                 double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
                 double qi_source[music_device::kNTJ] = {0.};
@@ -1041,12 +1040,11 @@ void DeviceHydro::syncEtaWindow(Fields &curr, double etaMin, double etaMax) {
     const auto t0 = std::chrono::steady_clock::now();
     // the eta of the Cell_info diagnostics
     const bool boostInvariant = DATA.boost_invariant;
-    const double deta = DATA.delta_eta, etaSize = DATA.eta_size;
     const int nx = nx_;
     downloadCells(curr, which, [&](int, int ieta, int *r) {
         double eta = 0.0;
         if (!boostInvariant) {
-            eta = ((static_cast<double>(ieta)) * (deta) - (etaSize) / 2.0);
+            eta = DATA.etaAt(ieta);
         }
         r[1] = nx;
         return (eta < etaMax && eta > etaMin ? 1 : 0);
@@ -1292,6 +1290,7 @@ void DeviceHydro::packStrings(
         double r[kStrRec];
         for (int l = 0; l < 4; l++) r[kRInEnergy + l] = (in[l] ? 1. : 0.);
         r[kRNorm] = q.norm;
+        r[kRRapidityShift] = q.rapidity_shift;
         r[kRTilt] = q.string_tilt;
         r[kRERemL] = q.E_remnant_norm_L;
         r[kRERemR] = q.E_remnant_norm_R;
@@ -1310,42 +1309,24 @@ void DeviceHydro::packStrings(
         r[kREtaR] = q.eta_s_right;
         r[kRYL] = q.y_l;
         r[kRYR] = q.y_r;
-        r[kRRemL] = q.remnant_l;
-        r[kRRemR] = q.remnant_r;
+        r[kRRemnantYL] = q.y_l + q.remnant_shift_L;
+        r[kRRemnantYR] = q.y_r + q.remnant_shift_R;
         r[kRTauBL] = q.tau_baryon_left;
         r[kRTauBR] = q.tau_baryon_right;
         r[kREtaBL] = q.eta_s_baryon_left;
         r[kREtaBR] = q.eta_s_baryon_right;
         r[kRYBL] = q.y_l_baryon;
         r[kRYBR] = q.y_r_baryon;
-        r[kRFracL] = q.baryon_frac_l;
-        r[kRFracR] = q.baryon_frac_r;
+        r[kRBaryonNormL] = q.B_norm_L;
+        r[kRBaryonNormR] = q.B_norm_R;
         r[kRTauQL] = q.tau_Qe_left;
         r[kRTauQR] = q.tau_Qe_right;
-        r[kRQL] = q.Qe_left;
-        r[kRQR] = q.Qe_right;
+        r[kRElectricNormL] = q.Q_norm_L;
+        r[kRElectricNormR] = q.Q_norm_R;
         r[kREtaQL] = q.eta_s_Qe_left;
         r[kREtaQR] = q.eta_s_Qe_right;
-        // as in the loops of HydroSourceStrings
-        const double n_sigma_skip = 8.;
-        const double preEqFlowFactor_ = S.get_preEqFlowFactor();
-        const double sigma_x = q.sigma_x;
-        const double sigma_x_sq = sigma_x * sigma_x;
-        const double sigma_eta = q.sigma_eta;
-        const double preFlowNorm =
-            (1. / 2. * sigma_x_sq
-             * (2.
-                + exp(preEqFlowFactor_ * preEqFlowFactor_ / 2.)
-                      * sqrt(2 * M_PI) * preEqFlowFactor_
-                      * erf(preEqFlowFactor_ / sqrt(2.))));
-        const double prefactor_prep = 1. / (2. * M_PI * preFlowNorm);
-        const double prefactor_etas = 1. / (sqrt(2. * M_PI) * sigma_eta);
-        r[kRPrefPrep] = prefactor_prep;
-        r[kRPrefEtas] = prefactor_etas;
-        r[kRPrefactors] = prefactor_prep * prefactor_etas;
-        r[kRPrefPrepB] = 1. / (2. * M_PI * sigma_x * sigma_x);
-        r[kRSkipX] = n_sigma_skip * sigma_x;
-        r[kRSkipEta] = n_sigma_skip * sigma_eta;
+        r[kRSkipX] = HydroSourceStrings::smearingCutoff * q.sigma_x;
+        r[kRSkipEta] = HydroSourceStrings::smearingCutoff * q.sigma_eta;
         buf.insert(buf.end(), r, r + kStrRec);
         nStr++;
     }
@@ -1363,7 +1344,7 @@ void DeviceHydro::packStrings(
     buf[kStrDtau] = DATA.delta_tau;
     buf[kStrXSize] = DATA.x_size;
     buf[kStrYSize] = DATA.y_size;
-    buf[kStrEtaSize] = DATA.eta_size;
+    buf[kStrEtaMin] = DATA.etaMin();
     buf[kStrDx] = DATA.delta_x;
     buf[kStrDy] = DATA.delta_y;
     buf[kStrDeta] = DATA.delta_eta;

@@ -33,7 +33,7 @@ MD_FN void kernelConservationRow(
     const int ieta = row / nx;
     const bool viscous = (MD_RUN(P, nComp) == kNCompVisc);
     const Real tau = P.tau;
-    const Real eta_s = P.deta * Real(ieta) - (P.etaSize) / Real(2.0);
+    const Real eta_s = P.etaMin + P.deta * Real(ieta);
     const Real cosh_eta = cosh(eta_s);
     const Real sinh_eta = sinh(eta_s);
     Real rN_B = Real(0.0), rN_Q = Real(0.0), rN_S = Real(0.0);

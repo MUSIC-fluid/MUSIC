@@ -157,11 +157,13 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     if (nz > 1) {
         DATA.boost_invariant = false;
         DATA.delta_eta = dz;
-        DATA.eta_size = nz * dz;
+        DATA.eta_min = -nz * dz / 2.;
+        DATA.eta_size = (nz - 1) * dz;
     } else {
         DATA.boost_invariant = true;
         DATA.delta_eta = 0.1;
         DATA.eta_size = 0.;
+        DATA.eta_min = std::numeric_limits<double>::quiet_NaN();
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;

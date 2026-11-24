@@ -12,9 +12,13 @@ const double MASS_PARTON_TOLERANCE = 1e-6;
 
 //! This data structure contains a QCD string object
 struct QCD_string {
-    double norm;         // normalization for the string energy
+    double norm = 0.;    // normalization for the string energy
     double string_tilt;  // strings transverse tilt
-    double E_remnant_norm_L, E_remnant_norm_R;
+    double rapidity_shift = 0.;
+    double E_remnant_norm_L = 0., E_remnant_norm_R = 0.;
+    double remnant_shift_L = 0., remnant_shift_R = 0.;
+    double B_norm_L = 0., B_norm_R = 0.;
+    double Q_norm_L = 0., Q_norm_R = 0.;
     double m_over_sigma;  // m/sigma [fm] sigma is the string tension
 
     double mass;
@@ -45,6 +49,8 @@ class HydroSourceStrings : public HydroSourceBase {
     double string_quench_factor;
     double parton_quench_factor;
     double preEqFlowFactor_;
+    void compute_norm_for_strings(
+        double event_energy, double event_pz, double minSigmaEta);
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>>
@@ -55,6 +61,7 @@ class HydroSourceStrings : public HydroSourceBase {
         QCD_strings_electric_list_current_tau;
 
   public:
+    static constexpr double smearingCutoff = 8.;
     HydroSourceStrings() = delete;
     HydroSourceStrings(InitData &DATA_in);
     ~HydroSourceStrings();
@@ -83,7 +90,6 @@ class HydroSourceStrings : public HydroSourceBase {
         const FlowVec &u_mu) const;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
-    void compute_norm_for_strings();
     double getStringTransverseCoord(
         const double xl, const double xr, const double etaFrac,
         const double string_tilt) const;
