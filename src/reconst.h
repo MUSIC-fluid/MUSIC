@@ -21,6 +21,8 @@ class Reconst {
     double abs_err;
 
     const double v_critical;
+    // |T^{0i}|/T^{00} after capping a superluminal T^{0mu} (|M| >= T00)
+    static constexpr double max_M_over_T00 = 0.999;
     const int echo_level;
 
   public:
@@ -71,7 +73,8 @@ class Reconst {
         const double u0_guess, const double T00, const double K00,
         const double M, const double J0, double &u0_solution);
 
-    void regulate_grid(ReconstCell &grid_cell, double elocal) const;
+    void regulate_grid(
+        ReconstCell &grid_cell, double elocal, double J0) const;
 };
 
 #endif  // SRC_RECONST_H_

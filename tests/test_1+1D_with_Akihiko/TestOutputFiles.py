@@ -4,8 +4,9 @@ import numpy as np
 
 TargetSum = [
     2.4151200000000008e+03,
-    5.4440724726112649e+03,
-    8.1379649254378180e+01]
+    5.4440721585546744e+03,
+    8.1387908320428565e+01,
+]
 
 filename = "1+1D_check_tau_2.dat"
 data = np.loadtxt(filename)
@@ -21,8 +22,9 @@ for i, val_i in enumerate(TargetSum):
 
 TargetSum = [
     2.4151200000000008e+03,
-    1.7157553286169775e+03,
-    3.2297206973322609e+01]
+    1.7157547692257826e+03,
+    3.2306906760576538e+01,
+]
 
 filename = "1+1D_check_tau_5.dat"
 data = np.loadtxt(filename)
@@ -37,8 +39,9 @@ for i, val_i in enumerate(TargetSum):
 
 TargetSum = [
     2.4151200000000008e+03,
-    7.4088124750189286e+02,
-    1.6147310790469277e+01]
+    7.4088085201892466e+02,
+    1.6154151672519554e+01,
+]
 
 filename = "1+1D_check_tau_10.dat"
 data = np.loadtxt(filename)
@@ -53,8 +56,9 @@ for i, val_i in enumerate(TargetSum):
 
 TargetSum = [
     2.4151200000000008e+03,
-    3.3092286816402873e+02,
-    8.0815561201914647e+00]
+    3.3092262478552220e+02,
+    8.0855658362010168e+00,
+]
 
 filename = "1+1D_check_tau_20.dat"
 data = np.loadtxt(filename)

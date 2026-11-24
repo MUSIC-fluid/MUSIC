@@ -32,6 +32,15 @@ jobs:
           cmake ..
           make -j2
           make install
+      - name: Unit Tests
+        run: |
+          mkdir build_unittest
+          cd build_unittest
+          cmake .. -Dunittest=ON
+          make -j2
+          for test in bugfix reconst cell minmod grid; do
+            ./src/unittest_${test}.e
+          done
       - name: Gubser Flow Test
         run: |
           pip3 install numpy
@@ -42,3 +51,6 @@ jobs:
       - name: net baryon diffusion 1D Test
         run: |
           $GITHUB_WORKSPACE/tests/test_1+1D_with_Akihiko/RunAutoTest.sh
+      - name: Integration Tests
+        run: |
+          $GITHUB_WORKSPACE/tests/integration/RunAutoTest.sh --threads 4

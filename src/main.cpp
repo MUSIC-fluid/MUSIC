@@ -27,18 +27,31 @@ int main(int argc, char *argv[]) {
 
     int ireRunHydroCount = 0;
     bool bReRunHydro = false;
+    bool bGridTooSmall = false;
     do {
         MUSIC music_hydro(input_file);
         music_hydro.setReRunCount(ireRunHydroCount);
         music_hydro.setReRunHydro(false);
 
-        std::ignore = std::system("rm -fr *.dat 2> /dev/null");
+        MUSICRunControl::removeOldOutputDatFiles(music_hydro.getParameters());
         int running_mode = music_hydro.get_running_mode();
         int evoStatus = 0;
         if (running_mode == 1 || running_mode == 2) {
             music_hydro.initialize_hydro();
             evoStatus = music_hydro.run_hydro();
             bReRunHydro = music_hydro.getReRunHydro();
+            if (bReRunHydro
+                && !MUSICRunControl::reRunEnlargesGrid(
+                       music_hydro.getParameters())) {
+                std::cout << "The fluid reached the grid edge, but a re-run "
+                          << "with Initial_profile = "
+                          << music_hydro.getParameters().Initial_profile
+                          << " would use the same grid. Not re-running; "
+                          << "please enlarge the grid in the input file."
+                          << std::endl;
+                bReRunHydro = false;
+                bGridTooSmall = true;
+            }
         }
 
         if (evoStatus == 1) {
@@ -56,5 +69,11 @@ int main(int argc, char *argv[]) {
         }
         ireRunHydroCount++;
     } while (bReRunHydro && ireRunHydroCount < 10);
+    if (bReRunHydro) bGridTooSmall = true;  // ran out of re-runs
+    if (bGridTooSmall) {
+        std::cerr << "Hydro evolution was truncated at the grid edge; "
+                  << "the output is incomplete." << std::endl;
+        return (1);
+    }
     return (0);
 } /* main */

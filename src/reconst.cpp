@@ -31,12 +31,39 @@ ReconstCell Reconst::ReconstIt_shell(
         q_vec[i] = tauq_vec[i] / tau;
     }
 
+    // A superluminal T^{0mu} (|M| >= T00) has no solution. Instead of
+    // reverting the cell, which does not conserve energy and net baryon
+    // number, keep T00 and J0 and cap the momentum below T00.
+    // The Cartesian E and P_z of a cell depend only on T^{tau tau} and
+    // T^{tau eta} (E = cosh(eta) T^{tau tau} + sinh(eta) tau T^{tau eta}),
+    // so only the transverse momentum is reduced: scaling T^{tau eta} as
+    // well removed energy from every capped cell that flows outward in eta
+    // (3e-4 of E in a lumpy event). Only if T^{tau eta} alone is
+    // superluminal (under-resolved eta gradients) is all of M scaled.
+    const double M =
+        sqrt(q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2] + q_vec[3] * q_vec[3]);
+    if (q_vec[0] >= abs_err && M >= q_vec[0]) {
+        const double Mmax2 = std::pow(max_M_over_T00 * q_vec[0], 2);
+        const double Mperp2 = q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2];
+        const double Meta2 = q_vec[3] * q_vec[3];
+        if (Meta2 < Mmax2 && Mperp2 > 0.) {
+            const double scale = std::sqrt((Mmax2 - Meta2) / Mperp2);
+            q_vec[1] *= scale;
+            q_vec[2] *= scale;
+        } else {
+            const double scale = max_M_over_T00 * q_vec[0] / M;
+            for (int i = 1; i < 4; i++) {
+                q_vec[i] *= scale;
+            }
+        }
+    }
+
     int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt);
 
     if (flag == -1) {
         revert_grid(grid_p1, grid_pt);
     } else if (flag == -2) {
-        regulate_grid(grid_p1, q_vec[0]);
+        regulate_grid(grid_p1, q_vec[0], q_vec[4]);
     }
 
     return grid_p1;
@@ -148,10 +175,15 @@ int Reconst::ReconstIt_velocity_Newton(
     return (1);
 }
 
-//! This function regulate the grid information
-void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal) const {
+//! This function regulate the grid information: a cell whose T^{tau tau}
+//! dropped below abs_err is set to rest at e = abs_err. It keeps its net
+//! baryon density, n_B = J^tau at rest, so N_B stays conserved; setting it
+//! to zero removed up to 2e-3 of N_B in lumpy viscous events, from nearly
+//! empty, baryon-rich cells at the edge of the lumps.
+void Reconst::regulate_grid(
+    ReconstCell &grid_cell, double elocal, const double J0) const {
     grid_cell.e = std::max(abs_err, elocal);
-    grid_cell.rhob = 0.0;
+    grid_cell.rhob = J0;
     grid_cell.u[0] = 1.0;
     grid_cell.u[1] = 0.0;
     grid_cell.u[2] = 0.0;
@@ -468,7 +500,10 @@ void Reconst::reconst_velocity_fdf(
     double &fv, double &dfdv) const {
     reconst_velocity_f(v, T00, M, J0, fv);
     double fv1;
-    double v1 = v * 0.999;
+    // finite-difference step 1e-3 v; at v -> 0 that step vanishes and
+    // dfdv = 0/0, so use a minimum step and step upwards near v = 0
+    const double h = std::max(1e-3 * v, 1e-8);
+    const double v1 = (v > h) ? v - h : v + h;
     reconst_velocity_f(v1, T00, M, J0, fv1);
     dfdv = (fv - fv1) / (v - v1);
 }

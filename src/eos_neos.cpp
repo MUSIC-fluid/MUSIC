@@ -96,17 +96,6 @@ void EOS_neos::initialize_eos() {
         flag_muQ = true;
         set_flag_muS(flag_muS);
         set_flag_muQ(flag_muQ);
-    } else if (eos_id == 15) {
-        music_message.info("reading EOS neos_bqs ...");
-        spath << "/EOS/neos_bqs_muB0.9/";
-        string string_tmp[] = {"1qs", "2qs", "3qs", "4qs", "5qs", "6qs", "7qs"};
-        std::copy(
-            std::begin(string_tmp), std::end(string_tmp),
-            std::begin(eos_file_string_array));
-        flag_muS = true;
-        flag_muQ = true;
-        set_flag_muS(flag_muS);
-        set_flag_muQ(flag_muQ);
     }
 
     string path = spath.str();
@@ -160,7 +149,7 @@ void EOS_neos::initialize_eos() {
             if (!eos_muQ.is_open()) {
                 music_message << "Can not open EOS files: "
                               << (path + "neos" + eos_file_string_array[itable]
-                                  + "_muc.dat");
+                                  + "_muq.dat");
                 music_message.flush("error");
                 exit(1);
             }
@@ -238,6 +227,7 @@ void EOS_neos::initialize_eos() {
     double eps_max_in = e_bounds[6] + e_spacing[6] * e_length[6];
     set_eps_max(eps_max_in);
 
+    find_baryon_table_edges();
     music_message.info("Done reading EOS.");
 }
 
@@ -277,6 +267,9 @@ void EOS_neos::get_pressure_with_gradients(
     interpolate2D_with_gradients(
         e, std::abs(rhob), table_idx, pressure_tb, p, dpde, dpdrhob);
     p = std::max(Util::small_eps, p);
+    // the table holds P(e, |n_B|), so dP/dn_B is odd in n_B: restore the
+    // sign, which keeps the n_B dP/dn_B term in c_s^2 even (and positive)
+    if (rhob < 0.) dpdrhob = -dpdrhob;
     // dpde = std::max(Util::small_eps, dpde);
     // dpdrhob = std::max(Util::small_eps, dpdrhob);
     cs2 = dpde + rhob / (e + p + Util::small_eps) * dpdrhob;

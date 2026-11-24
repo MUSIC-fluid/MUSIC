@@ -10,12 +10,13 @@
 
 class EOS_base {
   private:
-    int whichEOS;
-    int number_of_tables;
-    double eps_max;
-    bool flag_muB;
-    bool flag_muS;
-    bool flag_muQ;
+    // initialized: a default-constructed EOS_base must destruct safely
+    int whichEOS = 0;
+    int number_of_tables = 0;
+    double eps_max = 0.;
+    bool flag_muB = false;
+    bool flag_muS = false;
+    bool flag_muQ = false;
 
   public:
     pretty_ostream music_message;
@@ -28,11 +29,11 @@ class EOS_base {
     std::vector<int> nb_length;
     std::vector<int> e_length;
 
-    double ***pressure_tb;
-    double ***temperature_tb;
-    double ***mu_B_tb;
-    double ***mu_S_tb;
-    double ***mu_Q_tb;
+    double ***pressure_tb = nullptr;
+    double ***temperature_tb = nullptr;
+    double ***mu_B_tb = nullptr;
+    double ***mu_S_tb = nullptr;
+    double ***mu_Q_tb = nullptr;
 
     EOS_base() = default;
     virtual ~EOS_base();
@@ -42,6 +43,7 @@ class EOS_base {
     void set_number_of_tables(int ntables) { number_of_tables = ntables; }
     int get_number_of_tables() const { return (number_of_tables); }
     void resize_table_info_arrays();
+    bool check_table_seams() const;
 
     void set_EOS_id(int eos_id) { whichEOS = eos_id; }
     int get_EOS_id() const { return (whichEOS); }
@@ -70,8 +72,18 @@ class EOS_base {
         double &p, double &dpde, double &dpdrhob) const;
 
     int get_table_idx(double e) const;
-    double get_entropy(double epsilon, double rhob) const;
-    void getThermalVariables(
+
+    // n_B [1/fm^3] at which each e column (nb_edge[table][ie]) of a
+    // (e, n_B) table stops: beyond it mu_B is capped at the table maximum
+    // or the table runs out. Empty for EoS without n_B tables.
+    std::vector<std::vector<double>> nb_edge;
+    void find_baryon_table_edges();
+    double get_rhob_edge(double e) const;
+    //! n_B at which the tabulated state is evaluated, with the sign of rhob
+    virtual double get_rhob_in_table(double e, double rhob) const;
+
+    virtual double get_entropy(double epsilon, double rhob) const;
+    virtual void getThermalVariables(
         double epsilon, double rhob, std::vector<double> &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;

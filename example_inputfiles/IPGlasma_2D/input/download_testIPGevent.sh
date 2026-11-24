@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -euo pipefail
+# download into this script's directory, where the test input looks
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 USERNAME="wayne_state_nuclear_theory"
 REPO_SLUG="music_ipgtest"
@@ -12,4 +15,4 @@ FILE_PATH="epsilon-u-Hydro-t0.6-0.dat"
 # Set the name of URL
 API_FILE_URL="${API_BASE_URL}/repositories/${USERNAME}/${REPO_SLUG}/src/${BRANCH}/${FILE_PATH}"
 
-curl -L -o "${FILE_PATH}" "${API_FILE_URL}"
+curl -fL -o "${FILE_PATH}" "${API_FILE_URL}"

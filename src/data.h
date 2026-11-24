@@ -42,6 +42,9 @@ typedef struct init_data {
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
     double gridPadding;  //!< grid padding size from user (default: 3 fm)
+    //! extra grid cells added on each side when re-running hydro
+    //! (used by Initial_profile 11/111; in number of cells, not fm)
+    int gridPaddingCells;
 
     //! random seed
     int seed;
@@ -134,6 +137,15 @@ typedef struct init_data {
     double shear_to_s;      //!< value of specific shear viscosity
 
     double quest_revert_strength;
+    //! 1: in dilute cells partial_tau u^i in sigma^{mu nu}, theta and Du^mu
+    //! comes from the ideal equations of motion instead of a backward time
+    //! difference
+    int Du_from_ideal_EoM;
+    //! [GeV/fm^3] (default 0.003) the ideal equations of motion are used below
+    //! this energy density and blended into the backward difference up to 5
+    //! times it. Below ~0.001 a lumpy event is unstable with the smoothness
+    //! guard at 4.
+    double Du_from_ideal_EoM_e_dilute;
     bool FlagResumTransportCoeff;
     double resumTransCoeffAlpha;
     int FlagCausalityMethod;

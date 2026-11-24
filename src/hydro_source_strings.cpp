@@ -199,8 +199,12 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     if (DATA.dynamicGridDetermination) {
         DATA.beam_rapidity =
             acosh(total_energy / (total_baryon_number * Util::m_N));
-        DATA.eta_size = 2. * DATA.beam_rapidity;
-        DATA.delta_eta = DATA.eta_size / (DATA.neta - 1);
+        // a boost-invariant run has a single eta slice at eta = 0; keep
+        // eta_size = 0 and the delta_eta set in read_in_parameters
+        if (!DATA.boost_invariant && DATA.neta > 1) {
+            DATA.eta_size = 2. * DATA.beam_rapidity;
+            DATA.delta_eta = DATA.eta_size / (DATA.neta - 1);
+        }
 
         double xMax = 0.;
         double yMax = 0.;
@@ -589,10 +593,10 @@ void HydroSourceStrings::get_hydro_energy_source(
                                  / (2. * sigma_x * sigma_x)));
                         cosh_perp = (cosh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         sinh_perp = (sinh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         phi_perp = atan2(y_dis, x_dis);
                     }
 
@@ -628,10 +632,10 @@ void HydroSourceStrings::get_hydro_energy_source(
                                  / (2. * sigma_x * sigma_x)));
                         cosh_perp = (cosh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         sinh_perp = (sinh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         phi_perp = atan2(y_dis, x_dis);
                     }
 
@@ -663,8 +667,12 @@ double HydroSourceStrings::get_hydro_rhob_source(
         sqrt(1. + u_mu[1] * u_mu[1] + u_mu[2] * u_mu[2]);
     const double y_perp_flow = acosh(gamma_perp_flow);
     const double y_long_flow = asinh(u_mu[3] / gamma_perp_flow) + eta_s;
-    const double sin_phi_flow = u_mu[1] / gamma_perp_flow;
-    const double cos_phi_flow = u_mu[2] / gamma_perp_flow;
+    // u^x = sinh(y_perp) cos(phi), u^y = sinh(y_perp) sin(phi)
+    const double u_perp_flow = sqrt(u_mu[1] * u_mu[1] + u_mu[2] * u_mu[2]);
+    const double cos_phi_flow =
+        (u_perp_flow > Util::small_eps ? u_mu[1] / u_perp_flow : 1.);
+    const double sin_phi_flow =
+        (u_perp_flow > Util::small_eps ? u_mu[2] / u_perp_flow : 0.);
     const double dtau = DATA.delta_tau;
 
     const double exp_tau = 1.0 / tau;
@@ -733,12 +741,13 @@ double HydroSourceStrings::get_hydro_rhob_source(
                             double p_dot_u = 1.;
                             if (parton_quench_factor < 1.) {
                                 p_dot_u =
-                                    (u_mu[0] * cosh(y_dump) * cosh(y_dump_perp)
+                                    (u_mu[0] * cosh(y_dump - eta_s)
+                                         * cosh(y_dump_perp)
                                      - u_mu[1] * sinh(y_dump_perp)
                                            * cos_phi_flow
                                      - u_mu[2] * sinh(y_dump_perp)
                                            * sin_phi_flow
-                                     - u_mu[3] * sinh(y_dump)
+                                     - u_mu[3] * sinh(y_dump - eta_s)
                                            * cosh(y_dump_perp));
                             }
 
@@ -781,12 +790,13 @@ double HydroSourceStrings::get_hydro_rhob_source(
                             double p_dot_u = 1.;
                             if (parton_quench_factor < 1.) {
                                 p_dot_u =
-                                    (u_mu[0] * cosh(y_dump) * cosh(y_dump_perp)
+                                    (u_mu[0] * cosh(y_dump - eta_s)
+                                         * cosh(y_dump_perp)
                                      - u_mu[1] * sinh(y_dump_perp)
                                            * cos_phi_flow
                                      - u_mu[2] * sinh(y_dump_perp)
                                            * sin_phi_flow
-                                     - u_mu[3] * sinh(y_dump)
+                                     - u_mu[3] * sinh(y_dump - eta_s)
                                            * cosh(y_dump_perp));
                             }
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
+# download into this script's directory (EOS/), where MUSIC looks
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
-FILETYPE=$1
+FILETYPE=${1:-}
 if [ -z ${FILETYPE} ]
 then
     # default download v1.2 (match with UrQMD, chemical equilibrium)
@@ -25,7 +28,7 @@ FILE_PATH="s95p-${FILETYPE}.tar.gz"
 API_FILE_URL="${API_BASE_URL}/repositories/${USERNAME}/${REPO_SLUG}/src/${BRANCH}/${FILE_PATH}"
 
 LOCAL_DESTINATION="s95p-${FILETYPE}.tar.gz"
-curl -L -o "$LOCAL_DESTINATION" "$API_FILE_URL"
+curl -fL -o "$LOCAL_DESTINATION" "$API_FILE_URL"
 
 tar -xf s95p-${FILETYPE}.tar.gz
 rm -fr s95p-${FILETYPE}.tar.gz

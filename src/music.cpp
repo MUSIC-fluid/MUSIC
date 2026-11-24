@@ -2,11 +2,15 @@
 // Massively cleaned up and improved by Chun Shen 2015-2016
 #include "music.h"
 
+#include <dirent.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
+#include <cstdio>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "data_struct.h"
@@ -194,3 +198,66 @@ void MUSIC::clear_hydro_info_from_memory() {
         hydro_info_ptr->clean_hydro_event();
     }
 }
+
+namespace MUSICRunControl {
+
+//! Remove the *.dat files in the working directory left by a previous run
+//! (some outputs are opened in append mode), but keep every input file
+//! named in the parameters, e.g. the default freeze-out list
+//! eps_freeze_list_s95p_v1.dat or an initial profile given as a bare name.
+void removeOldOutputDatFiles(const InitData &DATA) {
+    const std::vector<std::string> inputFiles = {
+        DATA.initName,      DATA.initName_TA,
+        DATA.initName_TB,   DATA.initName_participants,
+        DATA.initName_AMPT, DATA.freeze_list_filename,
+    };
+    // identify input files by device and inode, so relative paths such as
+    // "./file.dat" or symbolic links are matched too
+    std::vector<std::pair<dev_t, ino_t>> keep;
+    for (const auto &name : inputFiles) {
+        struct stat st;
+        if (!name.empty() && stat(name.c_str(), &st) == 0) {
+            keep.emplace_back(st.st_dev, st.st_ino);
+        }
+    }
+
+    DIR *dir = opendir(".");
+    if (dir == nullptr) return;
+    while (struct dirent *entry = readdir(dir)) {
+        const std::string name = entry->d_name;
+        if (name.size() <= 4 || name.compare(name.size() - 4, 4, ".dat") != 0)
+            continue;
+        // an input may be reached through a symbolic link, so compare the
+        // link target; a dangling link is never an input
+        struct stat st;
+        bool isInput = false;
+        if (stat(name.c_str(), &st) == 0) {
+            if (S_ISDIR(st.st_mode)) continue;  // not ours to delete
+            for (const auto &k : keep) {
+                if (k.first == st.st_dev && k.second == st.st_ino) {
+                    isInput = true;
+                    break;
+                }
+            }
+        }
+        // unlink any other output name whatever its type (a stale link
+        // would make fopen(..., "w") truncate its target, a FIFO block)
+        if (!isInput) unlink(name.c_str());
+    }
+    closedir(dir);
+}
+
+//! A re-run only helps if the next attempt uses a larger grid. That is
+//! the case for the TATB profiles (11, 111), which add padding cells, and
+//! for the string source (13, 131) when the grid is determined from the
+//! strings. Any other setup would repeat the same evolution.
+bool reRunEnlargesGrid(const InitData &DATA) {
+    const int profile = DATA.Initial_profile;
+    if (profile == 11 || profile == 111 || profile == 112 || profile == 113)
+        return (true);
+    if ((profile == 13 || profile == 131) && DATA.dynamicGridDetermination)
+        return (true);
+    return (false);
+}
+
+}  // namespace MUSICRunControl

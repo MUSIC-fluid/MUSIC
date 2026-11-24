@@ -36,6 +36,10 @@ class Evolve {
 
     std::vector<double> FO_nBvsEta_;
 
+    // time distance between the two tau slices used by the Cornelius
+    // freeze-out finder (set by EvolveIt before each call)
+    double freezeoutDTau_ = 0.;
+
   public:
     Evolve(
         const EOS &eos, InitData &DATA_in,
@@ -62,7 +66,16 @@ class Evolve {
     int FindFreezeOutSurface_boostinvariant_Cornelius(
         double tau, Fields &arena_current, Fields &arena_freezeout);
 
-    void coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding);
+    void coarseGrainAndEnlargeGrid(
+        Fields &arenaCurr, double gridPadding, bool coarsen = true);
+    void regridTransverse(
+        const std::vector<Fields *> &fieldList, double gridPadding,
+        bool coarsen);
+    bool fluidNearGridEdge(Fields &arena);
+    bool hotCellsRemain(const Fields &arena, const double epsFO) const;
+    bool hotCellsAtGridEdge(const Fields &arena, const double epsFO) const;
+    void extrapolatePrevForNewDtau(
+        Fields &arenaCurr, Fields &arenaPrev, double dtauRatio);
     void store_previous_step_for_freezeout(
         Fields &arenaCurr, Fields &arenaFreeze);
     void regulate_qmu(
@@ -72,6 +85,11 @@ class Evolve {
         double Wmunu_regulated[4][4]) const;
 
     void initialize_freezeout_surface_info();
+    //! freeze-out energy densities [GeV/fm^3] set by
+    //! initialize_freezeout_surface_info()
+    const std::vector<double> &getFreezeOutEnergyDensities() const {
+        return (epsFO_list);
+    }
 
     Cell_small four_dimension_linear_interpolation(
         double *lattice_spacing, double fraction[2][4], Cell_small ****cube);

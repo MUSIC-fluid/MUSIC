@@ -71,26 +71,31 @@ void Advance::AdvanceIt(
                     arenaFieldsPrev);
 
                 if (DATA.viscosity_flag == 1) {
+                    // arenaFieldsCurr is at tau_rk: tau_n in the first RK
+                    // stage, tau_{n+1} (the predictor) in the second. The
+                    // derivatives need its tau (u^tau / tau in theta, the
+                    // Christoffel terms, tau delta_eta)
+                    const double tau_rk = tau + rk_flag * DATA.delta_tau;
                     U_derivative u_derivative_helper(DATA, eos);
                     u_derivative_helper.MakedU(
-                        tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix, iy,
-                        ieta);
+                        tau_rk, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix,
+                        iy, ieta);
                     double theta_local =
                         u_derivative_helper.calculate_expansion_rate(
-                            tau, arenaFieldsCurr, fieldIdx);
+                            tau_rk, arenaFieldsCurr, fieldIdx);
                     DumuVec a_local;
                     u_derivative_helper.calculate_Du_supmu(
-                        tau, arenaFieldsCurr, fieldIdx, a_local);
+                        tau_rk, arenaFieldsCurr, fieldIdx, a_local);
 
                     VelocityShearVec sigma_local;
                     u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arenaFieldsCurr, fieldIdx, theta_local, a_local,
+                        tau_rk, arenaFieldsCurr, fieldIdx, theta_local, a_local,
                         sigma_local);
 
                     VorticityVec omega_local;
                     u_derivative_helper
                         .calculate_kinetic_vorticity_with_spatial_projector(
-                            tau, arenaFieldsCurr, fieldIdx, a_local,
+                            tau_rk, arenaFieldsCurr, fieldIdx, a_local,
                             omega_local);
 
                     DmuMuBoverTVec baryon_diffusion_vector;
@@ -103,6 +108,12 @@ void Advance::AdvanceIt(
                         baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
                 }
             }
+    if (rk_flag == 1) {
+        // arenaFieldsCurr holds the predictor V*; after the pointer swap in
+        // Evolve::AdvanceRK it is the next step's arenaFieldsNext
+        viscousCorrectionValid_ = true;
+        viscousCorrectionTau_ = tau + 2. * DATA.delta_tau;
+    }
 }
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
@@ -147,7 +158,7 @@ void Advance::FirstRKStepT(
             if (isnan(qi_source[ii])) {
                 music_message << "qi_source is nan. i = " << ii;
                 music_message.flush("error");
-                exit(0);
+                exit(1);
             }
         }
 
@@ -165,10 +176,62 @@ void Advance::FirstRKStepT(
     diss_helper.MakeWSource(
         tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
+    // Deferred correction of the viscous time-derivative term. With
+    // V^alpha = W^{alpha tau} + Pi (g^{alpha tau} + u^alpha u^tau), the two
+    // RK stages subtract (tau_{n+1} V_n - tau_n V_{n-1}) and
+    // (tau_{n+2} V* - tau_{n+1} V_n), V* being the predictor. Their average
+    // telescopes only if V* = V_{n+1}; the remainder 1/2 tau_{n+2}
+    // (V_{n+1} - V*) is O(dtau^2) per step and adds up to an O(dtau) drift
+    // of E and P. At the start of the next step arenaFieldsNext still holds
+    // V* and arenaFieldsCurr holds V_{n+1}, so the first stage removes it.
+    // It is applied twice here because the RK average halves the first
+    // stage. Cells where V is not resolved smoothly in time (regulated,
+    // dilute edges) are left alone: there V* can miss V_{n+1} by O(V) and
+    // the correction would feed back on the flow.
+    TJbVec viscCorr = {0.};
+    if (rk_flag == 0 && viscousCorrectionValid_ && DATA.viscosity_flag == 1) {
+        const bool withPi =
+            (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+        auto V = [&](const Fields &f, const int alpha) {
+            const int idx = alpha < 4 ? alpha : 10;  // W^{alpha tau}, q^tau
+            double v = f.Wmunu_[idx][fieldIdx];
+            if (alpha < 4 && withPi) {
+                const double g = (alpha == 0 ? -1. : 0.);
+                const double Pi = f.piBulk_[fieldIdx] + f.piBulkChem_[fieldIdx];
+                v += Pi * (g + f.u_[alpha][fieldIdx] * f.u_[0][fieldIdx]);
+            }
+            return v;
+        };
+        // the guard is applied separately to T^{tau mu} (alpha < 4) and to
+        // J^tau (alpha = 4)
+        double predictorMiss[2] = {0., 0.};
+        double stepChange[2] = {0., 0.};
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const double Vn1 = V(arenaFieldsCurr, alpha);
+            const double Vstar = V(arenaFieldsNext, alpha);
+            viscCorr[alpha] = viscousCorrectionTau_ * (Vn1 - Vstar);
+            const int k = (alpha < 4 ? 0 : 1);
+            predictorMiss[k] += std::abs(Vn1 - Vstar);
+            stepChange[k] += std::abs(Vn1 - V(arenaFieldsPrev, alpha));
+        }
+        const double w = U_derivative::idealEoMWeight(DATA, cellCurr.e);
+        const double smoothness =
+            ((1. - w) * viscousCorrectionSmoothnessBackward_
+             + w * viscousCorrectionSmoothnessIdealEoM_);
+        if (predictorMiss[0] > smoothness * stepChange[0]) {
+            for (int alpha = 0; alpha < 4; alpha++) viscCorr[alpha] = 0.;
+        }
+        if (predictorMiss[1]
+            > viscousCorrectionSmoothnessBaryon_ * stepChange[1]) {
+            viscCorr[4] = 0.;
+        }
+    }
+
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
+        qi[alpha] -= viscCorr[alpha];
 
         // add energy moemntum and net baryon density source terms
         qi[alpha] += qi_source[alpha] * DATA.delta_tau;
@@ -225,14 +288,11 @@ void Advance::FirstRKStepW(
         tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs, theta_local,
         a_local);
 
+    // the sources are evaluated at the stage's own state (the predictor in
+    // the second RK stage), like theta, sigma and Du; the transport
+    // coefficients of tau_n there made the scheme first order in dtau
     std::vector<double> thermalVec;
-    if (rk_flag == 0) {
-        eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
-    } else {
-        eos.getThermalVariables(
-            arenaFieldsPrev.e_[fieldIdx], arenaFieldsPrev.rhob_[fieldIdx],
-            thermalVec);
-    }
+    eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
@@ -399,7 +459,7 @@ void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {
     double pi_local = grid_pt.pi_b;
 
     double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + pi_local + 1e-16);
+    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., (1. - 1e-6) / r_combined);
     for (int mu = 0; mu < 10; mu++) {
@@ -494,8 +554,8 @@ void Advance::QuestRevert(
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
                           << ", energy density = " << e_local * hbarc
-                          << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
-                          << rho_bulk;
+                          << " GeV/fm^3, bulk_chem |Pi/(epsilon+3*P)| = "
+                          << rho_bulkChem;
             music_message.flush("warning");
         }
         grid_pt.pi_b_chem =
@@ -609,9 +669,12 @@ void Advance::MakeDeltaQI(
 
             // for each direction, reconstruct half-way cells
             // reconstruct e, rhob, and u[4] for half way cells
+            // each half-way state uses the cell on its own side of the
+            // interface as the guess (and fallback), so that both neighbours
+            // compute the identical flux and the scheme stays conservative
             auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
-            auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
-            auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
+            auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, p1);
+            auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, m1);
             auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
 
             double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);
@@ -735,7 +798,7 @@ double Advance::MaxSpeed(
     if (f < 0.0) {
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);
         fprintf(stderr, "Can't happen.\n");
-        exit(0);
+        exit(1);
     } else if (f < ux / utau) {
         if (num != 0.0) {
             if (fabs(f - ux / utau) < 0.0001) {
@@ -746,7 +809,7 @@ double Advance::MaxSpeed(
                     stderr, "SpeedMax = %e\n is smaller than v = %e.\n", f,
                     ux / utau);
                 fprintf(stderr, "Can't happen.\n");
-                exit(0);
+                exit(1);
             }
         }
     } else if (f > 1.0) {
