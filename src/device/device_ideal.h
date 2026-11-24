@@ -153,6 +153,14 @@ MD_FN Real minmodDx(Real up1, Real u, Real um1, Real theta) {
 
 // ----- the root solve: Reconst ---------------------------------------------
 
+// The divisions of the solve (and of maxSpeed) are mdDivF (device_defs.h;
+// a / b off Metal): every divisor is normal, either by construction
+// (>= absErr = 1e-8, u^0 >= 1, a bracket width) or by its guard (the
+// secant denominator, slopes and steps below tinyNormal count as 0,
+// Mperp2 >= tinyNormal), and every quotient is bounded (|f| < 1 for v,
+// |f| <= u0 + 1/absErr for u0, Newton steps inside the bracket). mdDiv
+// stays only for tauq / tau, whose numerator can be inf; / 2 is a
+// multiply.
 template <typename Real>
 struct Solver {
     // pointers: MSL has no reference members
@@ -166,7 +174,7 @@ struct Solver {
     //! the pressure at e, n_B = rhob and n_{Q,S} = J0{Q,S} f, as the
     //! solves of Reconst compute them
     //! Reconst::secant_denominator: d + absErr, or -absErr (= d) where
-    //! that is 0 or subnormal
+    //! that is 0 or subnormal, so the divisor of mdDivF is normal
     MD_FN Real secantDenominator(Real d) const {
         const Real s = d + P_->absErr;
         return (fabs(s) >= tinyNormal<Real>() ? s : -P_->absErr);
@@ -182,7 +190,7 @@ struct Solver {
         const Real temp = sqrt(Real(1) - v * v);
         const Real rhob = J0B * temp;
         const Real p = pressure(epsilon, rhob, temp);
-        return v - M / (T00 + p);
+        return v - mdDivF(M, T00 + p);
     }
 
     // Reconst::reconst_velocity_fdf
@@ -193,7 +201,7 @@ struct Solver {
         const Real h = dmax(Real(1e-3) * v, Real(1e-8));
         const Real v1 = (v > h) ? v - h : v + h;
         const Real fv1 = velocityF(v1, T00, M, J0B);
-        dfdv = (fv - fv1) / (v - v1);
+        dfdv = mdDivF(fv - fv1, v - v1);
     }
 
     // Reconst::solve_v_from_guess
@@ -209,19 +217,20 @@ struct Solver {
             return 1;
         }
         for (int iter = 0; iter < 8; iter++) {
-            if (!isfinite(dfdv) || dfdv == Real(0)) return 0;
-            const Real dv = fv / dfdv;
+            // a slope of 0 (or subnormal): no secant step
+            if (!isfinite(dfdv) || fabs(dfdv) < tinyNormal<Real>()) return 0;
+            const Real dv = mdDivF(fv, dfdv);
             const Real vNext = v - dv;
             if (!(vNext >= Real(0) && vNext < Real(1))) return 0;
             const Real absE = fabs(dv);
-            const Real relE = absE / (vNext + P_->absErr);
+            const Real relE = mdDivF(absE, vNext + P_->absErr);
             if (absE <= P_->absErr || relE <= P_->relErr) {
                 vSol = vNext;
                 return 1;
             }
             const Real fNext = velocityF(vNext, T00, M, J0B);
             if (!isfinite(fNext)) return 0;
-            dfdv = (fNext - fv) / secantDenominator(vNext - v);
+            dfdv = mdDivF(fNext - fv, secantDenominator(vNext - v));
             v = vNext;
             fv = fNext;
         }
@@ -263,7 +272,7 @@ struct Solver {
             velocityFdf(vr, T00, M, J0B, fv, dfdv);
         } else {
             fv = velocityF(vr, T00, M, J0B);
-            dfdv = (fh - fl) / (vh - vl);
+            dfdv = mdDivF(fh - fl, vh - vl);
         }
         Real absE = Real(10);
         Real relE = Real(10);
@@ -273,25 +282,25 @@ struct Solver {
             iter++;
             const Real vPrev = vr;
             const Real fPrev = fv;
-            // bisect also if the slope is 0
+            // bisect also if the slope is 0 (or subnormal)
             if (((vr - vh) * dfdv - fv) * ((vr - vl) * dfdv - fv) > Real(0)
                 || (fabs(Real(2) * fv) > fabs(dvPrev * dfdv))
-                || dfdv == Real(0)) {
+                || fabs(dfdv) < tinyNormal<Real>()) {
                 dvPrev = dvCurr;
                 dvCurr = (vh - vl) / Real(2);
                 vr = vl + dvCurr;
             } else {
                 dvPrev = dvCurr;
-                dvCurr = fv / dfdv;
+                dvCurr = mdDivF(fv, dfdv);
                 vr = vr - dvCurr;
             }
             absE = fabs(dvCurr);
-            relE = absE / (dmax(vr, Real(0)) + P_->absErr);
+            relE = mdDivF(absE, dmax(vr, Real(0)) + P_->absErr);
             if (fabs(vr - vPrev) > Real(0.1) * vr) {
                 velocityFdf(vr, T00, M, J0B, fv, dfdv);
             } else {
                 fv = velocityF(vr, T00, M, J0B);
-                dfdv = (fv - fPrev) / secantDenominator(vr - vPrev);
+                dfdv = mdDivF(fv - fPrev, secantDenominator(vr - vPrev));
             }
             if (fv * fl < Real(0)) {
                 vh = vr;
@@ -311,13 +320,15 @@ struct Solver {
 
     // Reconst::reconst_u0_f
     MD_FN Real u0F(Real u0, Real T00, Real K00, Real M, Real J0B) const {
-        const Real u0_inv = Real(1) / u0;
+        const Real u0_inv = mdDivF(Real(1), u0);
         const Real v = sqrt(Real(1) - u0_inv * u0_inv);
         const Real epsilon = T00 - v * M;
         const Real rhob = J0B * u0_inv;
         const Real p = pressure(epsilon, rhob, u0_inv);
-        const Real temp1 = Real(1) - K00 / ((T00 + p) * (T00 + p));
-        return u0 - Real(1) / sqrt(dmax(temp1, P_->absErr * P_->absErr));
+        const Real temp1 = Real(1) - mdDivF(K00, (T00 + p) * (T00 + p));
+        return u0
+               - mdDivF(Real(1),
+                        sqrt(dmax(temp1, P_->absErr * P_->absErr)));
     }
 
     // Reconst::solve_u0_Hybrid
@@ -346,7 +357,7 @@ struct Solver {
         Real duCurr = duPrev;
         Real root = (h + l) / Real(2);
         Real fu = u0F(root, T00, K00, M, J0B);
-        Real df = (fh - fl) / (h - l);
+        Real df = mdDivF(fh - fl, h - l);
         Real absE = Real(10);
         Real relE = Real(10);
         int iter = 0;
@@ -354,16 +365,16 @@ struct Solver {
             iter++;
             const Real uPrev = root;
             const Real fPrev = fu;
-            // bisect also if the slope is 0
+            // bisect also if the slope is 0 (or subnormal)
             if (((root - h) * df - fu) * ((root - l) * df - fu) > Real(0)
                 || (fabs(Real(2) * fu) > fabs(duPrev * df))
-                || df == Real(0)) {
+                || fabs(df) < tinyNormal<Real>()) {
                 duPrev = duCurr;
                 duCurr = (h - l) / Real(2);
                 root = l + duCurr;
             } else {
                 duPrev = duCurr;
-                duCurr = fu / df;
+                duCurr = mdDivF(fu, df);
                 root = root - duCurr;
             }
             if (root != root) {
@@ -372,17 +383,18 @@ struct Solver {
             }
             fu = u0F(root, T00, K00, M, J0B);
             absE = duCurr;
-            relE = duCurr / root;
+            relE = mdDivF(duCurr, root);
             // Reconst::solve_u0_Hybrid: the step did not move the root (so
             // fu = fPrev): stop, and fail unless converged, as the slope
-            // 0 / 0 = NaN did
+            // 0 / 0 = NaN did. Otherwise |du| >= ulp(1) / 2 (root ~ [1,
+            // 1e8]) and |fu| <= root + 1/absErr, so the slope is finite
             const Real du = root - uPrev;
-            if (du == Real(0)) {
+            if (fabs(du) < tinyNormal<Real>()) {
                 if (fabs(absE) > P_->absErr && fabs(relE) > P_->relErr)
                     status = 0;
                 break;
             }
-            df = (fu - fPrev) / du;
+            df = mdDivF(fu - fPrev, du);
             if (fu * fl < Real(0)) {
                 h = root;
                 fh = fu;
@@ -414,30 +426,32 @@ struct Solver {
         s.J0S_ = J0S;
         if (T00 < P_->absErr) return -2;
         if (T00 < M) return -1;
-        Real vGuess = sqrt(Real(1) - Real(1) / (gpt.u[0] * gpt.u[0] + P_->absErr));
-        if (pGuess > Real(0)) vGuess = M / (T00 + pGuess);
+        Real vGuess = sqrt(
+            Real(1) - mdDivF(Real(1), gpt.u[0] * gpt.u[0] + P_->absErr));
+        if (pGuess > Real(0)) vGuess = mdDivF(M, T00 + pGuess);
         Real v = Real(0);
         int st = s.solveVFromGuess(vGuess, T00, M, J0B, v);
         if (st == 0) st = s.solveVHybrid(vGuess, T00, M, J0B, v, flag);
         if (st == 0) return -1;
         Real u[4];
-        u[0] = Real(1) / (sqrt(Real(1) - v * v) + v * P_->absErr);
+        u[0] = mdDivF(Real(1), sqrt(Real(1) - v * v) + v * P_->absErr);
         Real epsilon = T00 - v * sqrt(K00);
-        Real rhob = J0B / u[0];
-        Real rhoq = J0Q / u[0];
-        Real rhos = J0S / u[0];
+        Real rhob = mdDivF(J0B, u[0]);
+        Real rhoq = mdDivF(J0Q, u[0]);
+        Real rhos = mdDivF(J0S, u[0]);
         if (v > P_->vCritical && epsilon > Real(1e-6)) {
             Real u0Sol = u[0];
             if (s.solveU0Hybrid(u[0], T00, K00, M, J0B, u0Sol) == 1) {
                 u[0] = u0Sol;
                 epsilon =
-                    T00 - sqrt((Real(1) - Real(1) / (u0Sol * u0Sol)) * K00);
-                rhob = J0B / u0Sol;
-                rhoq = J0Q / u0Sol;
-                rhos = J0S / u0Sol;
+                    T00
+                    - sqrt((Real(1) - mdDivF(Real(1), u0Sol * u0Sol)) * K00);
+                rhob = mdDivF(J0B, u0Sol);
+                rhoq = mdDivF(J0Q, u0Sol);
+                rhos = mdDivF(J0S, u0Sol);
             }
         }
-        if (fabs(u[0] - gpt.u[0]) / gpt.u[0] > Real(100)) return -1;
+        if (mdDivF(fabs(u[0] - gpt.u[0]), gpt.u[0]) > Real(100)) return -1;
         g.e = epsilon;
         g.rhob = rhob;
         g.rhoq = rhoq;
@@ -450,13 +464,14 @@ struct Solver {
         } else {
             p = eosPressure(*d_, tab, epsilon, rhob, rhoq, rhos);
         }
-        const Real fac = u[0] / (T00 + p);
+        const Real fac = mdDivF(u[0], T00 + p);
         u[1] = q[1] * fac;
         u[2] = q[2] * fac;
         u[3] = q[3] * fac;
         const Real u2 = u[1] * u[1] + u[2] * u[2] + u[3] * u[3];
         if (fabs(u[0] * u[0] - u2 - Real(1)) > P_->absErr) {
-            const Real sf = sqrt((u[0] * u[0] - Real(1)) / (u2 + P_->absErr));
+            const Real sf =
+                sqrt(mdDivF(u[0] * u[0] - Real(1), u2 + P_->absErr));
             u[1] *= sf;
             u[2] *= sf;
             u[3] *= sf;
@@ -472,7 +487,7 @@ struct Solver {
         MD_THREAD int &flag) const {
         if (eosOut) eosOut->valid = false;
         Real q[7];
-        for (int i = 0; i < 7; i++) q[i] = tauq[i] / tau;
+        for (int i = 0; i < 7; i++) q[i] = mdDiv(tauq[i], tau);
         const Real M = sqrt(q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
         if (q[0] >= P_->absErr && M >= q[0]) {
             flag |= kFlagMomentumCap;
@@ -480,12 +495,13 @@ struct Solver {
             const Real Mmax2 = mm * mm;
             const Real Mperp2 = q[1] * q[1] + q[2] * q[2];
             const Real Meta2 = q[3] * q[3];
-            if (Meta2 < Mmax2 && Mperp2 > Real(0)) {
-                const Real scale = sqrt((Mmax2 - Meta2) / Mperp2);
+            // Mmax2 - Meta2 <= Mperp2 here (M >= q0), so the quotient <= 1
+            if (Meta2 < Mmax2 && Mperp2 >= tinyNormal<Real>()) {
+                const Real scale = sqrt(mdDivF(Mmax2 - Meta2, Mperp2));
                 q[1] *= scale;
                 q[2] *= scale;
             } else {
-                const Real scale = Real(0.999) * q[0] / M;
+                const Real scale = mdDivF(Real(0.999) * q[0], M);
                 for (int i = 1; i < 4; i++) q[i] *= scale;
             }
         }
@@ -538,13 +554,13 @@ MD_FN Real maxSpeed(
         }
     }
     const Real den = utau2 * (Real(1) - vs2) + vs2;
-    Real f = num / dmax(den, Real(1e-16));
+    Real f = mdDivF(num, dmax(den, Real(1e-16)));
     if (f < Real(0)) {
         flag |= kFlagMaxSpeedFatal;
-    } else if (f < ux / utau) {
+    } else if (f < mdDivF(ux, utau)) {
         if (num != Real(0)) {
-            if (fabs(f - ux / utau) < Real(0.0001)) {
-                f = ux / utau;
+            if (fabs(f - mdDivF(ux, utau)) < Real(0.0001)) {
+                f = mdDivF(ux, utau);
             } else {
                 flag |= kFlagMaxSpeedFatal;
             }
@@ -553,7 +569,7 @@ MD_FN Real maxSpeed(
         flag |= kFlagMaxSpeedFatal;
         f = Real(1);
     }
-    if (direc == 3) f *= Real(1) / tau;
+    if (direc == 3) f *= mdDivF(Real(1), tau);
     return f;
 }
 

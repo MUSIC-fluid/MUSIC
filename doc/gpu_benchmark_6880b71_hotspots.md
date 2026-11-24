@@ -320,13 +320,80 @@ for visc20_161, visc9_161 and diff14_161.
 - integration suite on the Metal build: 25/25. The EoS 20 metrics are at
   their safe-mode values, e.g. μ_B 1.87e-6 against 1.9e-6 before.
 
+## 9. Done: the fast division in the primitive solver
+
+### Which divisions were replaced
+
+In `Solver` and `maxSpeed` (device_ideal.h), each division was checked for
+whether its operands stay inside the preconditions of section 8. The
+guards of the denominator pass (0352623, doc/denominator_safety_pass.md)
+make every divisor normal: a divisor below the smallest normal counts as
+0, which bisects or stops the solve. So `mdDiv`, the variant that also
+handles divisors 0 and +-inf, is no longer needed for any divisor, and
+plain `/` is no longer needed to keep an overflow as inf. Three facts carry
+the arguments:
+- `absErr` is 1e-8 in float, a normal number;
+- the solve returns early when `T00 < absErr` or `M >= T00`;
+- `u0F` is `u0 - 1 / sqrt(max(temp1, absErr^2))`, so `|fu| <= u0 + 1e8`
+  is finite.
+
+| group | divisions | the reasoning |
+|---|---|---|
+| `mdDivF` (36) | `velocityF` `M / (T00 + p)`; the slopes over h or the bracket width; `1 / u0`; `K00 / (T00 + p)^2`; `J0 / u0`; `u0 / (T00 + p)`; `relE` over `vNext + absErr`; `maxSpeed` (`num / max(den, 1e-16)`, `ux / utau`, `1 / tau`); and so on | the divisor is normal by construction (>= absErr, u^0 >= 1, tau > 0, a bracket width) and the numerator finite |
+| `mdDivF`, by a guard | the secant slopes over `secantDenominator(d)` (`|.| >= tinyNormal`, `|f| < 1`); `1 / sqrt(max(temp1, absErr^2))`; the Newton steps `fv / dfdv` and `fu / df` (a slope below tinyNormal fails the guess solve or bisects; in the hybrid solves the bracket test bounds the step by the bracket); the u0 secant slope over `du` (a step below tinyNormal stops the solve, otherwise `|du| >= ulp(1) / 2`); `/ Mperp2` (`Mperp2 >= tinyNormal`; `Mmax2 - Meta2 <= Mperp2` there, so the quotient is <= 1) | the guard makes the divisor normal, and the quotient is bounded |
+| `mdDiv` (1) | `tauq[i] / tau` | tau is normal, but the numerator can be inf (a failed step), which `mdDiv` carries through as `/` does |
+| plain `/` | the four `/ Real(2)` | already a multiply |
+
+The host solver (reconst.cpp) has the same guards, so that backend 1
+(double) stays bit-exact with it: zero tests of the slopes and of the u0
+step are `< Util::tiny_normal`, and the momentum cap takes the transverse
+branch only for `Mperp2 >= Util::tiny_normal`. These change results only
+for subnormal values.
+
+With these guards in place, the last `mdDiv` sites (two Newton steps, the
+momentum cap) and the two plain `/` of `solveU0Hybrid` became `mdDivF`.
+Against the first version of this section, the face kernel is a little
+faster (GPU seconds, two runs each): visc20 2.92/2.93 -> 2.87/2.83,
+ideal9 1.63/1.63 -> 1.59/1.56, diff14 2.38/2.48 -> 2.37/2.38. The outputs
+are unchanged: unit tests pass, the integration suite passes 25/25 with all
+2251 files bit-identical, and the 8 Metal bench runs and the CPU runs of
+visc9 41/81/121 are bit-identical to bench18.
+
+### Results
+
+**GPU seconds per kernel** (MUSIC_METAL_PROFILE=1). "Before" is 6880b71
+(section 2), except for visc20, where it is the EoS commit of section 8:
+
+| case | face | cellVisc_rk1 (cell for ideal) |
+|---|---|---|
+| visc9_161 | 1.92 → 1.55 | 1.96 → 1.88 |
+| ideal9_161 | 2.01 → 1.66 | 0.70 → 0.74 |
+| visc20_161 | 3.27 → 2.86 | 2.44 → 2.44 |
+| diff14_161 | 2.71 → 2.31 | 3.48 → 3.30 |
+| fullFO9_101 | 3.21 → 2.62 | 3.35 → 3.08 |
+
+**Wall time** (best of 2), against 6880b71 (section 1):
+
+| case | 6880b71 | sections 8 + 9 | change | speed-up over CPU |
+|---|---|---|---|---|
+| visc9_41 | 0.32 s | 0.31 s | -3% | 4.8x |
+| visc9_81 | 1.09 s | 1.02 s | -6% | 7.6x |
+| visc9_121 | 3.09 s | 2.88 s | -7% | 8.6x |
+| visc9_161 | 6.79 s | 6.50 s | -4% | 9.2x |
+| ideal9_161 | 3.30 s | 3.02 s | -8% | 13.2x |
+| visc20_161 | 11.36 s | 9.75 s | -14% | 11.9x |
+| diff14_161 | 10.27 s | 10.10 s | -2% | 10.0x |
+| fullFO9_101 | 9.97 s | 9.19 s | -8% | 10.8x |
+
+**Outputs:** every output file of all eight cases is bit-identical to
+bench18 (6880b71), the freeze-out surface included.
+
+**Tests:**
+- unit tests: bugfix 45/45, reconst, cell, grid and minmod all pass;
+- integration suite on Metal: 25/25, every Metal metric identical to the
+  run before this change.
+
 ### Possible next step
 
-The same functions could replace the solver's divisions (48 lines in
-device_ideal.h, 176 in device_visc.h), which run for every EoS.
-
-Each site would need the same care. On overflow, `mdDiv` gives NaN where
-`/` gives inf, and some solver tests (`fabs(u0 - u0_guess) / u0_guess >
-100`) treat the two differently. So an overflow rule, or a per-site
-argument that overflow cannot happen, comes first.
-
+The viscous update (176 division lines in device_visc.h) is the next
+candidate, with the same review per site.

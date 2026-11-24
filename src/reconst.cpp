@@ -48,7 +48,7 @@ ReconstCell Reconst::ReconstIt_shell(
         const double Mmax2 = std::pow(max_M_over_T00 * q_vec[0], 2);
         const double Mperp2 = q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2];
         const double Meta2 = q_vec[3] * q_vec[3];
-        if (Meta2 < Mmax2 && Mperp2 > 0.) {
+        if (Meta2 < Mmax2 && Mperp2 >= Util::tiny_normal) {
             const double scale = std::sqrt((Mmax2 - Meta2) / Mperp2);
             q_vec[1] *= scale;
             q_vec[2] *= scale;
@@ -323,9 +323,10 @@ int Reconst::solve_v_Hybrid(
         double v_prev = v_root;
         double fv_prev = fv;
         // bisect if the Newton step leaves the bracket, converges too
-        // slowly, or the slope is 0 (fv / dfdv would divide by 0)
+        // slowly, or the slope is 0 or subnormal (fv / dfdv)
         if (((v_root - v_h) * dfdv - fv) * ((v_root - v_l) * dfdv - fv) > 0.
-            || (std::abs(2. * fv) > std::abs(dv_prev * dfdv)) || dfdv == 0.) {
+            || (std::abs(2. * fv) > std::abs(dv_prev * dfdv))
+            || std::abs(dfdv) < Util::tiny_normal) {
             dv_prev = dv_curr;
             dv_curr = (v_h - v_l) / 2.;
             v_root = v_l + dv_curr;
@@ -392,7 +393,9 @@ int Reconst::solve_v_from_guess(
         return (1);
     }
     for (int iter = 0; iter < maxGuessIter_; iter++) {
-        if (!std::isfinite(dfdv) || dfdv == 0.) return (0);
+        // a slope of 0 (or subnormal): no secant step
+        if (!std::isfinite(dfdv) || std::abs(dfdv) < Util::tiny_normal)
+            return (0);
         const double dv = fv / dfdv;
         const double v_next = v - dv;
         if (!(v_next >= 0. && v_next < 1.)) return (0);
@@ -505,11 +508,11 @@ int Reconst::solve_u0_Hybrid(
         iter_u0++;
         double u0_prev = u0_root;
         double fu0_prev = fu0;
-        // bisect also if the slope is 0 (fu0 / dfdu0 would divide by 0)
+        // bisect also if the slope is 0 or subnormal (fu0 / dfdu0)
         if (((u0_root - u0_h) * dfdu0 - fu0) * ((u0_root - u0_l) * dfdu0 - fu0)
                 > 0.
             || (std::abs(2. * fu0) > std::abs(du0_prev * dfdu0))
-            || dfdu0 == 0.) {
+            || std::abs(dfdu0) < Util::tiny_normal) {
             du0_prev = du0_curr;
             du0_curr = (u0_h - u0_l) / 2.;
             u0_root = u0_l + du0_curr;
@@ -528,7 +531,7 @@ int Reconst::solve_u0_Hybrid(
         // the step did not move u0 (so fu0 = fu0_prev): stop, and fail
         // unless converged, which is what the slope 0 / 0 = NaN led to
         const double du0 = u0_root - u0_prev;
-        if (du0 == 0.) {
+        if (std::abs(du0) < Util::tiny_normal) {
             if (std::abs(abs_error_u0) > abs_err
                 && std::abs(rel_error_u0) > rel_err)
                 u0_status = 0;
