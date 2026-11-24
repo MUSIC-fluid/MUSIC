@@ -87,6 +87,27 @@ typedef struct MusicDeviceApi {
     // pointers rotate when stage() returns; every call that reads the
     // device state waits first
     int (*finish)(void *dev, int *flags, char *err, int errLen);
+    // fetch() of slice which = 1 while the stages of a step are in flight:
+    // after stage() with rk = 1 that is the slice of tau_n, which the stages
+    // read and no stage writes (the next step's second stage overwrites
+    // it), so the backend need not wait for them (Metal: shared memory, it
+    // returns at once). Only which = 1 is allowed
+    int (*fetchUnwritten)(
+        void *dev, int which, int firstComp, int nComp, char *err,
+        int errLen);
+    // conservation() in two halves, so that the rows of the new slice are
+    // computed right after the step's second stage without the host
+    // waiting for them: conservationBegin, called after stage() with
+    // rk = 1, queues the kernel of the current slice (the new one) with the
+    // previous one (tau_n) behind the step; conservationEnd waits for it
+    // and copies the rows to out. finish() and every read of the device
+    // state also wait for it. NULL: the host calls conservation() in
+    // conservationBegin (backends whose stages are synchronous)
+    int (*conservationBegin)(
+        void *dev, const void *params, size_t paramBytes, size_t outBytes,
+        char *err, int errLen);
+    int (*conservationEnd)(
+        void *dev, void *out, size_t outBytes, char *err, int errLen);
     // optional (NULL: fetch() of the whole slice): all components of the
     // listed cells (ix + nx (iy + ny ieta)) of slice which, gathered on
     // the device into *out, component-major (component c of cells[k] at

@@ -116,6 +116,9 @@ int Evolve::EvolveIt(
     // filled only where they are read (DeviceHydro::syncHost, ...)
     const bool onDevice =
         (deviceHydro_ && deviceHydro_->active() && rk_order == 2);
+    // beastMode 0 reads the conservation rows every step: each step
+    // computes those of its new slice on the device right after it
+    if (onDevice) deviceHydro_->conservationAhead(DATA.beastMode == 0);
     // (not while the next step runs: only the returns to re-run hydro
     // leave the loop then, and nothing reads the Fields after them)
     const auto syncAll = [&]() {
@@ -215,6 +218,9 @@ int Evolve::EvolveIt(
         // store initial conditions
         const bool isFreezeStartStep =
             (!freezeStarted && tau > tauFreezeStart - 0.5 * dt);
+        // a freeze-out step that reads all of fpCurr and nothing of fpPrev:
+        // fpCurr is filled after beginStep, while the step runs
+        bool syncCurrDuringStep = false;
         if (onDevice && !deviceHydro_->hostCurrent()) {
             // the steps whose output or freeze-out reads all of fpCurr
             // (and fpPrev)
@@ -251,10 +257,20 @@ int Evolve::EvolveIt(
                          && it == it_source_max)
                      || DATA.output_hydro_debug_info == 1);
             }
-            if (isFreezeStartStep || outputStep || freezeStep || checkStep
-                || itSince == 0 || itSince == 10 || itSince == 30
-                || itSince == 50) {
+            const bool fullStep =
+                (isFreezeStartStep || outputStep || checkStep || itSince == 0
+                 || itSince == 10 || itSince == 30 || itSince == 50);
+            if (fullStep) {
                 syncAll();
+            } else if (freezeStep) {
+                // the Cornelius search reads fpPrev (and stores it for the
+                // next search) only for the vorticity; without it the
+                // stored previous slice is never read
+                if (DATA.output_vorticity == 1 && !DATA.boost_invariant) {
+                    syncAll();
+                } else {
+                    syncCurrDuringStep = true;
+                }
             }
         }
         if (isFreezeStartStep) {
@@ -271,23 +287,42 @@ int Evolve::EvolveIt(
         // runs while the host does the output, the diagnostics and the
         // freeze-out on its copies (AdvanceRK waits for it)
         bool haveDeviceRows = false;
+        // the cells of the outflow faces of fpCurr and fpPrev, from the
+        // device (check_conservation_law)
+        const std::vector<double> *outflowCurr = nullptr;
+        const std::vector<double> *outflowPrev = nullptr;
         if (onDevice) {
-            if (!deviceHydro_->hostCurrent() && DATA.beastMode == 0) {
-                // output_momentum_anisotropy_vs_tau and the phase-diagram
-                // trajectories read eta windows of fpCurr
-                deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
-                if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
-                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
-                // the conservation sums and the grid maxima; the outflow
-                // reads the outermost cells
+            // the reads of fpCurr (tau_n) come after beginStep, while the
+            // step runs: the step writes the other slices. Those of fpPrev
+            // come before, since its second stage overwrites tau_{n-1}
+            const bool diagnostics =
+                (!deviceHydro_->hostCurrent() && DATA.beastMode == 0);
+            if (diagnostics) {
+                // the conservation sums and the grid maxima (computed
+                // right after the last step), and the outflow faces of
+                // fpPrev (kept from the last step)
                 deviceHydro_->conservationRows(tau, deviceRows);
                 haveDeviceRows = true;
                 if (!DATA.boost_invariant) {
-                    deviceHydro_->syncShell(
-                        *fpCurr, fpPrev, 1, 1, fpCurr->nEta() > 1 ? 1 : 0);
+                    outflowPrev = &deviceHydro_->outflowFaces(*fpPrev, 1);
                 }
             }
             deviceHydro_->beginStep(tau, fpPrev, fpCurr);
+            if (syncCurrDuringStep) deviceHydro_->syncCurrentDuringStep(*fpCurr);
+            if (diagnostics) {
+                // output_momentum_anisotropy_vs_tau and the phase-diagram
+                // trajectories read eta windows of fpCurr (all of it was
+                // copied on a freeze-out step)
+                if (!syncCurrDuringStep) {
+                    deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 0.5);
+                    if (DATA.Initial_profile == 13
+                        || DATA.Initial_profile == 131)
+                        deviceHydro_->syncEtaWindow(*fpCurr, -0.5, 5.0);
+                }
+                if (!DATA.boost_invariant) {
+                    outflowCurr = &deviceHydro_->outflowFaces(*fpCurr, 0);
+                }
+            }
         }
 
         // if (DATA.Initial_profile == 13) {
@@ -370,11 +405,12 @@ int Evolve::EvolveIt(
             // check energy conservation
             if (!DATA.boost_invariant) {
                 if (haveDeviceRows) {
-                    // the sums from the device, the outflow from the
-                    // outermost cells
+                    // the sums and the cells of the outflow faces from the
+                    // device (with the full sync of an output step, from
+                    // the Fields)
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, nullptr, &gridMaxima,
-                        &deviceRows);
+                        &deviceRows, outflowCurr, outflowPrev);
                 } else {
                     grid_info.check_conservation_law(
                         *fpCurr, *fpPrev, tau, pressureCurr, &gridMaxima);

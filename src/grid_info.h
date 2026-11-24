@@ -53,6 +53,12 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
     TJbVec outflow_flux;
+    //! the loop of boundary_outflow_rate over the faces; values(j, ix, iy,
+    //! ieta) gives the kOutflowVals values of the cell of face j
+    template <typename Values>
+    void outflowRate(
+        int nx, int ny, int neta, const double tau, TJbVec &rate,
+        const Values &values) const;
     // the outflow rate and tau of the previous conservation record: the
     // trapezoidal rule must span the elapsed tau, which differs from
     // delta_tau in the step where beastMode changes delta_tau
@@ -160,16 +166,36 @@ class Cell_info {
     //! from the device (DeviceHydro::conservationRows, 12 per row:
     //! N_B, N_Q, N_S, T^{tau t,x,y,z}, then the maxima of e, n_B, n_Q, n_S,
     //! T), in place of the sweep over arena; arena and arena_prev then only
-    //! need their outermost cells (boundary_outflow_rate)
+    //! need their outermost cells (boundary_outflow_rate).
+    //! outflowCurr, outflowPrev (optional): the cells of the outflow faces
+    //! of arena and arena_prev (DeviceHydro::outflowFaces), in place of
+    //! those outermost cells
     void check_conservation_law(
         Fields &arena, Fields &arena_prev, const double tau,
         const std::vector<double> *pressure = nullptr,
         GridMaxima *maxima = nullptr,
-        const std::vector<double> *deviceRows = nullptr);
+        const std::vector<double> *deviceRows = nullptr,
+        const std::vector<double> *outflowCurr = nullptr,
+        const std::vector<double> *outflowPrev = nullptr);
 
     //! rate at which E, Px, Py, Pz [GeV] and N_B leave the grid faces
     void boundary_outflow_rate(
         Fields &arena, const double tau, TJbVec &rate) const;
+    //! the same from the values of the cells at the faces
+    //! (kOutflowVals per face, in the order of outflowFace), as
+    //! DeviceHydro::outflowFaces gathers them
+    void boundary_outflow_rate(
+        const std::vector<double> &faces, int nx, int ny, int neta,
+        const double tau, TJbVec &rate) const;
+    //! the values boundary_outflow_rate reads of a cell: e, rhob, rhoq,
+    //! rhos, Pi, Pi_chem, u^0 ... u^3, W^0 ... W^13
+    static constexpr int kOutflowVals = 24;
+    //! the faces of the outflow: face j is the face normal to mu (1 = x,
+    //! 2 = y, 3 = eta) on side 0 (-) or 1 (+) of the cell (ix, iy, ieta)
+    static void outflowFace(
+        int j, int nx, int ny, int neta, int &ix, int &iy, int &ieta,
+        int &mu, int &side);
+    static int outflowFaceCount(int nx, int ny, int neta);
 
     //! records the outflow rate of arena at tau before the grid is remapped
     //! (once per tau), for check_conservation_law

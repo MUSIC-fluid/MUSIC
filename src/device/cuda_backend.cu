@@ -68,6 +68,12 @@ cudaError_t cudaEventDestroy(cudaEvent_t);
 cudaError_t cudaEventRecord(cudaEvent_t, cudaStream_t = 0);
 cudaError_t cudaEventSynchronize(cudaEvent_t);
 cudaError_t cudaEventElapsedTime(float *, cudaEvent_t, cudaEvent_t);
+enum { cudaStreamNonBlocking = 1 };
+cudaError_t cudaStreamCreateWithFlags(cudaStream_t *, unsigned);
+cudaError_t cudaStreamDestroy(cudaStream_t);
+cudaError_t cudaStreamSynchronize(cudaStream_t);
+cudaError_t cudaMemcpyAsync(
+    void *, const void *, size_t, cudaMemcpyKind, cudaStream_t = 0);
 __device__ int atomicOr(int *, int);
 #define MUSIC_CUDA_MATH(f)                \
     __host__ __device__ double f(double); \
@@ -268,6 +274,13 @@ struct DeviceBase {
     virtual int fetchCells(
         int which, const int *cells, int nCells, void **out, char *err,
         int len) = 0;
+    virtual int fetchUnwritten(
+        int which, int firstComp, int nComp, char *err, int len) = 0;
+    virtual int conservationBegin(
+        const void *params, size_t bytes, size_t outBytes, char *err,
+        int len) = 0;
+    virtual int conservationEnd(
+        void *out, size_t outBytes, char *err, int len) = 0;
     virtual int init(char *err, int len) = 0;
 };
 
@@ -318,6 +331,9 @@ struct Device : public DeviceBase {
             profMs[k] = 0.;
             profCalls[k] = 0;
         }
+        if (!ok(cudaStreamCreateWithFlags(&side, cudaStreamNonBlocking),
+                "cudaStreamCreateWithFlags", err, len))
+            return 1;
         if (profile
             && (!ok(cudaEventCreate(&ev[0]), "cudaEventCreate", err, len)
                 || !ok(cudaEventCreate(&ev[1]), "cudaEventCreate", err, len)))
@@ -363,12 +379,25 @@ struct Device : public DeviceBase {
     Real *dGather = NULL, *hGather = NULL;
     size_t gatherCap = 0;
 
+    // the stream of a read of slice which: during a step (after stage()
+    // with rk = 1, before finish()) slice 1 is tau_n, which the stages in
+    // flight read and do not write, so its reads go to a stream of their
+    // own (non-blocking: no implicit order with the default stream) and do
+    // not wait for the step. Every other read is on the default stream,
+    // behind the stages
+    cudaStream_t side = NULL;
+    cudaStream_t streamFor(int which) const {
+        return (pending && which == 1 ? side : (cudaStream_t)0);
+    }
+
     int fetchCells(int which, const int *cells, int nCells, void **out,
                    char *err, int len) {
         if (nCells <= 0) {
             *out = hGather;
             return 0;
         }
+        const cudaStream_t st = streamFor(which);
+        // the buffers grow rarely (cudaFree waits for the device)
         if (nCells > nCellsCap) {
             cudaFree(dCells);
             cudaFreeHost(hCells);
@@ -385,8 +414,8 @@ struct Device : public DeviceBase {
         if (nCells != nCellsHeld
             || memcmp(hCells, cells, sizeof(int) * nCells) != 0) {
             memcpy(hCells, cells, sizeof(int) * nCells);
-            if (!ok(cudaMemcpy(dCells, hCells, sizeof(int) * nCells,
-                               cudaMemcpyHostToDevice),
+            if (!ok(cudaMemcpyAsync(dCells, hCells, sizeof(int) * nCells,
+                                    cudaMemcpyHostToDevice, st),
                     "fetchCells", err, len))
                 return 1;
             nCellsHeld = nCells;
@@ -406,15 +435,83 @@ struct Device : public DeviceBase {
         }
         const Real *from = slice[which == 0 ? cur : (which == 1 ? next : pred)];
         const int b = 256;
-        cudaGather<Real><<<(unsigned)((nv + b - 1) / b), b>>>(
+        cudaGather<Real><<<(unsigned)((nv + b - 1) / b), b, 0, st>>>(
             from, (size_t)nx * ny * neta, dCells, nCells, nComp, dGather);
         if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
-        if (!ok(cudaMemcpy(hGather, dGather, sizeof(Real) * nv,
-                           cudaMemcpyDeviceToHost),
-                "fetchCells", err, len))
+        if (!ok(cudaMemcpyAsync(hGather, dGather, sizeof(Real) * nv,
+                                cudaMemcpyDeviceToHost, st),
+                "fetchCells", err, len)
+            || !ok(cudaStreamSynchronize(st), "fetchCells", err, len))
             return 1;
         *out = hGather;
         return 0;
+    }
+
+    // fetch() of slice 1 (tau_n) while the step may run: on the side
+    // stream, without waiting for the stages
+    int fetchUnwritten(int which, int firstComp, int nComp_, char *err,
+                       int len) {
+        if (which != 1) {
+            if (err) snprintf(err, len, "CUDA: fetchUnwritten: only the "
+                                        "slice of tau_n");
+            return 1;
+        }
+        const cudaStream_t st = streamFor(1);
+        const size_t n = (size_t)nx * ny * neta;
+        return ok(cudaMemcpyAsync(host[1] + firstComp * n,
+                                  slice[next] + firstComp * n,
+                                  sizeof(Real) * nComp_ * n,
+                                  cudaMemcpyDeviceToHost, st),
+                  "fetchUnwritten", err, len)
+                       && ok(cudaStreamSynchronize(st), "fetchUnwritten",
+                             err, len)
+                   ? 0
+                   : 1;
+    }
+
+    // the conservation rows of the new slice, queued behind the step (on
+    // the default stream) into a buffer of their own, so that a
+    // conservation() call in between does not overwrite them
+    Real *consAhead = NULL;
+    size_t consAheadCap = 0, consAheadBytes = 0;
+    int conservationBegin(const void *params, size_t bytes, size_t outBytes,
+                          char *err, int len) {
+        if (bytes != sizeof(StepParams<Real>)) {
+            if (err) snprintf(err, len, "CUDA: StepParams size mismatch");
+            return 1;
+        }
+        StepParams<Real> P;
+        memcpy(&P, params, sizeof(P));
+        if (outBytes > consAheadCap) {
+            cudaFree(consAhead);
+            consAhead = NULL;
+            consAheadCap = 0;
+            if (!ok(cudaMalloc((void **)&consAhead, outBytes), "cudaMalloc",
+                    err, len))
+                return 1;
+            consAheadCap = outBytes;
+        }
+        tic();
+        cudaConservation<Real>
+            <<<grid(nx * neta, kKConservation), block[kKConservation]>>>(
+                P, desc, table, slice[cur], slice[next], consAhead);
+        if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
+        toc(kKConservation);
+        consAheadBytes = outBytes;
+        return 0;
+    }
+    int conservationEnd(void *out, size_t outBytes, char *err, int len) {
+        if (outBytes != consAheadBytes || consAhead == NULL) {
+            if (err) snprintf(err, len, "CUDA: conservationEnd: not the size "
+                                        "of conservationBegin");
+            return 1;
+        }
+        // behind the kernel on the default stream
+        return ok(cudaMemcpy(out, consAhead, outBytes,
+                             cudaMemcpyDeviceToHost),
+                  "conservationEnd", err, len)
+                   ? 0
+                   : 1;
     }
 
     // waits for the step in flight (every read of the device state is a
@@ -458,6 +555,8 @@ struct Device : public DeviceBase {
         cudaFreeHost(hCells);
         cudaFree(dGather);
         cudaFreeHost(hGather);
+        cudaFree(consAhead);
+        if (side != NULL) cudaStreamDestroy(side);
         release();
         cudaFree(table);
         cudaFree(flags);
@@ -778,6 +877,20 @@ int cudaFetch(
     void *dev, int which, int firstComp, int nComp, char *err, int len) {
     return get(dev)->fetch(which, firstComp, nComp, err, len);
 }
+// fetch() of tau_n without waiting for the step in flight
+int cudaFetchUnwritten(
+    void *dev, int which, int firstComp, int nComp, char *err, int len) {
+    return get(dev)->fetchUnwritten(which, firstComp, nComp, err, len);
+}
+int cudaConservationBegin(
+    void *dev, const void *params, size_t bytes, size_t outBytes, char *err,
+    int len) {
+    return get(dev)->conservationBegin(params, bytes, outBytes, err, len);
+}
+int cudaConservationEnd(
+    void *dev, void *out, size_t outBytes, char *err, int len) {
+    return get(dev)->conservationEnd(out, outBytes, err, len);
+}
 int cudaDownload(void *dev, char *err, int len) {
     return get(dev)->download(err, len);
 }
@@ -806,7 +919,8 @@ const MusicDeviceApi kCudaApi = {
     cudaCreate, cudaDestroy, cudaName,   cudaResize,       cudaSetEos,
     cudaState,  cudaUpload,  cudaStage,  cudaSource,       cudaUploadSource,
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
-    cudaSpecialize, cudaFinish, cudaFetchCells,
+    cudaSpecialize, cudaFinish, cudaFetchUnwritten,
+    cudaConservationBegin, cudaConservationEnd, cudaFetchCells,
 };
 
 }  // namespace

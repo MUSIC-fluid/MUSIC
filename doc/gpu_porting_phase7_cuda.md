@@ -243,6 +243,27 @@ CUDA results on this machine (worst case over the cases of each test):
 - **Metal:** this phase touched it only for the explicit `NULL` of `fetchCells` in `kMetalApi`.
 - **The `MUSIC_CUDA_SYNTAX_ONLY` stubs** for the new CUDA calls (`cudaFuncGetAttributes`, `cudaEvent*`): there is no clang here. nvcc compiled the real code.
 
+## 7. Merge with origin/gpu (7afc004, 8aa8b51, 6880b71)
+
+The three upstream commits add three backend calls for Metal: `fetchUnwritten`, `conservationBegin` and `conservationEnd`. Their CUDA stubs assumed synchronous stages. With this phase's asynchronous stages, those stubs stayed correct, but `conservationBegin = NULL` made `beginStep` compute the rows on the host's call, which waits for the whole step and removes the overlap. The merge implements them on CUDA:
+
+- **`conservationBegin` / `conservationEnd`:** the row kernel is queued behind the step on the default stream, into a buffer of its own, and `End` copies it back. All 98 row sets of the benchmark are computed this way.
+- **`fetchUnwritten`, and `fetchCells` of slice 1 during a step:** they run on a non-blocking side stream and do not wait for the stages. Slice 1 is τ_n, which the stages in flight read and never write.
+- **`outflowFaces`:** it now gathers only the cells of the boundary faces through `fetchCells`, instead of fetching the whole slice every step. `gatherOutflow` reads through an accessor, with the same arithmetic.
+- **Struct order:** `fetchCells` is the last member of `MusicDeviceApi`, after upstream's three.
+
+**Tests after the merge:**
+- **Integration:** 25/25 pass.
+- **Unit tests:** 44/45 pass; the failure is the pre-existing g++ float tolerance (section 6).
+- **Upstream's three new unit tests** (the reads during a step, the copy during a step, the outflow faces) are written for backend 1. Pointed at CUDA (`gpu_backend = 3`) in a local run, all 256 assertions pass.
+- **Outputs:** byte-identical to the pre-merge CUDA build (78 output files: ideal and viscous EoS 9, viscous EoS 20, float).
+
+| float, 1.27M cells, 101 steps (mean of 2) | before the merge | merged |
+|---|---|---|
+| ideal, EoS 9 | 9.9 s | **8.9 s** |
+| viscous, EoS 9 | 24.8 s | **23.9 s** |
+| viscous, EoS 20 | 35.9 s | **35.7 s** |
+
 ## Files
 
 | file | change |

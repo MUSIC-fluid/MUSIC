@@ -1,0 +1,325 @@
+diff --git a/src/data.h b/src/data.h
+index 096eb05..4ccddbd 100644
+--- a/src/data.h
++++ b/src/data.h
+@@ -115,6 +115,7 @@ typedef struct init_data {
+     int gpu_backend = 0;
+     //! 1: the device works in float (always so with Metal)
+     int gpu_float = 0;
++    int gpu_relaxed_math = 0;
+     //! 1: the device carries tau T^{tau mu}; -1 (default): 1 in float
+     int gpu_store_q = -1;
+ 
+diff --git a/src/device/device_defs.h b/src/device/device_defs.h
+index dfcd447..414169d 100644
+--- a/src/device/device_defs.h
++++ b/src/device/device_defs.h
+@@ -48,6 +48,18 @@
+ #define MD_EOS_TYPE(d) ((d).type)
+ #endif
+ 
++// MD_EXACT_FP at the start of a function body: IEEE arithmetic in it on
++// Metal also when the kernels are compiled in the relaxed floating-point
++// mode (gpu_relaxed_math). The velocity solvers (Solver in device_ideal.h)
++// decide whether a cell is solved, capped, regulated or reverted; relaxed
++// rounding there changed those decisions in dilute, fast cells (failed
++// brackets, reverts that the CPU code does not make), so they stay exact
++#if defined(__METAL_VERSION__)
++#define MD_EXACT_FP _Pragma("METAL fp math_mode(safe)")
++#else
++#define MD_EXACT_FP
++#endif
++
+ namespace music_device {
+ 
+ #if defined(__METAL_VERSION__)
+@@ -149,6 +161,30 @@ MD_FN Real dexpm1(Real y) {
+     return (um1 * y / log(u));
+ }
+ 
++// NaN and infinity tests. On Metal on the bits of the float, which no math
++// mode can fold: with MTLMathModeRelaxed (metal_backend.m) the compiler
++// folded the NaN test x != x of solveU0Hybrid to false, so the NaN of a
++// failed solve passed as a solution, and it may treat isnan / isfinite the
++// same way. Elsewhere isnan / isfinite (x != x is isnan(x)), so the device
++// code on the CPU and in CUDA computes as before
++#if defined(__METAL_VERSION__)
++MD_FN bool mdIsNan(float x) {
++    return ((as_type<uint>(x) & 0x7fffffffu) > 0x7f800000u);
++}
++MD_FN bool mdIsFinite(float x) {
++    return ((as_type<uint>(x) & 0x7f800000u) != 0x7f800000u);
++}
++#else
++template <typename Real>
++MD_FN bool mdIsNan(Real x) {
++    return (isnan(x));
++}
++template <typename Real>
++MD_FN bool mdIsFinite(Real x) {
++    return (isfinite(x));
++}
++#endif
++
+ // std::max / std::min semantics (the second argument wins only if it is
+ // strictly larger / smaller), so that NaNs and ties propagate as on the host
+ template <typename T>
+diff --git a/src/device/device_hydro.cpp b/src/device/device_hydro.cpp
+index 54d1e78..0970747 100644
+--- a/src/device/device_hydro.cpp
++++ b/src/device/device_hydro.cpp
+@@ -385,6 +385,11 @@ DeviceHydro::DeviceHydro(
+                   << (viscous_ ? "viscous, " : "ideal, ")
+                   << (float_ ? "float" : "double")
+                   << (storeQ_ ? ", stored tau T^{tau mu}" : "")
++                  << (DATA.gpu_relaxed_math == 1
++                          ? (DATA.gpu_backend == 2
++                                 ? ", relaxed floating-point mode"
++                                 : ", gpu_relaxed_math ignored (Metal only)")
++                          : "")
+                   << (strings_ ? ", strings source on the device"
+                                : (source_ ? ", source terms from the host"
+                                           : ""));
+@@ -654,7 +659,8 @@ std::string DeviceHydro::specKey() const {
+       << ";diff=" << P.diff << ";profile1=" << P.profile1
+       << ";muBShear=" << P.muBShear << ";bulkRelaxType=" << P.bulkRelaxType
+       << ";questRevert=" << P.questRevert << ";nWComp=" << P.nWComp
+-      << ";eosType=" << eosType;
++      << ";eosType=" << eosType
++      << ";relaxedMath=" << (DATA.gpu_relaxed_math == 1 ? 1 : 0);
+     return (k.str());
+ }
+ 
+diff --git a/src/device/device_hydro.h b/src/device/device_hydro.h
+index 7e64588..962f121 100644
+--- a/src/device/device_hydro.h
++++ b/src/device/device_hydro.h
+@@ -5,7 +5,8 @@
+ //   0  off (default): the CPU code of Advance
+ //   1  the device kernels on the CPU (OpenMP), in double they reproduce
+ //      Advance bit for bit: the reference of the GPU backends
+-//   2  Metal (Apple GPUs, float)
++//   2  Metal (Apple GPUs, float; gpu_relaxed_math = 1 compiles the kernels
++//      in the relaxed floating-point mode, faster, see read_in_parameters)
+ //   3  CUDA (NVIDIA GPUs, double by default)
+ // gpu_float = 1 runs backends 1 and 3 in float (Metal always is);
+ // gpu_store_q (default: 1 in float, 0 in double) carries tau T^{tau mu} on
+diff --git a/src/device/device_ideal.h b/src/device/device_ideal.h
+index b88b4f7..a281fc9 100644
+--- a/src/device/device_ideal.h
++++ b/src/device/device_ideal.h
+@@ -166,11 +166,13 @@ struct Solver {
+     //! the pressure at e, n_B = rhob and n_{Q,S} = J0{Q,S} f, as the
+     //! solves of Reconst compute them
+     MD_FN Real pressure(Real e, Real rhob, Real f) const {
++        MD_EXACT_FP
+         return eosPressure(*d_, tab, e, rhob, J0Q_ * f, J0S_ * f);
+     }
+ 
+     // Reconst::reconst_velocity_f
+     MD_FN Real velocityF(Real v, Real T00, Real M, Real J0B) const {
++        MD_EXACT_FP
+         const Real epsilon = T00 - v * M;
+         const Real temp = sqrt(Real(1) - v * v);
+         const Real rhob = J0B * temp;
+@@ -182,6 +184,7 @@ struct Solver {
+     MD_FN void velocityFdf(
+         Real v, Real T00, Real M, Real J0B, MD_THREAD Real &fv,
+         MD_THREAD Real &dfdv) const {
++        MD_EXACT_FP
+         fv = velocityF(v, T00, M, J0B);
+         const Real h = dmax(Real(1e-3) * v, Real(1e-8));
+         const Real v1 = (v > h) ? v - h : v + h;
+@@ -192,17 +195,18 @@ struct Solver {
+     // Reconst::solve_v_from_guess
+     MD_FN int solveVFromGuess(
+         Real vGuess, Real T00, Real M, Real J0B, MD_THREAD Real &vSol) const {
++        MD_EXACT_FP
+         if (!(vGuess >= Real(0) && vGuess < Real(1))) return 0;
+         Real v = vGuess;
+         Real fv = velocityF(v, T00, M, J0B);
+         Real dfdv = Real(1) - Real(0.2) * v * v;
+-        if (!isfinite(fv)) return 0;
++        if (!mdIsFinite(fv)) return 0;
+         if (fabs(fv) < P_->absErr) {
+             vSol = v;
+             return 1;
+         }
+         for (int iter = 0; iter < 8; iter++) {
+-            if (!isfinite(dfdv) || dfdv == Real(0)) return 0;
++            if (!mdIsFinite(dfdv) || dfdv == Real(0)) return 0;
+             const Real dv = fv / dfdv;
+             const Real vNext = v - dv;
+             if (!(vNext >= Real(0) && vNext < Real(1))) return 0;
+@@ -213,7 +217,7 @@ struct Solver {
+                 return 1;
+             }
+             const Real fNext = velocityF(vNext, T00, M, J0B);
+-            if (!isfinite(fNext)) return 0;
++            if (!mdIsFinite(fNext)) return 0;
+             dfdv = (fNext - fv) / (vNext - v + P_->absErr);
+             v = vNext;
+             fv = fNext;
+@@ -225,6 +229,7 @@ struct Solver {
+     MD_FN int solveVHybrid(
+         Real vGuess, Real T00, Real M, Real J0B, MD_THREAD Real &vSol,
+         MD_THREAD int &flag) const {
++        MD_EXACT_FP
+         Real vl = dmax(Real(0), vGuess - Real(0.05));
+         Real vh = dmin(Real(1), vGuess + Real(0.05));
+         Real fl = velocityF(vl, T00, M, J0B);
+@@ -302,6 +307,7 @@ struct Solver {
+ 
+     // Reconst::reconst_u0_f
+     MD_FN Real u0F(Real u0, Real T00, Real K00, Real M, Real J0B) const {
++        MD_EXACT_FP
+         const Real u0_inv = Real(1) / u0;
+         const Real v = sqrt(Real(1) - u0_inv * u0_inv);
+         const Real epsilon = T00 - v * M;
+@@ -315,6 +321,7 @@ struct Solver {
+     MD_FN int solveU0Hybrid(
+         Real u0Guess, Real T00, Real K00, Real M, Real J0B,
+         MD_THREAD Real &u0Sol) const {
++        MD_EXACT_FP
+         int status = 1;
+         Real l = Real(1);
+         Real h = Real(1e5);
+@@ -355,7 +362,7 @@ struct Solver {
+                 duCurr = fu / df;
+                 root = root - duCurr;
+             }
+-            if (root != root) {
++            if (mdIsNan(root)) {
+                 status = 0;
+                 break;
+             }
+@@ -384,6 +391,7 @@ struct Solver {
+         MD_THREAD Cell<Real> &g, MD_THREAD const Real *q,
+         MD_THREAD const Cell<Real> &gpt, MD_THREAD EosState<Real> *eosOut,
+         Real pGuess, MD_THREAD int &flag) const {
++        MD_EXACT_FP
+         if (eosOut) eosOut->valid = false;
+         const Real K00 = q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
+         const Real M = sqrt(K00);
+@@ -450,6 +458,7 @@ struct Solver {
+         Real tau, MD_THREAD const Real *tauq, MD_THREAD const Cell<Real> &gpt,
+         MD_THREAD EosState<Real> *eosOut, Real pGuess,
+         MD_THREAD int &flag) const {
++        MD_EXACT_FP
+         if (eosOut) eosOut->valid = false;
+         Real q[7];
+         for (int i = 0; i < 7; i++) q[i] = tauq[i] / tau;
+diff --git a/src/device/device_strings.h b/src/device/device_strings.h
+index e567a9b..7fb27d8 100644
+--- a/src/device/device_strings.h
++++ b/src/device/device_strings.h
+@@ -514,7 +514,7 @@ MD_FN void kernelStringSource(
+     bool isNan = false;
+     for (int ii = 0; ii < 4; ii++) {
+         qi_source[ii] = tauRk * j_mu[ii];
+-        if (isnan(qi_source[ii])) isNan = true;
++        if (mdIsNan(qi_source[ii])) isNan = true;
+     }
+     if (S[kStrRhob] != Real(0)) {
+         qi_source[4] =
+diff --git a/src/device/device_visc.h b/src/device/device_visc.h
+index e106f42..d4d7987 100644
+--- a/src/device/device_visc.h
++++ b/src/device/device_visc.h
+@@ -592,7 +592,7 @@ struct ViscSolver {
+                 }
+                 bool finite = true;
+                 for (int m = 0; m < 4; m++) {
+-                    if (!isfinite(dtu[m])) finite = false;
++                    if (!mdIsFinite(dtu[m])) finite = false;
+                 }
+                 if (finite) {
+                     for (int m = 0; m < 4; m++) {
+@@ -794,7 +794,7 @@ struct ViscSolver {
+                 * (alphaB(epsilon + dEp, rhob + dNp)
+                    - alphaB(epsilon - dEp, rhob - dNp))
+                 / (Real(2.) * h);
+-            return isfinite(Dalpha) ? Dalpha : Real(0.);
++            return mdIsFinite(Dalpha) ? Dalpha : Real(0.);
+         }
+         const Real de = Real(1e-4) * epsilon;
+         const Real dalpha_de =
+@@ -808,7 +808,7 @@ struct ViscSolver {
+         }
+         const Real Dalpha =
+             -theta * ((epsilon + pressure) * dalpha_de + rhob * dalpha_dn);
+-        return isfinite(Dalpha) ? Dalpha : Real(0.);
++        return mdIsFinite(Dalpha) ? Dalpha : Real(0.);
+     }
+     MD_FN Real alphaB(Real e, Real nb) const {
+         Real T, muB;
+@@ -1278,7 +1278,7 @@ struct ViscSolver {
+         Real rho_shear = sqrt(pisize / eq_size) / factor;
+         Real rho_bulk = sqrt(bulksize / eq_size) / factor_bulk;
+         Real rho_shear_max = Real(0.1);
+-        if (isnan(rho_shear)) {
++        if (mdIsNan(rho_shear)) {
+             for (int mu = 0; mu < 10; mu++) {
+                 grid_pt.W[mu] = Real(0.0);
+             }
+diff --git a/src/device/metal_backend.m b/src/device/metal_backend.m
+index b46072a..3c0b7c1 100644
+--- a/src/device/metal_backend.m
++++ b/src/device/metal_backend.m
+@@ -50,6 +50,8 @@ @interface MusicMetalDevice : NSObject {
+     id<MTLBuffer> consOut;   // the conservation rows
+     id<MTLCommandBuffer> pending;  // the first stage, in flight
+     id<MTLBuffer> eosDesc, eosTable, flags;
++    // gpu_relaxed_math (the relaxedMath entry of the specialisation key)
++    bool relaxedMath;
+     NSString *specKey;  // the switches the kernels were compiled for
+     // MUSIC_METAL_PROFILE set: the GPU time of each kernel (s)
+     BOOL profile;
+@@ -86,9 +88,12 @@ static int faceCount(int nx, int ny, int neta, int d) {
+ static int buildPipelines(
+     MusicMetalDevice *m, NSDictionary *macros, char *err, int errLen) {
+     MTLCompileOptions *opt = [MTLCompileOptions new];
+-    // IEEE division and sqrt, no folding of isfinite()
++    // IEEE arithmetic by default. gpu_relaxed_math = 1: relaxed, the
++    // compiler may reassociate, contract and divide by a reciprocal; the
++    // velocity solvers stay exact (MD_EXACT_FP) and the NaN tests are on the
++    // bits (mdIsNan, device_defs.h)
+     if (@available(macOS 15.0, *)) {
+-        opt.mathMode = MTLMathModeSafe;
++        opt.mathMode = (m->relaxedMath ? MTLMathModeRelaxed : MTLMathModeSafe);
+     } else {
+         opt.fastMathEnabled = NO;
+     }
+@@ -510,9 +515,12 @@ static int metalFinish(void *dev, int *flags, char *err, int errLen) {
+ static int metalSpecialize(void *dev, const char *key, char *err, int errLen) {
+     @autoreleasepool {
+         MusicMetalDevice *m = get(dev);
++        NSString *k = [NSString stringWithUTF8String:key];
++        // the math mode is a compile option, also of the generic kernels
++        m->relaxedMath = ([k rangeOfString:@"relaxedMath=1"].location
++                          != NSNotFound);
+         // MUSIC_METAL_NOSPEC: the generic kernels (debugging)
+         if (getenv("MUSIC_METAL_NOSPEC") != NULL) return 0;
+-        NSString *k = [NSString stringWithUTF8String:key];
+         if (m->specKey != nil && [m->specKey isEqualToString:k]) return 0;
+         if (waitPending(m, err, errLen)) return 1;
+         NSMutableDictionary *macros = [NSMutableDictionary new];
+diff --git a/src/read_in_parameters.cpp b/src/read_in_parameters.cpp
+index a26a39a..944d3c3 100644
+--- a/src/read_in_parameters.cpp
++++ b/src/read_in_parameters.cpp
+@@ -287,6 +287,14 @@ InitData read_in_parameters(std::string input_file) {
+     parameter_list.gpu_backend = getParameter(input_file, "gpu_backend", 0);
+     // gpu_float: 1 runs the device in float (Metal: always)
+     parameter_list.gpu_float = getParameter(input_file, "gpu_float", 0);
++    // gpu_relaxed_math: 1 compiles the Metal kernels in the relaxed
++    // floating-point mode (reassociation, contraction, division by a
++    // reciprocal; the velocity solvers stay exact): 13-24% faster, results
++    // differ from the default at float rounding, and the conservation of E
++    // in long dilute runs is about 1e-5 instead of 1e-6
++    // (doc/gpu_benchmark_and_next_steps.md). Other backends ignore it
++    parameter_list.gpu_relaxed_math =
++        getParameter(input_file, "gpu_relaxed_math", 0);
+     // gpu_store_q: 1 carries tau T^{tau mu} on the device (default: in float)
+     parameter_list.gpu_store_q = getParameter(input_file, "gpu_store_q", -1);
+ 

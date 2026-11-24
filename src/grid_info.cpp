@@ -1365,7 +1365,9 @@ void Cell_info::compute_angular_momentum(
 void Cell_info::check_conservation_law(
     Fields &arena, Fields &arena_prev, const double tau,
     const std::vector<double> *pressureIn, GridMaxima *maxima,
-    const std::vector<double> *deviceRows) {
+    const std::vector<double> *deviceRows,
+    const std::vector<double> *outflowCurr,
+    const std::vector<double> *outflowPrev) {
     std::string filename = "global_conservation_laws.dat";
     ofstream output_file;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
@@ -1540,13 +1542,22 @@ void Cell_info::check_conservation_law(
     T_tau_z *= factor * Util::hbarc;  // GeV
     // add what has left the grid: the time integral (trapezoidal rule) of
     // the flux through the grid faces since tau0
+    // the outflow rate of arena (or arena_prev) at t
+    const auto rateOf = [&](Fields &a, const std::vector<double> *faces,
+                                 double t, TJbVec &rate) {
+        if (faces != nullptr) {
+            boundary_outflow_rate(*faces, a.nX(), a.nY(), a.nEta(), t, rate);
+        } else {
+            boundary_outflow_rate(a, t, rate);
+        }
+    };
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         outflow_flux = {0.};
-        boundary_outflow_rate(arena, tau, outflowRateLast_);
+        rateOf(arena, outflowCurr, tau, outflowRateLast_);
         outflowTauLast_ = tau;
     } else {
         TJbVec fluxCurr, fluxPrev;
-        boundary_outflow_rate(arena, tau, fluxCurr);
+        rateOf(arena, outflowCurr, tau, fluxCurr);
         // the grid was remapped at tau: the fluid left through the faces of
         // the old grid, whose rate at tau was recorded before the remap
         const bool regridded =
@@ -1562,7 +1573,7 @@ void Cell_info::check_conservation_law(
             dt = tau - outflowTauLast_;
             fluxPrev = outflowRateLast_;
         } else {
-            boundary_outflow_rate(arena_prev, tau - DATA.delta_tau, fluxPrev);
+            rateOf(arena_prev, outflowPrev, tau - DATA.delta_tau, fluxPrev);
         }
         const TJbVec &fluxEnd = regridded ? outflowRateBeforeRegrid_ : fluxCurr;
         for (unsigned int i = 0; i < outflow_flux.size(); i++) {
@@ -1615,12 +1626,45 @@ void Cell_info::noteRegrid(Fields &arena, const double tau) {
 //! hat T^{eta t} = cosh(eta) hat T^{eta tau} + sinh(eta) hat T^{eta eta}.
 //! The ghost cells copy the edge cells, so the flux through a face is the
 //! flux of the edge cell.
-void Cell_info::boundary_outflow_rate(
-    Fields &arena, const double tau, TJbVec &rate) const {
+void Cell_info::outflowFace(
+    int j, int nx, int ny, int neta, int &ix, int &iy, int &ieta, int &mu,
+    int &side) {
+    // per eta slice: the x faces (iy, then -/+), then the y faces (ix,
+    // then -/+); then, with neta > 1, the eta faces ((iy, ix), then -/+)
+    const int perSlice = 2 * ny + 2 * nx;
+    if (j < neta * perSlice) {
+        ieta = j / perSlice;
+        int r = j % perSlice;
+        side = r % 2;
+        if (r < 2 * ny) {
+            mu = 1;
+            iy = r / 2;
+            ix = (side == 0 ? 0 : nx - 1);
+        } else {
+            r -= 2 * ny;
+            mu = 2;
+            ix = r / 2;
+            iy = (side == 0 ? 0 : ny - 1);
+        }
+    } else {
+        const int r = j - neta * perSlice;
+        side = r % 2;
+        mu = 3;
+        iy = (r / 2) / nx;
+        ix = (r / 2) % nx;
+        ieta = (side == 0 ? 0 : neta - 1);
+    }
+}
+
+int Cell_info::outflowFaceCount(int nx, int ny, int neta) {
+    return (neta * (2 * ny + 2 * nx) + (neta > 1 ? 2 * nx * ny : 0));
+}
+
+template <typename Values>
+void Cell_info::outflowRate(
+    int nx, int ny, int neta, const double tau, TJbVec &rate,
+    const Values &values) const {
     rate = {0.};
-    const int neta = arena.nEta();
-    const int nx = arena.nX();
-    const int ny = arena.nY();
     const double dx = DATA.delta_x;
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
@@ -1629,25 +1673,26 @@ void Cell_info::boundary_outflow_rate(
         {0, 1, 2, 3}, {1, 4, 5, 6}, {2, 5, 7, 8}, {3, 6, 8, 9}};
     const double ghat[4] = {1., -1., -1., -1.};
 
-    // adds the outward flux of cell Idx through the face normal to
-    // direction mu (1 = x, 2 = y, 3 = eta) with sign = +1 / -1
-    auto addFace = [&](int Idx, double eta, int mu, double sign, double area) {
-        const double e = arena.e_[Idx];
-        const double rhob = arena.rhob_[Idx];
-        const double rhoq = arena.rhoq_[Idx];
-        const double rhos = arena.rhos_[Idx];
+    // adds the outward flux of the cell with the values v (kOutflowVals:
+    // e, rhob, rhoq, rhos, Pi, Pi_chem, u^mu, W^0 ... W^13) through the
+    // face normal to direction mu (1 = x, 2 = y, 3 = eta) with sign = +1 / -1
+    auto addFace = [&](const double *v, double eta, int mu, double sign,
+                       double area) {
+        const double e = v[0];
+        const double rhob = v[1];
+        const double rhoq = v[2];
+        const double rhos = v[3];
         const double P = eos.get_pressure(e, rhob, rhoq, rhos);
         // total bulk pressure, as in MakeWSource and the cell content
-        const double Pi = arena.piBulk_[Idx] + arena.piBulkChem_[Idx];
+        const double Pi = v[4] + v[5];
         double u[4];
-        for (int i = 0; i < 4; i++) u[i] = arena.u_[i][Idx];
+        for (int i = 0; i < 4; i++) u[i] = v[6 + i];
         double T[4];  // hat T^{mu nu}, nu = tau, x, y, eta
         for (int nu = 0; nu < 4; nu++) {
-            T[nu] =
-                (e + P + Pi) * u[mu] * u[nu] + arena.Wmunu_[widx[mu][nu]][Idx];
+            T[nu] = (e + P + Pi) * u[mu] * u[nu] + v[10 + widx[mu][nu]];
             if (nu == mu) T[nu] -= (P + Pi) * ghat[mu];
         }
-        const double J = rhob * u[mu] + arena.Wmunu_[10 + mu][Idx];
+        const double J = rhob * u[mu] + v[10 + 10 + mu];
         const double ch = cosh(eta);
         const double sh = sinh(eta);
         const double f = sign * area;
@@ -1660,37 +1705,57 @@ void Cell_info::boundary_outflow_rate(
         rate[6] += f * rhos * u[mu];
     };
 
-    for (int ieta = 0; ieta < neta; ieta++) {
-        const double eta = deta * ieta - DATA.eta_size / 2.0;
-        for (int iy = 0; iy < ny; iy++) {
-            addFace(
-                arena.getFieldIdx(0, iy, ieta), eta, 1, -1., tau * dy * deta);
-            addFace(
-                arena.getFieldIdx(nx - 1, iy, ieta), eta, 1, +1.,
-                tau * dy * deta);
-        }
-        for (int ix = 0; ix < nx; ix++) {
-            addFace(
-                arena.getFieldIdx(ix, 0, ieta), eta, 2, -1., tau * dx * deta);
-            addFace(
-                arena.getFieldIdx(ix, ny - 1, ieta), eta, 2, +1.,
-                tau * dx * deta);
-        }
-    }
-    if (neta > 1) {
-        // the cells cover [-eta_size/2 - deta/2, eta_size/2 + deta/2]; the
-        // faces sit half a cell beyond the outermost cell centres
-        const double eta_m = -DATA.eta_size / 2.0 - deta / 2.0;
-        const double eta_p = DATA.eta_size / 2.0 + deta / 2.0;
-        for (int iy = 0; iy < ny; iy++) {
-            for (int ix = 0; ix < nx; ix++) {
-                addFace(arena.getFieldIdx(ix, iy, 0), eta_m, 3, -1., dx * dy);
-                addFace(
-                    arena.getFieldIdx(ix, iy, neta - 1), eta_p, 3, +1.,
-                    dx * dy);
-            }
+    // the cells cover [-eta_size/2 - deta/2, eta_size/2 + deta/2]; the eta
+    // faces sit half a cell beyond the outermost cell centres
+    const double eta_m = -DATA.eta_size / 2.0 - deta / 2.0;
+    const double eta_p = DATA.eta_size / 2.0 + deta / 2.0;
+    const int nFaces = outflowFaceCount(nx, ny, neta);
+    for (int j = 0; j < nFaces; j++) {
+        int ix, iy, ieta, mu, side;
+        outflowFace(j, nx, ny, neta, ix, iy, ieta, mu, side);
+        const double sign = (side == 0 ? -1. : +1.);
+        const double *v = values(j, ix, iy, ieta);
+        if (mu == 3) {
+            addFace(v, side == 0 ? eta_m : eta_p, 3, sign, dx * dy);
+        } else {
+            const double eta = deta * ieta - DATA.eta_size / 2.0;
+            addFace(v, eta, mu, sign,
+                    (mu == 1 ? tau * dy * deta : tau * dx * deta));
         }
     }
+}
+
+void Cell_info::boundary_outflow_rate(
+    Fields &arena, const double tau, TJbVec &rate) const {
+    double v[kOutflowVals];
+    outflowRate(
+        arena.nX(), arena.nY(), arena.nEta(), tau, rate,
+        [&](int, int ix, int iy, int ieta) {
+            const int Idx = arena.getFieldIdx(ix, iy, ieta);
+            v[0] = arena.e_[Idx];
+            v[1] = arena.rhob_[Idx];
+            v[2] = arena.rhoq_[Idx];
+            v[3] = arena.rhos_[Idx];
+            v[4] = arena.piBulk_[Idx];
+            v[5] = arena.piBulkChem_[Idx];
+            for (int i = 0; i < 4; i++) v[6 + i] = arena.u_[i][Idx];
+            for (int i = 0; i < 14; i++) v[10 + i] = arena.Wmunu_[i][Idx];
+            return (static_cast<const double *>(v));
+        });
+}
+
+void Cell_info::boundary_outflow_rate(
+    const std::vector<double> &faces, int nx, int ny, int neta,
+    const double tau, TJbVec &rate) const {
+    if (faces.size()
+        != static_cast<size_t>(kOutflowVals) * outflowFaceCount(nx, ny, neta)) {
+        std::cerr << "boundary_outflow_rate: the face values do not match "
+                  << "the grid" << std::endl;
+        exit(1);
+    }
+    outflowRate(nx, ny, neta, tau, rate, [&](int j, int, int, int) {
+        return (faces.data() + static_cast<size_t>(kOutflowVals) * j);
+    });
 }
 
 //! This function putputs files to check with Gubser flow solution
