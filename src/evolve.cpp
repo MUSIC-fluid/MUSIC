@@ -131,9 +131,29 @@ int Evolve::EvolveIt(
             deviceHydro_->syncHost(*fpCurr, *fpPrev);
     };
     std::vector<double> deviceRows;
+    // the Cornelius finder reads the stored previous slice only for the
+    // vorticity: otherwise it is not stored (on the device path fpPrev is
+    // not even synced on the freeze-out steps)
+    const bool storeFreezeoutPrev =
+        (DATA.output_vorticity == 1 && !DATA.boost_invariant);
     while (tau < tauMax) {
         const std::vector<Fields *> allFields = {
             fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
+        // the fields a regrid remaps; the others are only resized. fpNext:
+        // the next step writes all of it before reading it (resizeFields
+        // leaves a fluid at rest with W = Pi = 0, which the ideal update
+        // keeps), and the device uploads only fpCurr and fpPrev.
+        // freezeoutFieldPrev: never read unless it is stored
+        std::vector<Fields *> remapFields = {
+            fpPrev, fpCurr, &freezeoutFieldCurr};
+        std::vector<Fields *> resizeOnly = {fpNext};
+        (storeFreezeoutPrev ? remapFields : resizeOnly)
+            .push_back(&freezeoutFieldPrev);
+        const auto regrid = [&](double padding, bool coarsen) {
+            regridTransverse(remapFields, padding, coarsen);
+            for (Fields *f : resizeOnly)
+                f->resizeFields(DATA.nx, DATA.ny, f->nEta());
+        };
         // String norms use the initial grid and RK source bins. Finish
         // depositing them before changing the mesh or time step.
         const bool stringsActive =
@@ -207,7 +227,7 @@ int Evolve::EvolveIt(
                 }
                 if (coarsenGrid) {
                     grid_info.noteRegrid(*fpCurr, tau);
-                    regridTransverse(allFields, 0., true);
+                    regrid(0., true);
                 }
                 ghostsStale = true;
                 // the previous slices are one old time step behind; shift
@@ -215,7 +235,7 @@ int Evolve::EvolveIt(
                 // derivatives (curr - prev)/delta_tau stay consistent
                 if (doubleDtau) {
                     extrapolatePrevForNewDtau(*fpCurr, *fpPrev, 2.);
-                    if (freezeStarted) {
+                    if (freezeStarted && storeFreezeoutPrev) {
                         extrapolatePrevForNewDtau(
                             freezeoutFieldCurr, freezeoutFieldPrev, 2.);
                     }
@@ -244,7 +264,7 @@ int Evolve::EvolveIt(
                 DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
             syncAll();
             grid_info.noteRegrid(*fpCurr, tau);
-            regridTransverse(allFields, padding, false);
+            regrid(padding, false);
             ghostsStale = true;
             music_message << "BeastMode: enlarged the grid by " << padding
                           << " fm on each side, nx = " << DATA.nx
@@ -335,7 +355,8 @@ int Evolve::EvolveIt(
             freezeStarted = true;
             itFreezeStart = it;
             tauLastFreeze = tau;
-            store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
+            if (storeFreezeoutPrev)
+                store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
             store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
         }
         const int itSinceFreezeStart = freezeStarted ? it - itFreezeStart : -1;
@@ -572,7 +593,9 @@ int Evolve::EvolveIt(
                     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
                         tau, *fpCurr, freezeoutFieldCurr);
                 }
-                store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
+                if (storeFreezeoutPrev)
+                    store_previous_step_for_freezeout(
+                        *fpPrev, freezeoutFieldPrev);
                 store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
             }
             if (DATA.reRunHydro) {
