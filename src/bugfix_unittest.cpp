@@ -551,6 +551,11 @@ TEST_CASE("HydroSourceTATB: zero outside the stored TA, TB profile") {
     DATA.tau0 = 1.;
     HydroSourceTATB source(DATA);
     const double tau = source.get_source_tau_min();
+    CHECK(source.is_active_at(tau));
+    for (double sign : {-1., 1.}) {
+        CHECK(source.is_active_at(tau + sign * 0.49 * DATA.delta_tau));
+        CHECK_FALSE(source.is_active_at(tau + sign * 0.51 * DATA.delta_tau));
+    }
 
     EnergyFlowVec j_mu;
     source.get_hydro_energy_source(tau, -1., 0., 0., {1, 0, 0, 0}, j_mu);
@@ -585,6 +590,12 @@ TEST_CASE("HydroSourceTmunu: pi^{x eta} is scaled by tau0 like u^eta") {
     DATA.preEqVisFactor = 1.;
     DATA.FlagResumTransportCoeff = false;
     HydroSourceTmunu source(DATA);
+    const double tau = source.get_source_tau_min();
+    CHECK(source.is_active_at(tau));
+    for (double sign : {-1., 1.}) {
+        CHECK(source.is_active_at(tau + sign * 0.49 * DATA.delta_tau));
+        CHECK_FALSE(source.is_active_at(tau + sign * 0.51 * DATA.delta_tau));
+    }
 
     EnergyFlowVec j_mu;
     source.get_hydro_energy_source(0.4, -0.5, -0.5, 0., {1, 0, 0, 0}, j_mu);

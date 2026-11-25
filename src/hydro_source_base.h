@@ -42,6 +42,9 @@ class HydroSourceBase {
     double get_source_tau_max() const { return (source_tau_max_); }
     double get_source_tauStart_max() const { return (source_tauStart_max_); }
 
+    //! Return false only when all source terms vanish at this stage time.
+    virtual bool is_active_at(double tau) const { return true; }
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     virtual void get_hydro_energy_source(

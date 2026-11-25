@@ -145,6 +145,10 @@ void HydroSourceTmunu::readIPGevent() {
               << ", delta_y = " << DATA.delta_y << std::endl;
 }
 
+bool HydroSourceTmunu::is_active_at(double tau) const {
+    return std::abs(tau - tau_source_) <= 0.5 * DATA.delta_tau;
+}
+
 // Function to calculate energy-momentum source terms
 void HydroSourceTmunu::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
@@ -152,7 +156,7 @@ void HydroSourceTmunu::get_hydro_energy_source(
     const double dtau = DATA.delta_tau;
     j_mu = {0};
 
-    if (std::abs((tau - tau_source_)) > 0.5 * dtau) return;
+    if (!is_active_at(tau)) return;
 
     // Compute indices from positions
     const int ix =

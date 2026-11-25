@@ -71,17 +71,19 @@ class HydroSourceTATB : public HydroSourceBase {
     void compute_energy_density(
         const double TA, const double TB, const double eta_s, double &epsilon,
         double &y_L) const;
+    bool is_active_at(double tau) const override;
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const;
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const override;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu) const;
+        const FlowVec &u_mu) const override;
     double eta_profile_plateau_frag(
         const double eta, const double eta_0, const double sigma_eta) const;
     double energy_eta_profile_normalisation_numerical(

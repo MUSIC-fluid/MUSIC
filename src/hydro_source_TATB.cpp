@@ -274,11 +274,15 @@ void HydroSourceTATB::compute_energy_density(
          + (1. - beta_) * shifted_epsilon * shifted_norm);  // [1/fm^4]
 }
 
+bool HydroSourceTATB::is_active_at(double tau) const {
+    return std::abs(tau - tau_source) <= 0.5 * DATA_.delta_tau;
+}
+
 void HydroSourceTATB::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
-    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return;
+    if (!is_active_at(tau)) return;
 
     // outside the stored profile (e.g. a re-run on an enlarged grid) TA and
     // TB are zero
@@ -342,7 +346,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu) const {
     double res = 0.;
-    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return (res);
+    if (!is_active_at(tau)) return (res);
 
     const int ix =
         static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));

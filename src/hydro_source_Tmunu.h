@@ -15,10 +15,13 @@ class HydroSourceTmunu
     // Constructor
     HydroSourceTmunu(InitData &DATA_in);
 
+    bool is_active_at(double tau) const override;
+
     // Override the virtual function from HydroSourceBase
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const std::array<double, 4> &u_mu, std::array<double, 4> &j_mu) const;
+        const std::array<double, 4> &u_mu,
+        std::array<double, 4> &j_mu) const override;
 
   private:
     // Add your private members and functions here

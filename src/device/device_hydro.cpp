@@ -1485,7 +1485,8 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
         // the sources at tau_rk from the u of the stage's slice: tau_n, then
         // the predictor
         bool hasSource = stringSource;
-        if (source_ && !strings_) {
+        const double tauRk = tau + rk * DATA.delta_tau;
+        if (source_ && !strings_ && source_->is_active_at(tauRk)) {
             const auto s0 = std::chrono::steady_clock::now();
             const int which = (rk == 0 ? 0 : 2);
             // u of the slice, in both stages: with a copy of its own
@@ -1493,7 +1494,6 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
             // the diagnostics do not make every step (on Metal and the CPU
             // state() is the slice and fetch() copies nothing)
             if (!backend_->fetch(which, 4, 4, err)) fail(err);
-            const double tauRk = tau + rk * DATA.delta_tau;
             if (float_) {
                 hasSource = computeSource(
                     static_cast<const float *>(backend_->state(which)), tauRk);
