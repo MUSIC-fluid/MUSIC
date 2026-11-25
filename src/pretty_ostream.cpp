@@ -3,10 +3,13 @@
 
 #include "pretty_ostream.h"
 
-#if defined(__APPLE__)
-#include <mach/mach.h>
-#else
 #include <unistd.h>
+
+#if defined(__APPLE__)
+#include <sys/resource.h>
+// from <libproc.h>, declared here because GCC cannot parse the mach
+// headers that <libproc.h> includes
+extern "C" int proc_pid_rusage(int pid, int flavor, rusage_info_t* buffer);
 #endif
 
 #include <algorithm>
@@ -98,13 +101,11 @@ void pretty_ostream::error(string message) {
 string pretty_ostream::get_memory_usage() {
     double bytes = -1.;
 #if defined(__APPLE__)
-    mach_task_basic_info_data_t info;
-    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
-    if (task_info(
-            mach_task_self(), MACH_TASK_BASIC_INFO,
-            reinterpret_cast<task_info_t>(&info), &count)
-        == KERN_SUCCESS)
-        bytes = static_cast<double>(info.resident_size);
+    rusage_info_v2 info;
+    if (proc_pid_rusage(
+            getpid(), RUSAGE_INFO_V2, reinterpret_cast<rusage_info_t*>(&info))
+        == 0)
+        bytes = static_cast<double>(info.ri_resident_size);
 #else
     // /proc/self/statm: total program size, resident set size (in pages)
     std::ifstream statm("/proc/self/statm");
