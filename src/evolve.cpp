@@ -602,6 +602,10 @@ void Evolve::regridTransverse(
     const bool coarsenY = coarsen && nyOld > 1;
     if (coarsenX) DATA.delta_x = DATA.delta_x * 2;
     if (coarsenY) DATA.delta_y = DATA.delta_y * 2;
+    // keep the transverse spacing of the freeze-out surface,
+    // fac_x * delta_x, where the step count allows it
+    if (coarsenX) DATA.fac_x = std::max(1, DATA.fac_x / 2);
+    if (coarsenY) DATA.fac_y = std::max(1, DATA.fac_y / 2);
     const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
     const int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
     // odd n -> (n+1)/2 points on the even sub-lattice,

@@ -1139,6 +1139,8 @@ TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
     DATA.delta_y = 1.;
     DATA.x_size = 1.;
     DATA.y_size = 0.;
+    DATA.fac_x = 4;
+    DATA.fac_y = 3;
     EOS eos(0);
     Evolve evolve(eos, DATA, nullptr);
     Fields arena(2, 1, 1);
@@ -1182,6 +1184,9 @@ TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
     content(arena, 1., before);
     evolve.regridTransverse({&arena}, 0., true);
     REQUIRE(arena.nX() == 1);
+    // the freeze-out step counts are halved in the coarsened directions
+    CHECK(DATA.fac_x == 2);
+    CHECK(DATA.fac_y == 3);
     content(arena, 2., after);
     for (int m = 0; m < 5; m++) {
         CHECK(after[m] == doctest::Approx(before[m]).epsilon(1e-10));
