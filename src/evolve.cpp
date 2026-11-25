@@ -157,8 +157,15 @@ int Evolve::EvolveIt(
             bool coarsenGrid = false;
             if (dynamicCoarsen) {
                 if (canCoarsen) {
-                    syncAll();
-                    const CoarseningError err = coarseningError(*fpCurr);
+                    // the device reduces the indicator itself, so the
+                    // host Fields need no full sync (unless they are
+                    // current anyway)
+                    const bool checkOnDevice =
+                        (onDevice && !deviceHydro_->stepPending()
+                         && !deviceHydro_->hostCurrent());
+                    if (!checkOnDevice) syncAll();
+                    const CoarseningError err =
+                        coarseningError(*fpCurr, checkOnDevice);
                     music_message
                         << "BeastMode: tau = " << tau << " fm/c, coarsening "
                         << "error e mean = " << err.eMean
@@ -1063,11 +1070,23 @@ bool Evolve::fluidNearGridEdge(Fields &arena) {
     return false;
 }
 
-Evolve::CoarseningError Evolve::coarseningError(Fields &arena) {
+Evolve::CoarseningError Evolve::coarseningError(Fields &arena, bool onDevice) {
     CoarseningError err;
     if (epsFO_list.empty()) return err;
     const double eThreshold =
         (*std::min_element(epsFO_list.begin(), epsFO_list.end())) / hbarc;
+    if (onDevice) {
+        double sums[6];
+        deviceHydro_->coarseningSums(eThreshold, sums);
+        err.eMax = sums[3];
+        err.uMax = sums[4];
+        err.nCells = static_cast<long>(sums[5] + 0.5);
+        if (sums[0] > 0.) {
+            err.eMean = sums[1] / sums[0];
+            err.uMean = sums[2] / sums[0];
+        }
+        return err;
+    }
     const int nx = arena.nX();
     const int ny = arena.nY();
     const bool inX = nx > 4, inY = ny > 4;

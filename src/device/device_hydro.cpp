@@ -136,6 +136,21 @@ class CpuBackend : public Backend {
             kernelConservationRow(P, desc_, tab, sCurr, sPrev, o, row);
         return (true);
     }
+    bool coarsening(
+        double eThreshold, void *out, size_t outBytes, std::string &err) {
+        const int rows = nx_ * neta_;
+        if (outBytes < sizeof(Real) * kCoarsenVals * rows) {
+            err = "the coarsening buffer is too small";
+            return (false);
+        }
+        Real *o = static_cast<Real *>(out);
+        const Real *s = slice_[cur_].data();
+        const Real thr = static_cast<Real>(eThreshold);
+#pragma omp parallel for schedule(static)
+        for (int row = 0; row < rows; row++)
+            kernelCoarseningRow(nx_, ny_, neta_, thr, s, o, row);
+        return (true);
+    }
 
     bool stage(
         const void *params, size_t paramBytes, int rk, int &flags,
@@ -344,6 +359,13 @@ class CApiBackend : public Backend {
                 dev_, params, paramBytes, out, outBytes, err_, sizeof(err_)),
             err));
     }
+    bool coarsening(
+        double eThreshold, void *out, size_t outBytes, std::string &err) {
+        return (check(
+            api_->coarsening(
+                dev_, eThreshold, out, outBytes, err_, sizeof(err_)),
+            err));
+    }
 };
 
 }  // namespace
@@ -450,6 +472,9 @@ DeviceHydro::~DeviceHydro() {
                   << " of the current slice during the step), "
                   << diagSeconds_ << " s for the conservation sums ("
                   << nConsAhead_ << " computed right after their step)";
+    if (nCoarsenChecks_ > 0)
+        music_message << ", " << coarsenSeconds_ << " s for "
+                      << nCoarsenChecks_ << " coarsening checks";
     if (source_)
         music_message << ", " << sourceSeconds_
                       << (strings_ ? " s packing the strings"
@@ -665,6 +690,39 @@ bool DeviceHydro::buildEos(std::string &err) {
     // the backend keeps its own copy
     std::vector<unsigned char>().swap(eosTable_);
     return (ok);
+}
+
+void DeviceHydro::coarseningSums(double eThreshold, double sums[6]) {
+    requireIdle("coarseningSums");
+    const auto t0 = std::chrono::steady_clock::now();
+    using music_device::kCoarsenVals;
+    const size_t nVals = kCoarsenVals * static_cast<size_t>(nx_) * neta_;
+    std::vector<double> rows(nVals);
+    std::string err;
+    if (float_) {
+        std::vector<float> out(nVals);
+        if (!backend_->coarsening(
+                eThreshold, out.data(), out.size() * sizeof(float), err))
+            fail(err);
+        for (size_t k = 0; k < nVals; k++) rows[k] = out[k];
+    } else {
+        if (!backend_->coarsening(
+                eThreshold, rows.data(), rows.size() * sizeof(double), err))
+            fail(err);
+    }
+    for (int k = 0; k < 6; k++) sums[k] = 0.;
+    for (size_t r = 0; r < nVals; r += kCoarsenVals) {
+        sums[0] += rows[r];
+        sums[1] += rows[r + 1];
+        sums[2] += rows[r + 2];
+        sums[3] = std::max(sums[3], rows[r + 3]);
+        sums[4] = std::max(sums[4], rows[r + 4]);
+        sums[5] += rows[r + 5];
+    }
+    nCoarsenChecks_++;
+    coarsenSeconds_ += std::chrono::duration<double>(
+                           std::chrono::steady_clock::now() - t0)
+                           .count();
 }
 
 template <typename Real>

@@ -208,6 +208,14 @@ __global__ void cudaConservation(
     music_device::kernelConservationRow(P, D, tab, sCurr, sPrev, out, row);
 }
 
+template <typename Real>
+__global__ void cudaCoarsening(
+    int nx, int ny, int neta, Real eThreshold, const Real *s, Real *out) {
+    const int row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= nx * neta) return;
+    music_device::kernelCoarseningRow(nx, ny, neta, eThreshold, s, out, row);
+}
+
 //! the kernels, for their block sizes and the profile
 enum {
     kKStrings,
@@ -217,11 +225,12 @@ enum {
     kKCell,
     kKCellVisc,
     kKConservation,
+    kKCoarsening,
     kNKernels
 };
 const char *const kKernelNames[kNKernels] = {
     "strings", "pressure", "face", "wface", "cell", "cellVisc",
-    "conservation"};
+    "conservation", "coarsening"};
 
 //! threads per block: MUSIC_CUDA_BLOCK (default 128; a multiple of 32),
 //! capped by what each kernel's register use allows
@@ -271,6 +280,9 @@ struct DeviceBase {
     virtual int conservation(
         const void *params, size_t bytes, void *out, size_t outBytes,
         char *err, int len) = 0;
+    virtual int coarsening(
+        double eThreshold, void *out, size_t outBytes, char *err,
+        int len) = 0;
     virtual int finish(int *flags, char *err, int len) = 0;
     virtual int fetchCells(
         int which, const int *cells, int nCells, void **out, char *err,
@@ -301,6 +313,8 @@ struct Device : public DeviceBase {
     size_t stringsBytes = 0;
     Real *consOut = NULL;  // the conservation rows
     size_t consBytes = 0;
+    Real *coarsenOut = NULL;  // the coarsening rows
+    size_t coarsenBytes = 0;
     // pinned copies of the current, the previous and the predictor slice
     Real *host[3] = {NULL, NULL, NULL};
     int *flags = NULL;
@@ -331,6 +345,7 @@ struct Device : public DeviceBase {
         block[kKCellVisc] = blockFor(cudaCellVisc<Real, -1>, want);
         // one thread per (eta, x) row: few threads, small blocks
         block[kKConservation] = 32;
+        block[kKCoarsening] = 32;
         const char *p = getenv("MUSIC_CUDA_PROFILE");
         profile = (p != NULL && atoi(p) != 0);
         for (int k = 0; k < kNKernels; k++) {
@@ -568,6 +583,7 @@ struct Device : public DeviceBase {
         cudaFree(flags);
         cudaFree(strings);
         cudaFree(consOut);
+        cudaFree(coarsenOut);
     }
 
     int setStrings(const void *data, size_t bytes, char *err, int len) {
@@ -612,6 +628,36 @@ struct Device : public DeviceBase {
         toc(kKConservation);
         return ok(cudaMemcpy(out, consOut, outBytes, cudaMemcpyDeviceToHost),
                   "conservation", err, len)
+                   ? 0
+                   : 1;
+    }
+
+    int coarsening(
+        double eThreshold, void *out, size_t outBytes, char *err, int len) {
+        if (outBytes < sizeof(Real) * music_device::kCoarsenVals * nx * neta) {
+            if (err) snprintf(err, len, "CUDA: the coarsening buffer is too "
+                                        "small");
+            return 1;
+        }
+        if (outBytes > coarsenBytes) {
+            cudaFree(coarsenOut);
+            coarsenOut = NULL;
+            coarsenBytes = 0;
+            if (!ok(cudaMalloc((void **)&coarsenOut, outBytes), "cudaMalloc",
+                    err, len))
+                return 1;
+            coarsenBytes = outBytes;
+        }
+        tic();
+        cudaCoarsening<Real>
+            <<<grid(nx * neta, kKCoarsening), block[kKCoarsening]>>>(
+                nx, ny, neta, static_cast<Real>(eThreshold), slice[cur],
+                coarsenOut);
+        if (!ok(cudaGetLastError(), "kernel launch", err, len)) return 1;
+        toc(kKCoarsening);
+        return ok(cudaMemcpy(out, coarsenOut, outBytes,
+                             cudaMemcpyDeviceToHost),
+                  "coarsening", err, len)
                    ? 0
                    : 1;
     }
@@ -973,6 +1019,11 @@ int cudaFetchCells(
     char *err, int len) {
     return get(dev)->fetchCells(which, cells, nCells, out, err, len);
 }
+int cudaCoarseningRows(
+    void *dev, double eThreshold, void *out, size_t outBytes, char *err,
+    int len) {
+    return get(dev)->coarsening(eThreshold, out, outBytes, err, len);
+}
 int cudaConservationRows(
     void *dev, const void *params, size_t bytes, void *out, size_t outBytes,
     char *err, int len) {
@@ -985,6 +1036,7 @@ const MusicDeviceApi kCudaApi = {
     cudaFetch,  cudaDownload, cudaSetStrings, cudaConservationRows,
     cudaSpecialize, cudaFinish, cudaFetchUnwritten,
     cudaConservationBegin, cudaConservationEnd, cudaFetchCells,
+    cudaCoarseningRows,
 };
 
 }  // namespace

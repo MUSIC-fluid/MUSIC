@@ -5,7 +5,8 @@
 // Cell_info::check_conservation_law (the 7 sums and the 5 maxima), for the
 // current slice and the previous one. The host adds the rows in the order
 // of check_conservation_law (in double, backend 1 reproduces it bit for
-// bit).
+// bit). kernelCoarseningRow is the same for the beastMode 3 coarsening
+// indicator (Evolve::coarseningError).
 
 #ifndef SRC_DEVICE_DEVICE_DIAG_H_
 #define SRC_DEVICE_DEVICE_DIAG_H_
@@ -105,6 +106,56 @@ MD_FN void kernelConservationRow(
     r[9] = rhoq_max;
     r[10] = rhos_max;
     r[11] = T_max;
+}
+
+//! values per row of kernelCoarseningRow: the sums of e, e de and e du
+//! over the cells above the threshold, the maxima of de and du, and the
+//! number of those cells
+enum { kCoarsenVals = 6 };
+
+//! Evolve::coarseningError summed over one (eta, x) row of the current
+//! slice s (row = ix + nx ieta): for each cell with e > eThreshold, de and
+//! du are the largest relative second difference of e and the largest
+//! second difference of u^x, u^y at twice the spacing, in x and y
+template <typename Real>
+MD_FN void kernelCoarseningRow(
+    int nx, int ny, int neta, Real eThreshold, MD_GLOBAL const Real *s,
+    MD_GLOBAL Real *out, int row) {
+    const int n = nx * ny * neta;
+    const int ix = row % nx;
+    const int ieta = row / nx;
+    const bool inX = (nx > 4 && ix >= 2 && ix < nx - 2);
+    Real wSum = Real(0.), eSum = Real(0.), uSum = Real(0.);
+    Real eMax = Real(0.), uMax = Real(0.), nCells = Real(0.);
+    for (int iy = 0; iy < ny; iy++) {
+        const int i = ix + nx * (iy + ny * ieta);
+        const Real e = s[i];
+        if (!(e > eThreshold)) continue;
+        Real de = Real(0.), du = Real(0.);
+        for (int d = 0; d < 2; d++) {
+            if (d == 0 ? !inX : !(ny > 4 && iy >= 2 && iy < ny - 2))
+                continue;
+            const int step = (d == 0 ? 2 : 2 * nx);
+            const int j0 = i - step, j1 = i + step;
+            de = dmax(de, fabs(s[j0] - Real(2.) * e + s[j1]) / e);
+            for (int m = 5; m < 7; m++)
+                du = dmax(du, fabs(s[m * n + j0] - Real(2.) * s[m * n + i]
+                                   + s[m * n + j1]));
+        }
+        wSum += e;
+        eSum += e * de;
+        uSum += e * du;
+        eMax = dmax(eMax, de);
+        uMax = dmax(uMax, du);
+        nCells += Real(1.);
+    }
+    MD_GLOBAL Real *r = out + kCoarsenVals * row;
+    r[0] = wSum;
+    r[1] = eSum;
+    r[2] = uSum;
+    r[3] = eMax;
+    r[4] = uMax;
+    r[5] = nCells;
 }
 
 }  // namespace music_device

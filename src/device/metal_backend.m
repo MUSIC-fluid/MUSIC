@@ -40,7 +40,7 @@ enum {
     id<MTLComputePipelineState> psPressure, psFace, psCell;
     // psCellVisc[rk]: the viscous cell update of each RK stage
     id<MTLComputePipelineState> psWFace, psCellVisc[2];
-    id<MTLComputePipelineState> psStrings, psConservation;
+    id<MTLComputePipelineState> psStrings, psConservation, psCoarsening;
     // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
     id<MTLBuffer> pCur, pPred;
@@ -49,6 +49,7 @@ enum {
     id<MTLBuffer> src;       // the source terms, kNTJ components
     id<MTLBuffer> strings;   // the packed strings (device_strings.h)
     id<MTLBuffer> consOut;   // the conservation rows
+    id<MTLBuffer> coarsenOut;  // the coarsening rows
     id<MTLCommandBuffer> pending;  // the first stage, in flight
     // conservationBegin: the conservation kernel queued behind the step,
     // and the size of its rows
@@ -107,12 +108,13 @@ static int buildPipelines(
         setErr(err, errLen, "kernel compilation failed", e);
         return 1;
     }
-    const char *names[8] = {"musicPressure",     "musicFace",
+    const char *names[9] = {"musicPressure",     "musicFace",
                             "musicCell",         "musicWFace",
                             "musicCellVisc0",    "musicStringSource",
-                            "musicConservation", "musicCellVisc1"};
-    id<MTLComputePipelineState> ps[8];
-    for (int k = 0; k < 8; k++) {
+                            "musicConservation", "musicCellVisc1",
+                            "musicCoarsening"};
+    id<MTLComputePipelineState> ps[9];
+    for (int k = 0; k < 9; k++) {
         id<MTLFunction> f =
             [lib newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
         if (f == nil) {
@@ -133,6 +135,7 @@ static int buildPipelines(
     m->psCellVisc[1] = ps[7];
     m->psStrings = ps[5];
     m->psConservation = ps[6];
+    m->psCoarsening = ps[8];
     return 0;
 }
 
@@ -659,6 +662,57 @@ static int metalConservationEnd(
     }
 }
 
+//! kernelCoarseningRow of the current slice, waited for
+static int metalCoarsening(
+    void *dev, double eThreshold, void *out, size_t outBytes, char *err,
+    int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        if (waitPending(m, err, errLen)) return 1;
+        if (ensurePipelines(m, err, errLen)) return 1;
+        if (outBytes < sizeof(float) * 6 * (size_t)m->nx * m->neta) {
+            setErr(err, errLen, "the coarsening buffer is too small", nil);
+            return 1;
+        }
+        if (m->coarsenOut == nil || [m->coarsenOut length] < outBytes) {
+            m->coarsenOut =
+                [m->dev newBufferWithLength:outBytes
+                                    options:MTLResourceStorageModeShared];
+            if (m->coarsenOut == nil) {
+                setErr(err, errLen, "out of device memory", nil);
+                return 1;
+            }
+        }
+        const int dims[3] = {m->nx, m->ny, m->neta};
+        const float thr = (float)eThreshold;
+        id<MTLCommandBuffer> cb = [m->queue commandBuffer];
+        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+        [enc setBytes:dims length:sizeof(dims) atIndex:0];
+        [enc setBytes:&thr length:sizeof(thr) atIndex:1];
+        [enc setBuffer:m->slice[m->cur] offset:0 atIndex:3];
+        [enc setBuffer:m->coarsenOut offset:0 atIndex:5];
+        // one thread per (eta, x) row, as the conservation kernel
+        [enc setComputePipelineState:m->psCoarsening];
+        [enc dispatchThreads:MTLSizeMake(m->nx * m->neta, 1, 1)
+            threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+        [enc endEncoding];
+        [cb commit];
+        [cb waitUntilCompleted];
+        if (cb.error != nil) {
+            setErr(err, errLen, "the coarsening kernel failed", cb.error);
+            return 1;
+        }
+        if (m->profile) {
+            NSNumber *old = m->profileSeconds[@"coarsening"];
+            m->profileSeconds[@"coarsening"] =
+                @((old ? [old doubleValue] : 0.)
+                  + (cb.GPUEndTime - cb.GPUStartTime));
+        }
+        memcpy(out, [m->coarsenOut contents], outBytes);
+        return 0;
+    }
+}
+
 static int metalFetch(
     void *dev, int which, int firstComp, int nComp, char *err, int errLen) {
     (void)which;
@@ -688,6 +742,7 @@ static const MusicDeviceApi kMetalApi = {
     metalSpecialize, metalFinish, metalFetchUnwritten,
     metalConservationBegin, metalConservationEnd,
     NULL,  // fetchCells: state() is the slice itself (unified memory)
+    metalCoarsening,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

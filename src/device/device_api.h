@@ -117,6 +117,13 @@ typedef struct MusicDeviceApi {
     int (*fetchCells)(
         void *dev, int which, const int *cells, int nCells, void **out,
         char *err, int errLen);
+    // the beastMode 3 coarsening indicator (kernelCoarseningRow,
+    // device_diag.h) of the current slice, cells with e > eThreshold:
+    // kCoarsenVals values per (eta, x) row, written to out (outBytes =
+    // kCoarsenVals neta nx Real)
+    int (*coarsening)(
+        void *dev, double eThreshold, void *out, size_t outBytes, char *err,
+        int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

@@ -2585,6 +2585,57 @@ TEST_CASE("Device copy of the current slice during a step equals syncHost") {
     }
 }
 
+TEST_CASE("Device coarsening indicator equals the host one") {
+    // beastMode 3 checks the coarsening indicator on the device
+    // (DeviceHydro::coarseningSums, kernelCoarseningRow) without filling
+    // the host Fields: on backend 1 it must give Evolve::coarseningError
+    // of the synced Fields, to rounding in double and to float precision
+    for (int gpuFloat = 0; gpuFloat < 2; gpuFloat++) {
+        CAPTURE(gpuFloat);
+        InitData DATA = idealDeviceParameters(false, 0);
+        DATA.gpu_backend = 1;
+        DATA.gpu_float = gpuFloat;
+        // about half of the lumpy cells are above freeze-out
+        DATA.useEpsFO = 1;
+        DATA.freeze_eps_flag = 0;
+        DATA.N_freeze_out = 1;
+        DATA.eps_freeze_min = 0.4;
+        DATA.eps_freeze_max = 0.4;
+        EOS eos(0);
+        Evolve evolve(eos, DATA, nullptr);
+        evolve.initialize_freezeout_surface_info();
+        Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+        fillLumpyIdeal(a);
+        b = a;
+        c = a;
+        Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+        double tau = DATA.tau0;
+        for (int it = 0; it < 2; it++) {
+            evolve.preparePressure(*fpCurr);
+            evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+            tau += DATA.delta_tau;
+        }
+        REQUIRE(evolve.deviceHydro() != nullptr);
+        REQUIRE(!evolve.deviceHydro()->hostCurrent());
+        const Evolve::CoarseningError dev =
+            evolve.coarseningError(*fpCurr, true);
+        evolve.syncHost(*fpCurr, *fpPrev);
+        const Evolve::CoarseningError host =
+            evolve.coarseningError(*fpCurr, false);
+        const int total = DATA.nx * DATA.ny * DATA.neta;
+        CHECK(host.nCells > total / 5);
+        CHECK(host.nCells < total);
+        CHECK(std::abs(dev.nCells - host.nCells) <= gpuFloat);
+        const double tol = (gpuFloat ? 1e-5 : 1e-12);
+        CHECK(host.eMean > 0.);
+        CHECK(host.uMean > 0.);
+        CHECK(dev.eMean == doctest::Approx(host.eMean).epsilon(tol));
+        CHECK(dev.uMean == doctest::Approx(host.uMean).epsilon(tol));
+        CHECK(dev.eMax == doctest::Approx(host.eMax).epsilon(tol));
+        CHECK(dev.uMax == doctest::Approx(host.uMax).epsilon(tol));
+    }
+}
+
 TEST_CASE("Device reads of tau_n during a step equal those after it") {
     // Evolve takes the conservation rows from the step that made the
     // slice (DeviceHydro::conservationAhead), and the eta window and the

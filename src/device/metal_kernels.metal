@@ -102,3 +102,13 @@ kernel void musicConservation(
     if (int(gid) >= P.nx * P.neta) return;
     kernelConservationRow(P, D, tab, sCurr, sPrev, out, int(gid));
 }
+
+// dims: nx, ny, neta
+kernel void musicCoarsening(
+    constant int *dims [[buffer(0)]], constant float &eThreshold [[buffer(1)]],
+    device const float *s [[buffer(3)]], device float *out [[buffer(5)]],
+    uint gid [[thread_position_in_grid]]) {
+    if (int(gid) >= dims[0] * dims[2]) return;
+    kernelCoarseningRow(dims[0], dims[1], dims[2], eThreshold, s, out,
+                        int(gid));
+}

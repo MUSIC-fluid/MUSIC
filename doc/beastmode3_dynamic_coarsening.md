@@ -15,9 +15,10 @@ Investigation on branch `gpu` (after 82cc757). The prototype is in the working t
   - Tolerance 0.01: every observable within 7 × 10⁻⁵, and dS/dη within 7 × 10⁻⁴, for 1.74× fewer cell updates.
   - Current schedule (with the cap): 2.64× fewer, but 0.3 % in the v2 proxy and 0.4 % in dS/dη.
   - Without the cap, the current schedule doubles Δτ a third time, to 8×. That costs 0.5 % in E and S and 1 % in dS/dη and saves only 4 % more, which supports the factor-4 cap.
-- **Recommendation.** Use the energy-weighted mean of the relative e curvature, with tolerance 0.01 as the default and 0.02 as an option when speed matters more (v2 proxy within 0.4 % in 2D, 0.05 % in 3D). Before making it the default, give the device a reduction kernel for the indicator, so the check doesn't need a full sync every 24 steps.
+- **Recommendation.** Use the energy-weighted mean of the relative e curvature, with tolerance 0.01 as the default and 0.02 as an option when speed matters more (v2 proxy within 0.4 % in 2D, 0.05 % in 3D). It is now the default.
+- **GPU.** The device computes the indicator itself (last section). A check costs 0.5 ms on Metal instead of 46 ms with a full sync to the host, and the coarsening decisions are identical.
 
-## Prototype (working tree)
+## Implementation
 
 | parameter | default | meaning |
 |---|---|---|
@@ -25,6 +26,7 @@ Investigation on branch `gpu` (after 82cc757). The prototype is in the working t
 | `beastModeMaxCoarsenFactor` | 4 | Δτ, dx and dy each grow at most by this factor over the run. Applies to beastMode 2 and 3, with either trigger. |
 
 - **Where** (`src/evolve.cpp`): `Evolve::coarseningError` computes the indicator: energy-weighted mean and maximum, for e and for u^x and u^y. The main loop checks it every 24 steps, after the string sources are done, and logs it.
+- **On a device** (`gpu_backend` > 0), `kernelCoarseningRow` (`src/device/device_diag.h`) reduces each (η, x) row to six values on the device: Σe, Σe·de, Σe·du, the maxima of de and du, and the cell count. `DeviceHydro::coarseningSums` adds the rows on the host, so the check copies 6 · nx · neta numbers instead of the whole slice. It is implemented for backend 1 (CPU), Metal and CUDA.
 - **When the grid coarsens, Δτ doubles with it** if its cap allows. Δτ still doubles alone on the old CFL margin, dx / (2 Δτ) > 5, every `NtauBlock` steps.
 - **Behaviour change:** the factor-4 cap also limits the existing schedule. Before, it had no limit: for example, beastMode 2 went from Δτ 0.005 to 0.04, a factor of 8, in the 2026-11-22 test.
 - All 46 unit tests pass.
@@ -94,7 +96,7 @@ What the results show:
 ## Open points before making it the default
 
 1. **(3+1)D.** Tested on one string event (next section). Only one event was run, and it freezes out at τ = 6 fm/c, so a longer-lived (3+1)D event, a central one at higher energy, would show more of the grid coarsening.
-2. **Device cost.** Each check calls `syncAll` and computes the indicator on the host, every 24 steps. That is acceptable on the CPU (a single pass over the grid). On the GPU it would need a reduction kernel, or a check every `NtauBlock / 2` steps.
+2. **Device cost.** Solved by the device reduction (last section). The CUDA version is not compiled or tested yet, because no CUDA machine was available.
 3. **The tolerance is relative.** It depends on how lumpy the initial state is and on the starting dx. A run that starts at dx = 0.2 measures its first check at 0.4 fm, so it coarsens later at the same tolerance. That is the intent: the tolerance limits the error of the coarse grid, not the coarsening factor.
 4. **The cap changes the existing behaviour** for beastMode 2 and 3 runs that would have doubled more than twice. Either keep it, or default it to a large value when `beastModeCoarsenTolerance = 0`.
 5. **Bulk viscosity and baryon diffusion** were not part of this test.
@@ -155,3 +157,39 @@ What the results show:
 
 - Driver: `run3d.py`, `queue.sh`, `ana.py`. Results: `results.jsonl`, `probe/log.txt` (indicator series) and one `s3d_*` directory per run. All of them are in the session scratchpad `/private/tmp/claude-503/-Users-gf8206-Desktop-codes-MUSIC/8470541e-80e8-49d9-af7d-f4144ff84680/scratchpad/dyn3d/`.
 - The OpenMP build needs the uncommitted fix in `src/pretty_ostream.cpp`: 6031ba6 includes `<mach/mach.h>`, which GCC cannot parse on macOS, so the fix declares `proc_pid_rusage` directly.
+
+## Cost of the check on the GPU
+
+### What the check cost before
+
+Without a device kernel, each check called `syncAll`:
+- It copied the current and the previous slice to the host Fields: 31 components of 120 × 120 × 107 cells each. On Metal that is a float-to-double conversion; on CUDA it is also a PCIe transfer.
+- Then the host computed the indicator in one pass.
+
+### The device reduction
+
+- `kernelCoarseningRow` uses one thread per (η, x) row, like the conservation kernel.
+- Each row gives six values: Σe, Σe·de, Σe·du, max de, max du and the cell count. The host adds the 12 840 rows, about 77 k numbers in all.
+- The device path is used when the device holds the newest state. When the host Fields are current anyway (after an output or freeze-out sync), the host computes the indicator without a copy.
+- The unit test "Device coarsening indicator equals the host one" checks backend 1 against the host computation on the synced Fields: they agree to 10⁻¹² in double and 10⁻⁵ in float, with the same cell count.
+
+### Measurement: Metal (Apple M4, float), (3+1)D strings event
+
+The test is the same event as above with `gpu_backend = 2`. Tolerance 10⁻¹² gives 25 checks that never coarsen; the "host" executable is the same code with the device path disabled and a timer around `syncAll` + `coarseningError`.
+
+| run | checks | time in the checks | per check | full syncs | run wall time |
+|---|---|---|---|---|---|
+| host path, tol 10⁻¹² (two runs) | 25 | 1.33 s, 1.17 s | 47 ms | 30 | 55.0 s, 49.2 s |
+| device path, tol 10⁻¹² (two runs) | 25 | 0.0136 s, 0.0135 s | 0.54 ms | 6 | 52.3 s, 51.4 s |
+| host path, tol 0.01 | 24 | 1.11 s | 46 ms | 29 | 53.1 s |
+| device path, tol 0.01 | 24 | 0.012 s | 0.51 ms | 7 | 52.5 s |
+| beastMode 1 (reference) | 0 | | | 5 | 65.8 s |
+
+- **The device reduction is 85–95 times cheaper per check.** It removes 24 of the run's 30 full syncs.
+- **The decisions don't change.** The host and device runs coarsen at the same τ (5.70 fm/c at tolerance 0.01), and every observable is bit-identical between the two paths.
+- **On Metal the old check was not a big cost:** 1.2 s of a 50 s run, about 2 %, which is below the run-to-run noise of the wall time (±3 s). The host and the GPU share memory, so the sync only converts float to double.
+- **On CUDA the saving should be larger, but it is not measured.** A full sync of the two slices is 2 × 31 × 1.54 M doubles = 0.76 GB over PCIe. That is about 30–60 ms at 12–25 GB/s, plus the conversion, for each check. The reduction copies 0.6 MB.
+
+### Another finding: the grid-edge check
+
+With beastMode 3 on Metal, the run spends 8.9 s copying to the host, against 2.0 s for beastMode 1, and has 575 partial syncs, one per step. These come from `fluidNearGridEdge`, which syncs the edge shell of the grid (`syncShell`) every step. That costs about 7 s of the 52 s run, six times more than the old coarsening check did. It is the next candidate for a device reduction, or for a check every few steps. It is likely part of why beastMode 3 saves only 1.25× in wall time over beastMode 1 on Metal, against 1.74× on the CPU.

@@ -97,7 +97,9 @@ class Evolve {
         double uMean = 0., uMax = 0.;  // |d2 u^x|, |d2 u^y|
         long nCells = 0;
     };
-    CoarseningError coarseningError(Fields &arena);
+    //! onDevice: the state is on the device (the host Fields are not
+    //! filled), which reduces the indicator itself
+    CoarseningError coarseningError(Fields &arena, bool onDevice);
     bool hotCellsRemain(const Fields &arena, const double epsFO) const;
     bool hotCellsAtGridEdge(const Fields &arena, const double epsFO) const;
     void extrapolatePrevForNewDtau(

@@ -108,6 +108,10 @@ class Backend {
     virtual bool conservation(
         const void *params, size_t paramBytes, void *out, size_t outBytes,
         std::string &err) = 0;
+    //! kernelCoarseningRow for every (eta, x) row of the current slice
+    //! (device_diag.h)
+    virtual bool coarsening(
+        double eThreshold, void *out, size_t outBytes, std::string &err) = 0;
     //! the switches of the run (DeviceHydro::specKey); the CPU kernels
     //! read them at run time
     virtual bool specialize(const std::string &, std::string &) {
@@ -210,6 +214,10 @@ class DeviceHydro {
     void conservationAhead(bool on) { consAhead_ = on; }
     //! how many conservationRows calls took the rows of conservationAhead
     int conservationRowsAhead() const { return (nConsAhead_); }
+    //! Evolve::coarseningError of the device state, reduced on the device:
+    //! the host receives kCoarsenVals values per (eta, x) row, not the
+    //! slice. Sums: e, e de, e du; maxima: de, du; the cell count
+    void coarseningSums(double eThreshold, double sums[6]);
 
   private:
     const InitData &DATA;
@@ -239,6 +247,8 @@ class DeviceHydro {
     int nSteps_ = 0;
     double stepSeconds_ = 0., downloadSeconds_ = 0., sourceSeconds_ = 0.;
     double diagSeconds_ = 0.;
+    double coarsenSeconds_ = 0.;
+    int nCoarsenChecks_ = 0;
     int nFullSyncs_ = 0, nPartialSyncs_ = 0, nOverlapSyncs_ = 0;
     // conservationAhead: the rows the last step queued, and their tau
     bool consAhead_ = false;
