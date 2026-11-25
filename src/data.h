@@ -44,6 +44,13 @@ typedef struct init_data {
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
     double gridPadding;  //!< grid padding size from user (default: 3 fm)
+    //! beastMode 3: coarsen dx and dy when the relative curvature of e at
+    //! twice the spacing is below this (energy-weighted mean over the cells
+    //! above freeze-out); <= 0 keeps the fixed delta_tau < 0.05 schedule
+    double beastModeCoarsenTolerance;
+    //! beastMode >= 2: delta_tau, delta_x and delta_y grow at most by this
+    //! factor (a power of 2) during the run
+    int beastModeMaxCoarsenFactor;
     //! extra grid cells added on each side when re-running hydro
     //! (used by Initial_profile 11/111; in number of cells, not fm)
     int gridPaddingCells;

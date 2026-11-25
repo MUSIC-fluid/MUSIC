@@ -90,6 +90,14 @@ class Evolve {
         const std::vector<Fields *> &fieldList, double gridPadding,
         bool coarsen);
     bool fluidNearGridEdge(Fields &arena);
+    //! the relative error of coarsening dx and dy by 2: the second
+    //! differences at twice the spacing in the cells above freeze-out
+    struct CoarseningError {
+        double eMean = 0., eMax = 0.;  // |d2 e| / e: energy-weighted, max
+        double uMean = 0., uMax = 0.;  // |d2 u^x|, |d2 u^y|
+        long nCells = 0;
+    };
+    CoarseningError coarseningError(Fields &arena);
     bool hotCellsRemain(const Fields &arena, const double epsFO) const;
     bool hotCellsAtGridEdge(const Fields &arena, const double epsFO) const;
     void extrapolatePrevForNewDtau(

@@ -107,6 +107,11 @@ int Evolve::EvolveIt(
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
     int NtauBlock = 192;
+    // beastMode grows delta_tau, delta_x and delta_y at most by
+    // DATA.beastModeMaxCoarsenFactor relative to these
+    const double dtauInitial = DATA.delta_tau;
+    const double dxInitial = DATA.delta_x;
+    const double dyInitial = DATA.delta_y;
     // the ghost cells of all fields follow from their interiors. AdvanceIt
     // updates them for every slice it writes, and the others are copies
     // or older slices, so they only need an update after the initial state
@@ -134,27 +139,65 @@ int Evolve::EvolveIt(
         const bool stringsActive =
             (DATA.Initial_profile == 13 || DATA.Initial_profile == 131)
             && tau <= source_tau_max + DATA.delta_tau / 2.;
+        // the dynamic coarsening is checked every coarsenCheckEvery steps,
+        // the fixed schedule every NtauBlock steps
+        const bool dynamicCoarsen =
+            (DATA.beastMode == 3 && DATA.beastModeCoarsenTolerance > 0.);
+        const int coarsenCheckEvery = 24;
         if (!stringsActive && DATA.beastMode > 1 && it > 0
-            && (it % NtauBlock == 0)) {
+            && (it % NtauBlock == 0
+                || (dynamicCoarsen && it % coarsenCheckEvery == 0))) {
+            const double maxFactor = DATA.beastModeMaxCoarsenFactor;
+            const bool canDoubleDtau =
+                (2. * DATA.delta_tau <= maxFactor * dtauInitial * (1. + 1e-9));
+            const bool canCoarsen =
+                (2. * DATA.delta_x <= maxFactor * dxInitial * (1. + 1e-9)
+                 && 2. * DATA.delta_y <= maxFactor * dyInitial * (1. + 1e-9));
             bool doubleDtau = false;
             bool coarsenGrid = false;
-            if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
-                doubleDtau = true;
-            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
-                // maximum delta_tau < 0.1 fm/c
-                doubleDtau = true;
-                coarsenGrid = true;
+            if (dynamicCoarsen) {
+                if (canCoarsen) {
+                    syncAll();
+                    const CoarseningError err = coarseningError(*fpCurr);
+                    music_message
+                        << "BeastMode: tau = " << tau << " fm/c, coarsening "
+                        << "error e mean = " << err.eMean
+                        << ", max = " << err.eMax << ", u mean = " << err.uMean
+                        << ", max = " << err.uMax << ", cells = " << err.nCells;
+                    music_message.flush("info");
+                    coarsenGrid =
+                        (err.nCells > 0
+                         && err.eMean < DATA.beastModeCoarsenTolerance);
+                }
+                // the time step follows the grid when it can; otherwise it
+                // doubles on the CFL margin alone
+                doubleDtau =
+                    canDoubleDtau
+                    && (coarsenGrid
+                        || (it % NtauBlock == 0
+                            && DATA.delta_x / (2. * DATA.delta_tau) > 5));
+            } else if (it % NtauBlock == 0) {
+                if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
+                    doubleDtau = canDoubleDtau;
+                } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
+                    // maximum delta_tau < 0.1 fm/c
+                    doubleDtau = canDoubleDtau;
+                    coarsenGrid = doubleDtau && canCoarsen;
+                }
             }
-            if (doubleDtau) {
+            if (doubleDtau || coarsenGrid) {
                 // the host changes the fields below
                 syncAll();
-                DATA.delta_tau = 2. * DATA.delta_tau;
-                NtauBlock =
-                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
-                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
-                DATA.output_evolution_every_N_timesteps = (std::max(
-                    1, static_cast<int>(
-                           DATA.output_evolution_every_N_timesteps / 2)));
+                if (doubleDtau) {
+                    DATA.delta_tau = 2. * DATA.delta_tau;
+                    NtauBlock =
+                        std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
+                    DATA.facTau =
+                        std::max(1, static_cast<int>(DATA.facTau / 2.));
+                    DATA.output_evolution_every_N_timesteps = (std::max(
+                        1, static_cast<int>(
+                               DATA.output_evolution_every_N_timesteps / 2)));
+                }
                 if (coarsenGrid) {
                     grid_info.noteRegrid(*fpCurr, tau);
                     regridTransverse(allFields, 0., true);
@@ -163,10 +206,12 @@ int Evolve::EvolveIt(
                 // the previous slices are one old time step behind; shift
                 // them to tau - delta_tau_new so that backward time
                 // derivatives (curr - prev)/delta_tau stay consistent
-                extrapolatePrevForNewDtau(*fpCurr, *fpPrev, 2.);
-                if (freezeStarted) {
-                    extrapolatePrevForNewDtau(
-                        freezeoutFieldCurr, freezeoutFieldPrev, 2.);
+                if (doubleDtau) {
+                    extrapolatePrevForNewDtau(*fpCurr, *fpPrev, 2.);
+                    if (freezeStarted) {
+                        extrapolatePrevForNewDtau(
+                            freezeoutFieldCurr, freezeoutFieldPrev, 2.);
+                    }
                 }
                 music_message
                     << "BeastMode: changed delta_tau = " << DATA.delta_tau
@@ -1016,6 +1061,55 @@ bool Evolve::fluidNearGridEdge(Fields &arena) {
         }
     }
     return false;
+}
+
+Evolve::CoarseningError Evolve::coarseningError(Fields &arena) {
+    CoarseningError err;
+    if (epsFO_list.empty()) return err;
+    const double eThreshold =
+        (*std::min_element(epsFO_list.begin(), epsFO_list.end())) / hbarc;
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const bool inX = nx > 4, inY = ny > 4;
+    double wSum = 0., eSum = 0., uSum = 0.;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int iy = 0; iy < ny; iy++) {
+            for (int ix = 0; ix < nx; ix++) {
+                const int i = arena.getFieldIdx(ix, iy, ieta);
+                const double e = arena.e_[i];
+                if (e <= eThreshold) continue;
+                double de = 0., du = 0.;
+                const auto second = [&](int j0, int j1) {
+                    de = std::max(
+                        de, std::abs(arena.e_[j0] - 2. * e + arena.e_[j1]) / e);
+                    for (int m = 1; m < 3; m++)
+                        du = std::max(
+                            du, std::abs(
+                                    arena.u_[m][j0] - 2. * arena.u_[m][i]
+                                    + arena.u_[m][j1]));
+                };
+                if (inX && ix >= 2 && ix < nx - 2)
+                    second(
+                        arena.getFieldIdx(ix - 2, iy, ieta),
+                        arena.getFieldIdx(ix + 2, iy, ieta));
+                if (inY && iy >= 2 && iy < ny - 2)
+                    second(
+                        arena.getFieldIdx(ix, iy - 2, ieta),
+                        arena.getFieldIdx(ix, iy + 2, ieta));
+                wSum += e;
+                eSum += e * de;
+                uSum += e * du;
+                err.eMax = std::max(err.eMax, de);
+                err.uMax = std::max(err.uMax, du);
+                err.nCells++;
+            }
+        }
+    }
+    if (wSum > 0.) {
+        err.eMean = eSum / wSum;
+        err.uMean = uSum / wSum;
+    }
+    return err;
 }
 
 void Evolve::extrapolatePrevForNewDtau(
