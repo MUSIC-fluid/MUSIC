@@ -2162,10 +2162,15 @@ TEST_CASE("Asymmetric string grids conserve the integrated source totals") {
             const bool capped = beamRapidity == 4.6;
             const int profile = dynamic ? 13 : 131;
             const double targetPz = (profile == 13 ? 3. : -24.8);
+            // the header sets the beam rapidity through the energy per
+            // participant
+            std::ostringstream nPart;
+            nPart << std::setprecision(17)
+                  << 25. / (Util::m_N * std::cosh(beamRapidity));
             const std::string file = writeFile(
                 dir, "strings_" + std::to_string(beamRapidity) + ".dat",
                 "# net_Pz=" + std::to_string(targetPz)
-                    + " GeV, total_energy=25 GeV, Npart=2\n"
+                    + " GeV, total_energy=25 GeV, Npart=" + nPart.str() + "\n"
                     + "# columns\n"
                     + "0.312000006 0.2 0.37 0.001 3 0 0 -0.37 0.26 0.53 -0.48 "
                     + "2 4 0.8 1.7 0.35 0.6 -2.8 3.4 1.2 6.9 0 0 0.8 -0.2 -0.5 1.2 1.7 7.8\n"
@@ -2191,7 +2196,7 @@ TEST_CASE("Asymmetric string grids conserve the integrated source totals") {
             data.use_BQ_ratios = false;
             data.stringSourceSigmaX = 0.48;
             data.stringSourceSigmaEta = 0.35;
-            data.beam_rapidity = beamRapidity;
+            data.beam_rapidity = 10.;  // from ecm: overridden by the header
             data.stringTransverseShiftFrac = 0.7;
             data.preEqFlowFactor = 0.5;
             data.x_size = 4.0;
@@ -2209,7 +2214,7 @@ TEST_CASE("Asymmetric string grids conserve the integrated source totals") {
                 CHECK(width == 0.35);
             } else if (beamRapidity == 4.6) {
                 CHECK(width == doctest::Approx(0.2));
-                CHECK(4. + 3. * width < beamRapidity);
+                CHECK(4. + 3. * width < beamRapidity + 1e-12);
             } else {
                 CHECK(width == 0.1);
             }

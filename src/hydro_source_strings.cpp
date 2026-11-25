@@ -70,21 +70,24 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     std::string key;
     double total_energy = std::numeric_limits<double>::quiet_NaN();
     double netPz = std::numeric_limits<double>::quiet_NaN();
+    double nPart = std::numeric_limits<double>::quiet_NaN();
     while (coll_info >> key) {
-        if (key != "total_energy" && key != "net_Pz") continue;
+        if (key != "total_energy" && key != "net_Pz" && key != "Npart")
+            continue;
         std::string value;
         double parsed;
         if (coll_info >> value && std::istringstream(value) >> parsed) {
             if (key == "total_energy")
                 total_energy = parsed;
-            else
+            else if (key == "net_Pz")
                 netPz = parsed;
+            else
+                nPart = parsed;
         }
     }
 
     getline(QCD_strings_file, text_string);  // column names
     int line = 2;
-    double minSigmaEta = std::numeric_limits<double>::infinity();
     while (getline(QCD_strings_file, text_string)) {
         ++line;
         std::stringstream text_stream(text_string);
@@ -119,19 +122,6 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         }
         new_string->sigma_x = get_sigma_x();
         new_string->sigma_eta = get_sigma_eta();
-        const double outerEta = std::max(
-            std::abs(new_string->eta_s_left),
-            std::abs(new_string->eta_s_right));
-        if (outerEta + 3. * new_string->sigma_eta >= DATA.beam_rapidity) {
-            // Keep the three-sigma edge strictly inside the beam unless the
-            // minimum width already extends past it.
-            const double insideBeam = std::nextafter(DATA.beam_rapidity, 0.);
-            const double allowedWidth =
-                std::nextafter((insideBeam - outerEta) / 3., 0.);
-            new_string->sigma_eta =
-                std::max(0.1, std::min(new_string->sigma_eta, allowedWidth));
-        }
-        minSigmaEta = std::min(minSigmaEta, new_string->sigma_eta);
 
         // compute the string end tau
         new_string->tau_end_left = getStringEndTau(
@@ -217,6 +207,40 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
     if (QCD_strings_list.empty())
         throw std::runtime_error("No strings in " + QCD_strings_filename);
+
+    // The beam rapidity of this event: the energy per participant from the
+    // header (Npart, or the baryon number of the strings when Npart is
+    // missing), otherwise the one from ecm.
+    double beamRapidity = DATA.beam_rapidity;
+    double participants = nPart;
+    if (!(participants > 0.)) {
+        participants = 0.;
+        for (auto const &it : QCD_strings_list)
+            participants += it->baryon_frac_l + it->baryon_frac_r;
+    }
+    if (std::isfinite(total_energy) && participants > 0.
+        && total_energy > participants * Util::m_N) {
+        beamRapidity = acosh(total_energy / (participants * Util::m_N));
+        music_message << "HydroSourceStrings: beam rapidity of the event = "
+                      << beamRapidity << " (from ecm: " << DATA.beam_rapidity
+                      << ")";
+        music_message.flush("info");
+    }
+    double minSigmaEta = std::numeric_limits<double>::infinity();
+    for (auto &it : QCD_strings_list) {
+        const double outerEta =
+            std::max(std::abs(it->eta_s_left), std::abs(it->eta_s_right));
+        if (outerEta + 3. * it->sigma_eta >= beamRapidity) {
+            // Keep the three-sigma edge strictly inside the beam unless the
+            // minimum width already extends past it.
+            const double insideBeam = std::nextafter(beamRapidity, 0.);
+            const double allowedWidth =
+                std::nextafter((insideBeam - outerEta) / 3., 0.);
+            it->sigma_eta =
+                std::max(0.1, std::min(it->sigma_eta, allowedWidth));
+        }
+        minSigmaEta = std::min(minSigmaEta, it->sigma_eta);
+    }
     music_message << "HydroSourceStrings: tau_min = " << get_source_tau_min()
                   << " fm/c.";
     music_message.flush("info");
@@ -608,8 +632,18 @@ void HydroSourceStrings::compute_norm_for_strings(
                          double inputEnergy, double targetEnergy,
                          double targetPz) {
         if (std::abs(targetEnergy) <= tolerance
-            && std::abs(targetPz) <= tolerance)
+            && std::abs(targetPz) <= tolerance) {
+            // nothing is left for these sources to deposit
+            for (const auto &source : sources) {
+                source.norm = 0.;
+                source.shift = 0.;
+            }
+            if (inputEnergy > tolerance)
+                music_message.warning(
+                    "The event four-momentum leaves no energy for the "
+                    "string sources: their energy loss is not deposited.");
             return true;
+        }
         if (inputEnergy <= 0. || targetEnergy <= std::abs(targetPz))
             return false;
 

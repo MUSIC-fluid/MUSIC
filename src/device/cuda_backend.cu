@@ -326,6 +326,9 @@ struct Device : public DeviceBase {
         block[kKPressure] = blockFor(cudaPressure<Real>, want);
         block[kKWFace] = blockFor(cudaWFace<Real>, want);
         block[kKCell] = blockFor(cudaCell<Real>, want);
+        // the generic kernels until setEos picks the specialized ones
+        block[kKFace] = blockFor(cudaFace<Real, -1>, want);
+        block[kKCellVisc] = blockFor(cudaCellVisc<Real, -1>, want);
         // one thread per (eta, x) row: few threads, small blocks
         block[kKConservation] = 32;
         const char *p = getenv("MUSIC_CUDA_PROFILE");

@@ -39,14 +39,19 @@ void HydroinfoMUSIC::getHydroValues(
         eta = z;
     }
 
-    int ieta = static_cast<int>((eta - hydro_eta_min) / hydroDeta + 0.0001);
+    // Positions up to indexTolerance cells below the first stored slice
+    // are taken as on it; anything further below is out of range.
+    constexpr double indexTolerance = 1e-4;
+    int ieta =
+        static_cast<int>((eta - hydro_eta_min) / hydroDeta + indexTolerance);
     if (boost_invariant) {
         ieta = 0;
     }
 
-    const int itau = static_cast<int>((tau - hydroTau0) / hydroDtau + 0.0001);
-    const int ix = static_cast<int>((hydroXmax + x) / hydroDx + 0.0001);
-    const int iy = static_cast<int>((hydroYmax + y) / hydroDy + 0.0001);
+    const int itau =
+        static_cast<int>((tau - hydroTau0) / hydroDtau + indexTolerance);
+    const int ix = static_cast<int>((hydroXmax + x) / hydroDx + indexTolerance);
+    const int iy = static_cast<int>((hydroYmax + y) / hydroDy + indexTolerance);
 
     double xfrac =
         (x - (static_cast<double>(ix) * hydroDx - hydroXmax)) / hydroDx;
@@ -59,7 +64,7 @@ void HydroinfoMUSIC::getHydroValues(
     }
     double taufrac = (tau - hydroTau0) / hydroDtau - static_cast<double>(itau);
 
-    if (ix < 0 || ix >= ixmax) {
+    if (ix < 0 || ix >= ixmax || (hydroXmax + x) / hydroDx < -indexTolerance) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - x out of range x=" << x << ", ix=" << ix
                       << ", ixmax=" << ixmax;
@@ -82,7 +87,7 @@ void HydroinfoMUSIC::getHydroValues(
         return;
     }
 
-    if (iy < 0 || iy >= iymax) {
+    if (iy < 0 || iy >= iymax || (hydroYmax + y) / hydroDy < -indexTolerance) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - y out of range, y=" << y << ", iy=" << iy
                       << ", iymax=" << iymax;
@@ -125,7 +130,8 @@ void HydroinfoMUSIC::getHydroValues(
         return;
     }
     if (ieta < 0 || ieta >= ietamax
-        || (!boost_invariant && eta < hydro_eta_min - 1e-8 * hydroDeta)) {
+        || (!boost_invariant
+            && (eta - hydro_eta_min) / hydroDeta < -indexTolerance)) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "eta out of range, ieta=" << ieta
                       << ", ietamax=" << ietamax;
