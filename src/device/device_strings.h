@@ -44,7 +44,8 @@ enum StrHead {
     kStrDx,  // DATA.delta_x, delta_y, delta_eta
     kStrDy,
     kStrDeta,
-    kStrHbarc,  // Util::hbarc
+    kStrHbarc,   // Util::hbarc
+    kStrTauCap,  // DATA.stringSourceTauMax
     kStrHead
 };
 
@@ -138,25 +139,31 @@ MD_FN Real stringBinEnd(Real tau, Real dtau) {
 }
 
 // The two formation fronts sweep up disjoint segments. Over successive
-// time bins the segments tile the whole string.
+// time bins the segments tile the whole string. The bin that contains
+// tauCap deposits everything the fronts have not reached yet, so no
+// string source is deposited later than tauCap. tauEnd must already be
+// capped at tauCap.
 template <typename Real>
 MD_FN Real stringEtaProfileForStep(
     Real eta, Real left, Real right, Real center, Real sigma, Real tau,
-    Real dtau, Real tau0, Real form, Real tauEnd) {
+    Real dtau, Real tau0, Real form, Real tauEnd, Real tauCap) {
     const Real begin = stringBinStart(tau, dtau);
     const Real end = stringBinEnd(tau, dtau);
+    if (begin > tauCap) return Real(0.);
     if (left == right) {
         if (tauEnd < begin || tauEnd >= end) return Real(0.);
         const Real d = (eta - left) / sigma;
         return exp(-Real(0.5) * d * d);
     }
     if (tau0 == Real(0.)) {
-        if (form < begin || form >= end) return Real(0.);
+        const Real formCapped = dmin(form, tauCap);
+        if (formCapped < begin || formCapped >= end) return Real(0.);
         return stringEtaProfile(eta, left, right, sigma);
     }
     const Real maxShift = dmax(fabs(left - center), fabs(right - center));
     const Real now = stringFrontShift(begin, tau0, form, maxShift);
-    const Real next = stringFrontShift(end, tau0, form, maxShift);
+    const Real next =
+        (end > tauCap ? maxShift : stringFrontShift(end, tau0, form, maxShift));
     return stringEtaProfile(
                eta, dmax(left, center - next), dmin(right, center - now), sigma)
            + stringEtaProfile(
@@ -216,7 +223,7 @@ MD_FN void stringEnergySource(
         if (fabs(y_dis) > skip_dis_x) continue;
         const Real exp_eta_s = stringEtaProfileForStep(
             eta_s, it[kREtaL], it[kREtaR], it[kREta0], sigma_eta, tau, dtau,
-            it[kRTau0], it[kRTauForm], it[kRTauEndL]);
+            it[kRTau0], it[kRTauForm], it[kRTauEndL], S[kStrTauCap]);
         if (exp_eta_s == Real(0.)) continue;
 
         Real exp_xperp =

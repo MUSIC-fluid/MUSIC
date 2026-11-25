@@ -2155,114 +2155,123 @@ TEST_CASE("Asymmetric string grids conserve the integrated source totals") {
     const std::string dir = makeTempDir();
     for (const double beamRapidity : {6., 4.6, 4.2}) {
         CAPTURE(beamRapidity);
-        const bool dynamic = beamRapidity != 4.2;
-        const bool capped = beamRapidity == 4.6;
-        const int profile = dynamic ? 13 : 131;
-        const double targetPz = (profile == 13 ? 3. : -24.8);
-        const std::string file = writeFile(
-            dir, "strings_" + std::to_string(beamRapidity) + ".dat",
-            "# net_Pz=" + std::to_string(targetPz)
-                + " GeV, total_energy=25 GeV, Npart=2\n"
-                + "# columns\n"
-                + "0.312000006 0.2 0.37 0.001 3 0 0 -0.37 0.26 0.53 -0.48 "
-                + "2 4 0.8 1.7 0.35 0.6 -2.8 3.4 1.2 6.9 0 0 0.8 -0.2 -0.5 1.2 1.7 7.8\n"
-                + "0.312000006 0.2 0.37 0.001 3 0 0 0 0 0 0 "
-                + "2.9 3.1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0");
-        InitData data = defaultParameters(
-            "Initial_profile " + std::to_string(profile)
-            + "\nboost_invariant 0\nEta_grid_min 0\nEta_grid_max 9\n"
-            + (dynamic ? ""
+        // a cap before the strings form deposits them all at the cap
+        for (const double tauCap : {10., 0.35}) {
+            CAPTURE(tauCap);
+            const bool dynamic = beamRapidity != 4.2;
+            const bool capped = beamRapidity == 4.6;
+            const int profile = dynamic ? 13 : 131;
+            const double targetPz = (profile == 13 ? 3. : -24.8);
+            const std::string file = writeFile(
+                dir, "strings_" + std::to_string(beamRapidity) + ".dat",
+                "# net_Pz=" + std::to_string(targetPz)
+                    + " GeV, total_energy=25 GeV, Npart=2\n"
+                    + "# columns\n"
+                    + "0.312000006 0.2 0.37 0.001 3 0 0 -0.37 0.26 0.53 -0.48 "
+                    + "2 4 0.8 1.7 0.35 0.6 -2.8 3.4 1.2 6.9 0 0 0.8 -0.2 -0.5 1.2 1.7 7.8\n"
+                    + "0.312000006 0.2 0.37 0.001 3 0 0 0 0 0 0 "
+                    + "2.9 3.1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0");
+            InitData data = defaultParameters(
+                "Initial_profile " + std::to_string(profile)
+                + "\nboost_invariant 0\nEta_grid_min 0\nEta_grid_max 9\n"
+                + (dynamic
+                       ? ""
                        : "dynamicGridDetermination 0\nGrid_size_in_eta 17\n")
-            + (capped
-                   ? "Grid_size_in_x 6\nGrid_size_in_y 5\nGrid_size_in_eta 20\n"
-                   : ""));
-        if (dynamic && !capped)
-            CHECK(data.neta == 1);
-        else
-            CHECK(data.etaMax() == doctest::Approx(9.));
-        CHECK(data.etaMin() == 0.);
-        CHECK(data.dynamicGridDetermination == dynamic);
-        data.initName = file;
-        data.use_BQ_ratios = false;
-        data.stringSourceSigmaX = 0.48;
-        data.stringSourceSigmaEta = 0.35;
-        data.beam_rapidity = beamRapidity;
-        data.stringTransverseShiftFrac = 0.7;
-        data.preEqFlowFactor = 0.5;
-        data.x_size = 4.0;
-        data.y_size = 4.0;
-        data.delta_x = data.x_size / (data.nx - 1);
-        data.delta_y = data.y_size / (data.ny - 1);
-        data.delta_tau = 0.031;
-        data.resetDtau = false;
-        HydroSourceStrings source(data);
-        REQUIRE(source.get_strings().size() == 2);
-        CHECK(source.get_strings()[1]->sigma_eta == 0.35);
-        const double width = source.get_strings().front()->sigma_eta;
-        if (beamRapidity == 6.) {
-            CHECK(width == 0.35);
-        } else if (beamRapidity == 4.6) {
-            CHECK(width == doctest::Approx(0.2));
-            CHECK(4. + 3. * width < beamRapidity);
-        } else {
-            CHECK(width == 0.1);
-        }
-        if (data.dynamicGridDetermination) {
-            CHECK(data.etaMin() == doctest::Approx(1.2 - 5. * width));
-            CHECK(data.etaMax() == doctest::Approx(7.8 + 5. * width));
-            if (capped) {
-                CHECK(data.nx == 12);
-                CHECK(data.ny == 10);
-                CHECK(data.neta == 40);
-                CHECK(data.delta_eta > width / 2.);
-            } else {
-                CHECK(data.delta_eta <= width / 2.);
-            }
-        } else {
+                + (capped ? "Grid_size_in_x 6\nGrid_size_in_y "
+                            "5\nGrid_size_in_eta 20\n"
+                          : ""));
+            if (dynamic && !capped)
+                CHECK(data.neta == 1);
+            else
+                CHECK(data.etaMax() == doctest::Approx(9.));
             CHECK(data.etaMin() == 0.);
-            CHECK(data.etaMax() == 9.);
-        }
+            CHECK(data.dynamicGridDetermination == dynamic);
+            data.initName = file;
+            data.stringSourceTauMax = tauCap;
+            data.use_BQ_ratios = false;
+            data.stringSourceSigmaX = 0.48;
+            data.stringSourceSigmaEta = 0.35;
+            data.beam_rapidity = beamRapidity;
+            data.stringTransverseShiftFrac = 0.7;
+            data.preEqFlowFactor = 0.5;
+            data.x_size = 4.0;
+            data.y_size = 4.0;
+            data.delta_x = data.x_size / (data.nx - 1);
+            data.delta_y = data.y_size / (data.ny - 1);
+            data.delta_tau = 0.031;
+            data.resetDtau = false;
+            HydroSourceStrings source(data);
+            CHECK(source.get_source_tau_max() <= tauCap);
+            REQUIRE(source.get_strings().size() == 2);
+            CHECK(source.get_strings()[1]->sigma_eta == 0.35);
+            const double width = source.get_strings().front()->sigma_eta;
+            if (beamRapidity == 6.) {
+                CHECK(width == 0.35);
+            } else if (beamRapidity == 4.6) {
+                CHECK(width == doctest::Approx(0.2));
+                CHECK(4. + 3. * width < beamRapidity);
+            } else {
+                CHECK(width == 0.1);
+            }
+            if (data.dynamicGridDetermination) {
+                CHECK(data.etaMin() == doctest::Approx(1.2 - 5. * width));
+                CHECK(data.etaMax() == doctest::Approx(7.8 + 5. * width));
+                if (capped) {
+                    CHECK(data.nx == 12);
+                    CHECK(data.ny == 10);
+                    CHECK(data.neta == 40);
+                    CHECK(data.delta_eta > width / 2.);
+                } else {
+                    CHECK(data.delta_eta <= width / 2.);
+                }
+            } else {
+                CHECK(data.etaMin() == 0.);
+                CHECK(data.etaMax() == 9.);
+            }
 
-        double energy = 0., pz = 0., baryon = 0., charge = 0.;
-        const FlowVec u = {1., 0., 0., 0.};
-        const double volume = data.delta_x * data.delta_y * data.delta_eta;
-        for (double tau = 0.23;
-             tau <= source.get_source_tau_max() + data.delta_tau;
-             tau += data.delta_tau) {
-            source.prepare_list_for_current_tau_frame(tau);
-            for (int stage = 0; stage < 2; ++stage) {
-                const double t = tau + stage * data.delta_tau;
-                const double weight = 0.5 * t * data.delta_tau * volume;
-                for (int ieta = 0; ieta < data.neta; ++ieta) {
-                    const double eta = data.etaAt(ieta);
-                    const double ch = cosh(eta);
-                    const double sh = sinh(eta);
-                    for (int ix = 0; ix < data.nx; ++ix) {
-                        const double x = -data.x_size / 2. + ix * data.delta_x;
-                        for (int iy = 0; iy < data.ny; ++iy) {
-                            const double y =
-                                -data.y_size / 2. + iy * data.delta_y;
-                            EnergyFlowVec j {};
-                            source.get_hydro_energy_source(t, x, y, eta, u, j);
-                            energy +=
-                                weight * Util::hbarc * (ch * j[0] + sh * j[3]);
-                            pz +=
-                                weight * Util::hbarc * (sh * j[0] + ch * j[3]);
-                            baryon +=
-                                weight
-                                * source.get_hydro_rhob_source(t, x, y, eta, u);
-                            charge +=
-                                weight
-                                * source.get_hydro_rhoQ_source(t, x, y, eta, u);
+            double energy = 0., pz = 0., baryon = 0., charge = 0.;
+            const FlowVec u = {1., 0., 0., 0.};
+            const double volume = data.delta_x * data.delta_y * data.delta_eta;
+            for (double tau = 0.23;
+                 tau <= source.get_source_tau_max() + data.delta_tau;
+                 tau += data.delta_tau) {
+                source.prepare_list_for_current_tau_frame(tau);
+                for (int stage = 0; stage < 2; ++stage) {
+                    const double t = tau + stage * data.delta_tau;
+                    const double weight = 0.5 * t * data.delta_tau * volume;
+                    for (int ieta = 0; ieta < data.neta; ++ieta) {
+                        const double eta = data.etaAt(ieta);
+                        const double ch = cosh(eta);
+                        const double sh = sinh(eta);
+                        for (int ix = 0; ix < data.nx; ++ix) {
+                            const double x =
+                                -data.x_size / 2. + ix * data.delta_x;
+                            for (int iy = 0; iy < data.ny; ++iy) {
+                                const double y =
+                                    -data.y_size / 2. + iy * data.delta_y;
+                                EnergyFlowVec j {};
+                                source.get_hydro_energy_source(
+                                    t, x, y, eta, u, j);
+                                energy += weight * Util::hbarc
+                                          * (ch * j[0] + sh * j[3]);
+                                pz += weight * Util::hbarc
+                                      * (sh * j[0] + ch * j[3]);
+                                baryon += weight
+                                          * source.get_hydro_rhob_source(
+                                              t, x, y, eta, u);
+                                charge += weight
+                                          * source.get_hydro_rhoQ_source(
+                                              t, x, y, eta, u);
+                            }
                         }
                     }
                 }
             }
+            CHECK(energy == doctest::Approx(25.).epsilon(1e-9));
+            CHECK(pz == doctest::Approx(targetPz).epsilon(1e-9));
+            CHECK(baryon == doctest::Approx(0.6).epsilon(1e-9));
+            CHECK(charge == doctest::Approx(0.7).epsilon(1e-9));
         }
-        CHECK(energy == doctest::Approx(25.).epsilon(1e-9));
-        CHECK(pz == doctest::Approx(targetPz).epsilon(1e-9));
-        CHECK(baryon == doctest::Approx(0.6).epsilon(1e-9));
-        CHECK(charge == doctest::Approx(0.7).epsilon(1e-9));
     }
 }
 

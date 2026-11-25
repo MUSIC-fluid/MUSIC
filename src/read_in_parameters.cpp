@@ -77,6 +77,11 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.stringSourceSigmaEta =
         (getParameter(input_file, "string_source_sigma_eta", 0.5));
 
+    // string sources later than this proper time (fm/c) are deposited at
+    // this time
+    parameter_list.stringSourceTauMax =
+        (getParameter(input_file, "string_source_tau_max", 10.0));
+
     parameter_list.stringTransverseShiftFrac =
         (getParameter(input_file, "stringTransverseShiftFrac", 0.0));
 
@@ -815,6 +820,8 @@ void check_parameter_denominators(const InitData &p) {
     if (prof == 13 || prof == 131)
         require(p.stringSourceSigmaX > 0. && p.stringSourceSigmaEta > 0.,
                 "string_source_sigma_x and string_source_sigma_eta must be > 0");
+    if (prof == 13 || prof == 131)
+        require(p.stringSourceTauMax > 0., "string_source_tau_max must be > 0");
 }
 
 void check_parameters(InitData &parameter_list, std::string input_file) {

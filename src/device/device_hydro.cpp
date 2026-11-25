@@ -1349,6 +1349,7 @@ void DeviceHydro::packStrings(
     buf[kStrDy] = DATA.delta_y;
     buf[kStrDeta] = DATA.delta_eta;
     buf[kStrHbarc] = Util::hbarc;
+    buf[kStrTauCap] = DATA.stringSourceTauMax;
     out.resize(buf.size() * sizeof(Real));
     Real *o = reinterpret_cast<Real *>(out.data());
     for (size_t k = 0; k < buf.size(); k++) o[k] = Real(buf[k]);

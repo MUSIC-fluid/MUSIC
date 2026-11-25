@@ -169,6 +169,15 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             new_string->eta_s_start = new_string->eta_s_0;
         }
 
+        // Sources later than string_source_tau_max are deposited at it.
+        const double tauCap = DATA.stringSourceTauMax;
+        for (double *t :
+             {&new_string->tau_end_left, &new_string->tau_end_right,
+              &new_string->tau_baryon_left, &new_string->tau_baryon_right,
+              &new_string->tau_Qe_left, &new_string->tau_Qe_right,
+              &new_string->tau_start})
+            *t = std::min(*t, tauCap);
+
         // read in one string properly
         QCD_strings_list.push_back(new_string);
 
@@ -726,7 +735,8 @@ void HydroSourceStrings::get_hydro_energy_source(
 
         const double exp_eta_s = music_device::stringEtaProfileForStep(
             eta_s, it->eta_s_left, it->eta_s_right, it->eta_s_0, sigma_eta, tau,
-            dtau, it->tau_0, it->tau_form, it->tau_end_left);
+            dtau, it->tau_0, it->tau_form, it->tau_end_left,
+            DATA.stringSourceTauMax);
         if (exp_eta_s == 0.) continue;
 
         double exp_xperp =

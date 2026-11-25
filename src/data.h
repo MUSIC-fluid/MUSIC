@@ -81,6 +81,9 @@ typedef struct init_data {
     double parton_quench_factor;
     double stringSourceSigmaX;
     double stringSourceSigmaEta;
+    //! string sources later than this proper time (fm/c) are deposited
+    //! at this time
+    double stringSourceTauMax;
     double stringTransverseShiftFrac;
     double preEqFlowFactor;
 
