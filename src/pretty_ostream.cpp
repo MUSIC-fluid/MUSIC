@@ -3,10 +3,14 @@
 
 #include "pretty_ostream.h"
 
-#include <sys/resource.h>
-#include <sys/time.h>
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 
 #include "emoji.h"
@@ -89,21 +93,27 @@ void pretty_ostream::error(string message) {
     writeLine(line.str());
 }
 
-//! This function returns a string for the memory usage
-//! of the current program in MB
+//! This function returns a string for the current memory usage (the
+//! resident set size) of the program in MB
 string pretty_ostream::get_memory_usage() {
-    struct rusage usage;
-    if (getrusage(RUSAGE_SELF, &usage) == 0) {
-        double memory_usage_in_MB = 0.0;
-#ifdef APPLE
-        memory_usage_in_MB = usage.ru_maxrss / 1024. / 1024.;  // MB in Apple
+    double bytes = -1.;
+#if defined(__APPLE__)
+    mach_task_basic_info_data_t info;
+    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(
+            mach_task_self(), MACH_TASK_BASIC_INFO,
+            reinterpret_cast<task_info_t>(&info), &count)
+        == KERN_SUCCESS)
+        bytes = static_cast<double>(info.resident_size);
 #else
-        memory_usage_in_MB = usage.ru_maxrss / 1024.;  // MB in linux
+    // /proc/self/statm: total program size, resident set size (in pages)
+    std::ifstream statm("/proc/self/statm");
+    long pages = 0, resident = 0;
+    if (statm >> pages >> resident)
+        bytes = static_cast<double>(resident) * sysconf(_SC_PAGESIZE);
 #endif
-        std::ostringstream memory_usage;
-        memory_usage << std::setprecision(4) << memory_usage_in_MB << " MB";
-        return (memory_usage.str());
-    } else {
-        return ("0 MB");
-    }
+    if (bytes < 0.) return ("0 MB");
+    std::ostringstream memory_usage;
+    memory_usage << std::setprecision(4) << bytes / 1024. / 1024. << " MB";
+    return (memory_usage.str());
 }

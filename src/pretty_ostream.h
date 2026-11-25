@@ -59,8 +59,8 @@ class pretty_ostream {
     //! This function output error message
     void error(std::string message);
 
-    //! This function returns a string for the memory usage
-    //! of the current program in MB
+    //! This function returns a string for the current memory usage (the
+    //! resident set size) of the program in MB
     std::string get_memory_usage();
 
     //! reload the << operator
