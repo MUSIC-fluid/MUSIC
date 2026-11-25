@@ -42,12 +42,18 @@ class U_derivative {
     //! gradient of P (Du_from_ideal_EoM = 1) instead of new EoS lookups.
     //! withMuDerivative = false skips D^tau(mu_B/T) (and T) when neither
     //! baryon diffusion nor the vorticity outputs use them: then
-    //! get_DmuMuBoverTVec returns zero for its tau component
+    //! get_DmuMuBoverTVec returns zero for its tau component.
+    //! muBOverTCurr, muBOverTPrev (optional): mu_B / T of every cell of
+    //! arenaFieldsCurr and arenaFieldsPrev, ghost cells included, as
+    //! Advance::computeMuBOverT gives it; used for the derivatives of
+    //! mu_B / T instead of new EoS lookups (both or neither)
     void MakedU(
         const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         const int fieldIdx, const int ix, const int iy, const int ieta,
         const std::vector<double> *pressure = nullptr,
-        const bool withMuDerivative = true);
+        const bool withMuDerivative = true,
+        const std::vector<double> *muBOverTCurr = nullptr,
+        const std::vector<double> *muBOverTPrev = nullptr);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(
@@ -89,12 +95,15 @@ class U_derivative {
     int MakeDSpatial(
         const double tau, Fields &arena, const int fieldIdx, const int ix,
         const int iy, const int ieta,
-        const std::vector<double> *pressure = nullptr);
+        const std::vector<double> *pressure = nullptr,
+        const std::vector<double> *muBOverT = nullptr);
 
     int MakeDTau(
         const double tau, const Fields &arenaFieldsPrev,
         const Fields &arenaFieldsCurr, const int fieldIdx,
-        const bool withMuDerivative = true);
+        const bool withMuDerivative = true,
+        const std::vector<double> *muBOverTCurr = nullptr,
+        const std::vector<double> *muBOverTPrev = nullptr);
 
     //! this function computes the thermal shear tensor
     void calculate_thermal_shear_tensor(

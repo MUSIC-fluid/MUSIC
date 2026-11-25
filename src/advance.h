@@ -37,6 +37,14 @@ class Advance {
     //! in the second RK stage: the pressure of arenaFieldsPrev, which was
     //! the current slice of the first stage
     std::vector<double> pressurePrev_;
+    //! mu_B / T of arenaFieldsCurr and arenaFieldsPrev (baryon diffusion),
+    //! filled at the start of each AdvanceIt so that the derivatives of
+    //! mu_B / T do not call the EoS for every neighbour. In the second RK
+    //! stage muBOverTPrev_ is the first stage's muBOverTCurr_
+    std::vector<double> muBOverTCurr_;
+    std::vector<double> muBOverTPrev_;
+    //! the slice whose mu_B / T is in muBOverTCurr_ (nullptr: unknown)
+    const Fields *muBOverTCurrOwner_ = nullptr;
     //! the KT flux part of the W update for every cell of the current
     //! stage (Diss::computeWFluxDivergence)
     std::vector<double> wFluxDiv_;
@@ -122,6 +130,11 @@ class Advance {
     //! fills pressure[idx] = P(e, n_B, n_Q, n_S) of every cell of arena
     void computePressure(
         const Fields &arena, std::vector<double> &pressure) const;
+
+    //! fills alpha[idx] = mu_B / max(T, small_eps) of every cell of arena,
+    //! ghost cells included, as U_derivative evaluates it
+    void computeMuBOverT(
+        const Fields &arena, std::vector<double> &alpha) const;
 
     void FirstRKStepW(
         const double tau_it, Fields &arenaFieldsPrev, const Cell_small &grid_c,

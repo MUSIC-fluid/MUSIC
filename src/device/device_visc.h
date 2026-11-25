@@ -476,9 +476,12 @@ struct ViscSolver {
     //! calculate_velocity_shear_tensor,
     //! calculate_kinetic_vorticity_with_spatial_projector, then
     //! Diss::Make_uWRHS
+    //! aCurr, aPrev: mu_B / T of sCurr and sPrev (kernelMuBOverT), read
+    //! only with baryon diffusion
     MD_FN void gradients(
         Real tau, MD_GLOBAL const Real *sCurr, MD_GLOBAL const Real *sPrev,
-        MD_GLOBAL const Real *pCurr, int i, MD_THREAD const Real *wFluxDiv,
+        MD_GLOBAL const Real *pCurr, MD_GLOBAL const Real *aCurr,
+        MD_GLOBAL const Real *aPrev, int i, MD_THREAD const Real *wFluxDiv,
         MD_THREAD Gradients<Real> &G) const {
         MD_CONST const StepParams<Real> &P = *P_;
         const int nx = P.nx, ny = P.ny, neta = P.neta;
@@ -516,9 +519,9 @@ struct ViscSolver {
                 }
                 if (MD_RUN(P, diff) == 1) {
                     // partial_n (mu_B / T)
-                    const Real f = muBOverT(sCurr, n, Ic);
-                    const Real fp1 = muBOverT(sCurr, n, Ip1);
-                    const Real fm1 = muBOverT(sCurr, n, Im1);
+                    const Real f = aCurr[Ic];
+                    const Real fp1 = aCurr[Ip1];
+                    const Real fm1 = aCurr[Im1];
                     dUsup[4][dir] = (minmodDx(fp1, f, fm1, P.theta) / delta[dir]);
                 }
             }
@@ -548,8 +551,8 @@ struct ViscSolver {
             dUsup[0][0] = f / sCurr[4 * n + i];
             if (MD_RUN(P, diff) == 1) {
                 // the backward difference of mu_B / T
-                const Real tildemu = muBOverT(sCurr, n, i);
-                const Real tildemu_prev = muBOverT(sPrev, n, i);
+                const Real tildemu = aCurr[i];
+                const Real tildemu_prev = aPrev[i];
                 f = (tildemu - tildemu_prev) / (P.dtau);
                 dUsup[4][0] = -f;
             }
@@ -772,14 +775,6 @@ struct ViscSolver {
             }
         }
         for (int mu = 0; mu < 4; mu++) G.dMuBT[mu] = dUsup[4][mu];
-    }
-
-    //! mu_B / T of cell I of slice s, as eos.get_muB / eos.get_temperature
-    MD_FN Real muBOverT(MD_GLOBAL const Real *s, int n, int I) const {
-        Real T, muB;
-        eosTMuB<Real, EosType>(
-            *d_, tab, s[I], s[n + I], s[2 * n + I], s[3 * n + I], T, muB);
-        return (muB / dmax(T, Real(1e-16)));
     }
 
     //! Diss::D_muB_over_T_ideal (the EoS at n_Q = n_S = 0, as on the host)
@@ -1608,9 +1603,24 @@ struct ViscSolver {
     }
 };
 
+//! mu_B / T of cell i of slice s, as eos.get_muB / eos.get_temperature
+//! (Advance::computeMuBOverT): the derivatives of the baryon diffusion
+//! read it from a, so that the neighbours do not call the EoS again
+template <typename Real>
+MD_FN void kernelMuBOverT(
+    MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
+    MD_GLOBAL const Real *tab, MD_GLOBAL const Real *s, MD_GLOBAL Real *a,
+    int i) {
+    const int n = P.nx * P.ny * P.neta;
+    Real T, muB;
+    eosTMuB<Real>(d, tab, s[i], s[n + i], s[2 * n + i], s[3 * n + i], T, muB);
+    a[i] = muB / dmax(T, Real(1e-16));
+}
+
 //! the cell loop of Advance::AdvanceIt (viscosity_flag = 1) for cell i.
 //! sCurr: the stage's slice; sPrev: arenaFieldsPrev (tau_{n-1} in the
-//! first stage, tau_n in the second); pCurr, pPrev their pressures; flux*:
+//! first stage, tau_n in the second); pCurr, pPrev their pressures; aCurr,
+//! aPrev their mu_B / T (kernelMuBOverT; read only with diffusion); flux*:
 //! the ideal KT fluxes; wFace*: kernelWFace of the three directions; src:
 //! the source terms (if P.hasSource). kStage: -1 reads the stage from
 //! P.rkFlag (host, CUDA); 0 or 1 compiles one stage only (Metal, one pipeline
@@ -1623,7 +1633,8 @@ MD_FN void kernelCellVisc(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *sCurr,
     MD_GLOBAL const Real *sPrev, MD_GLOBAL const Real *pCurr,
-    MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *fluxX,
+    MD_GLOBAL const Real *pPrev, MD_GLOBAL const Real *aCurr,
+    MD_GLOBAL const Real *aPrev, MD_GLOBAL const Real *fluxX,
     MD_GLOBAL const Real *fluxY, MD_GLOBAL const Real *fluxEta,
     MD_GLOBAL const Real *wFaceX, MD_GLOBAL const Real *wFaceY,
     MD_GLOBAL const Real *wFaceEta, MD_GLOBAL const Real *src,
@@ -1746,7 +1757,7 @@ MD_FN void kernelCellVisc(
     // ----- the viscous update ---------------------------------------------
     const ViscSolver<Real, EosType> vs = {&P, &d, tab};
     Gradients<Real> G;
-    vs.gradients(tau, sCurr, sPrev, pCurr, i, wFluxDiv, G);
+    vs.gradients(tau, sCurr, sPrev, pCurr, aCurr, aPrev, i, wFluxDiv, G);
     const Thermal<Real> th = eosThermal<Real, EosType>(
         d, tab, curr.c.e, curr.c.rhob, curr.c.rhoq, curr.c.rhos);
     vs.firstRKStepW(curr, prev, G, th, next);

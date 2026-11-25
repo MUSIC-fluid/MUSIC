@@ -19,16 +19,21 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn)
 void U_derivative::MakedU(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     const int fieldIdx, const int ix, const int iy, const int ieta,
-    const std::vector<double> *pressure, const bool withMuDerivative) {
+    const std::vector<double> *pressure, const bool withMuDerivative,
+    const std::vector<double> *muBOverTCurr,
+    const std::vector<double> *muBOverTPrev) {
     dUsup = {{{0.0}}};
     dUoverTsup = {{{0.0}}};
     dUTsup = {{{0.0}}};
     dPsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
-    MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta, pressure);
+    MakeDSpatial(
+        tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta, pressure, muBOverTCurr);
     // this calculates du/dtau
-    MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, withMuDerivative);
+    MakeDTau(
+        tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, withMuDerivative,
+        muBOverTCurr, muBOverTPrev);
     if (DATA.Du_from_ideal_EoM == 1) {
         MakeDTauIdealEoM(tau, arenaFieldsCurr, fieldIdx);
     }
@@ -469,7 +474,8 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 
 int U_derivative::MakeDSpatial(
     const double tau, Fields &arena, const int fieldIdx, const int ix,
-    const int iy, const int ieta, const std::vector<double> *pressure) {
+    const int iy, const int ieta, const std::vector<double> *pressure,
+    const std::vector<double> *muBOverT) {
     // taken care of the tau factor
     const double delta[4] = {
         0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
@@ -533,33 +539,22 @@ int U_derivative::MakeDSpatial(
             // dUsup[rk_flag][4][n] = partial_n (muB/T)
             // partial_x (muB/T) and partial_y (muB/T) first
             if (DATA.turn_on_diff == 1) {
-                double f =
-                    (eos.get_muB(
-                         arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
-                         arena.rhos_[Ic])
-                     / std::max(
-                         eos.get_temperature(
-                             arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
-                             arena.rhos_[Ic]),
-                         Util::small_eps));
-                double fp1 =
-                    (eos.get_muB(
-                         arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
-                         arena.rhos_[Ip1])
-                     / std::max(
-                         eos.get_temperature(
-                             arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
-                             arena.rhos_[Ip1]),
-                         Util::small_eps));
-                double fm1 =
-                    (eos.get_muB(
-                         arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
-                         arena.rhos_[Im1])
-                     / std::max(
-                         eos.get_temperature(
-                             arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
-                             arena.rhos_[Im1]),
-                         Util::small_eps));
+                // mu_B / T as Advance::computeMuBOverT gives it
+                auto alphaAt = [&](const int I) {
+                    if (muBOverT != nullptr) return ((*muBOverT)[I]);
+                    return (
+                        eos.get_muB(
+                            arena.e_[I], arena.rhob_[I], arena.rhoq_[I],
+                            arena.rhos_[I])
+                        / std::max(
+                            eos.get_temperature(
+                                arena.e_[I], arena.rhob_[I], arena.rhoq_[I],
+                                arena.rhos_[I]),
+                            Util::small_eps));
+                };
+                const double f = alphaAt(Ic);
+                const double fp1 = alphaAt(Ip1);
+                const double fm1 = alphaAt(Im1);
                 dUsup[4][direction] =
                     (minmod.minmod_dx(fp1, f, fm1) / delta[direction]);
             }
@@ -658,7 +653,8 @@ void U_derivative::MakeDTauIdealEoM(
 int U_derivative::MakeDTau(
     const double tau, const Fields &arenaFieldsPrev,
     const Fields &arenaFieldsCurr, const int fieldIdx,
-    const bool withMuDerivative) {
+    const bool withMuDerivative, const std::vector<double> *muBOverTCurr,
+    const std::vector<double> *muBOverTPrev) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
 
@@ -672,8 +668,12 @@ int U_derivative::MakeDTau(
     const double rhoq_prev = arenaFieldsPrev.rhoq_[fieldIdx];
     const double rhos_prev = arenaFieldsPrev.rhos_[fieldIdx];
 
-    // T is only needed for the vorticity outputs and D^tau(mu_B/T)
-    const bool needT = (withMuDerivative || DATA.output_vorticity == 1);
+    // T is only needed for the vorticity outputs and D^tau(mu_B/T) (unless
+    // mu_B / T is given)
+    const bool haveMuBOverT =
+        (muBOverTCurr != nullptr && muBOverTPrev != nullptr);
+    const bool needT =
+        ((withMuDerivative && !haveMuBOverT) || DATA.output_vorticity == 1);
     const double T = needT ? eos.get_temperature(eps, rhob, rhoq, rhos) : 0.;
     const double T_prev =
         needT ? eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev)
@@ -716,11 +716,17 @@ int U_derivative::MakeDTau(
     if (!withMuDerivative) return 1;  // dUsup[4][0] stays zero
     int m = 4;
     // first order is more stable backward derivative
-    const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
-    const double tildemu = muB / std::max(T, Util::small_eps);
-    const double muB_prev =
-        eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
-    const double tildemu_prev = muB_prev / std::max(T_prev, Util::small_eps);
+    double tildemu, tildemu_prev;
+    if (haveMuBOverT) {
+        tildemu = (*muBOverTCurr)[fieldIdx];
+        tildemu_prev = (*muBOverTPrev)[fieldIdx];
+    } else {
+        const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
+        tildemu = muB / std::max(T, Util::small_eps);
+        const double muB_prev =
+            eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
+        tildemu_prev = muB_prev / std::max(T_prev, Util::small_eps);
+    }
     f = (tildemu - tildemu_prev) / (DATA.delta_tau);
     dUsup[m][0] = -f;  // g^{00} = -1
     return 1;

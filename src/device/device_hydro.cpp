@@ -45,6 +45,10 @@ class CpuBackend : public Backend {
     std::vector<Real> slice_[3];
     int cur_ = 0, pred_ = 1, next_ = 2;
     std::vector<Real> pCur_, pPred_;
+    //! mu_B / T (baryon diffusion only, allocated on first use): aCur_ of
+    //! the first stage's input slice, aOld_ of the slice before it in the
+    //! first stage and of the second stage's input slice in the second
+    std::vector<Real> aCur_, aOld_;
     std::vector<Real> flux_[3];
     std::vector<Real> wFace_[3];
     std::vector<Real> src_;
@@ -69,6 +73,8 @@ class CpuBackend : public Backend {
         for (auto &s : slice_) s.assign(static_cast<size_t>(nComp) * n_, Real(0));
         pCur_.assign(n_, Real(0));
         pPred_.assign(n_, Real(0));
+        aCur_.clear();
+        aOld_.clear();
         for (int d = 0; d < 3; d++) {
             const size_t nf = faceCount(nx, ny, neta, d + 1);
             flux_[d].assign(static_cast<size_t>(kNTJ) * nf, Real(0));
@@ -194,6 +200,17 @@ class CpuBackend : public Backend {
             Real *pIn = (rk == 0 ? pCur_ : pPred_).data();
             Real *sOut = slice_[rk == 0 ? pred_ : next_].data();
             const int n = n_;
+            // mu_B / T of sIn and sPrev for the diffusion derivatives; in
+            // the second stage sPrev is the first stage's sIn (aCur_)
+            const bool withMuBOverT = (viscous && P.diff == 1);
+            if (withMuBOverT && aCur_.size() != static_cast<size_t>(n)) {
+                aCur_.assign(n, Real(0));
+                aOld_.assign(n, Real(0));
+            }
+            Real *aIn = (withMuBOverT ? (rk == 0 ? aCur_ : aOld_).data()
+                                      : pCur_.data());
+            Real *aPrev = (withMuBOverT ? (rk == 0 ? aOld_ : aCur_).data()
+                                        : pCur_.data());
             if (P.stringSource && strings_.empty()) {
                 err = "the strings were not set";
                 return (false);
@@ -210,6 +227,16 @@ class CpuBackend : public Backend {
 #pragma omp for schedule(static)
                 for (int i = 0; i < n; i++)
                     kernelPressure(P, D, tab, sIn, pIn, i);
+                if (withMuBOverT) {
+#pragma omp for schedule(static) nowait
+                    for (int i = 0; i < n; i++)
+                        kernelMuBOverT(P, D, tab, sIn, aIn, i);
+                    if (rk == 0) {
+#pragma omp for schedule(static) nowait
+                        for (int i = 0; i < n; i++)
+                            kernelMuBOverT(P, D, tab, sPrev, aPrev, i);
+                    }
+                }
                 for (int d = 1; d <= 3; d++) {
                     const int nf = faceCount(nx_, ny_, neta_, d);
                     Real *fl = flux_[d - 1].data();
@@ -227,8 +254,8 @@ class CpuBackend : public Backend {
 #pragma omp for schedule(dynamic, 64)
                     for (int i = 0; i < n; i++)
                         kernelCellVisc(
-                            P, D, tab, sIn, sPrev, pIn, pCur_.data(),
-                            flux_[0].data(), flux_[1].data(), flux_[2].data(),
+                            P, D, tab, sIn, sPrev, pIn, pCur_.data(), aIn,
+                            aPrev, flux_[0].data(), flux_[1].data(), flux_[2].data(),
                             wFace_[0].data(), wFace_[1].data(),
                             wFace_[2].data(), src_.data(), sOut, i, &f);
                 } else {
@@ -404,6 +431,9 @@ static_assert(
         && offsetof(StepParams<double>, stringSource)
                == MUSIC_DEVICE_STRINGS_OFFSET,
     "MUSIC_DEVICE_STRINGS_OFFSET does not match StepParams");
+static_assert(
+    offsetof(StepParams<float>, diff) == MUSIC_DEVICE_DIFF_OFFSET_FLOAT,
+    "MUSIC_DEVICE_DIFF_OFFSET_FLOAT does not match StepParams<float>");
 
 DeviceHydro::DeviceHydro(
     const InitData &DATA_in, const EOS &eos, double absErr, double relErr,

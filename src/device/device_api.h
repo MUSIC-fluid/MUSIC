@@ -42,6 +42,9 @@ extern "C" {
 #define MUSIC_DEVICE_RKFLAG_OFFSET 16
 //! byte offset of StepParams<Real>::stringSource (the eighth int)
 #define MUSIC_DEVICE_STRINGS_OFFSET 28
+//! byte offset of StepParams<float>::diff (turn_on_diff; checked in
+//! device_hydro.cpp): the Metal backend fills mu_B / T only with diffusion
+#define MUSIC_DEVICE_DIFF_OFFSET_FLOAT 112
 
 typedef struct MusicDeviceApi {
     void *(*create)(int realSize, char *err, int errLen);

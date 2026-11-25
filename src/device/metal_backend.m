@@ -41,10 +41,14 @@ enum {
     // psCellVisc[rk]: the viscous cell update of each RK stage
     id<MTLComputePipelineState> psWFace, psCellVisc[2];
     id<MTLComputePipelineState> psStrings, psConservation, psCoarsening;
-    id<MTLComputePipelineState> psEdgeMax;
+    id<MTLComputePipelineState> psEdgeMax, psMuBOverT;
     // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
     id<MTLBuffer> pCur, pPred;
+    // mu_B / T (baryon diffusion only, allocated on first use): aCur of
+    // the first stage's input slice, aOld of the slice before it in the
+    // first stage and of the second stage's input slice in the second
+    id<MTLBuffer> aCur, aOld;
     id<MTLBuffer> flux[3];
     id<MTLBuffer> wFace[3];  // viscous update only
     id<MTLBuffer> src;       // the source terms, kNTJ components
@@ -110,13 +114,14 @@ static int buildPipelines(
         setErr(err, errLen, "kernel compilation failed", e);
         return 1;
     }
-    const char *names[10] = {"musicPressure",     "musicFace",
+    const char *names[11] = {"musicPressure",     "musicFace",
                              "musicCell",         "musicWFace",
                              "musicCellVisc0",    "musicStringSource",
                              "musicConservation", "musicCellVisc1",
-                             "musicCoarsening",   "musicEdgeMax"};
-    id<MTLComputePipelineState> ps[10];
-    for (int k = 0; k < 10; k++) {
+                             "musicCoarsening",   "musicEdgeMax",
+                             "musicMuBOverT"};
+    id<MTLComputePipelineState> ps[11];
+    for (int k = 0; k < 11; k++) {
         id<MTLFunction> f =
             [lib newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
         if (f == nil) {
@@ -139,6 +144,7 @@ static int buildPipelines(
     m->psConservation = ps[6];
     m->psCoarsening = ps[8];
     m->psEdgeMax = ps[9];
+    m->psMuBOverT = ps[10];
     return 0;
 }
 
@@ -253,6 +259,8 @@ static int metalResize(
             setErr(err, errLen, "out of device memory", nil);
             return 1;
         }
+        m->aCur = nil;
+        m->aOld = nil;
         m->nx = nx;
         m->ny = ny;
         m->neta = neta;
@@ -372,6 +380,26 @@ static int metalStage(
         id<MTLBuffer> sPrev = m->slice[rk == 0 && viscous ? m->next : m->cur];
         id<MTLBuffer> sOut = m->slice[rk == 0 ? m->pred : m->next];
         id<MTLBuffer> pIn = (rk == 0 ? m->pCur : m->pPred);
+        // mu_B / T of sIn and sPrev for the diffusion derivatives; in the
+        // second stage sPrev is the first stage's sIn (aCur)
+        int diff = 0;
+        memcpy(&diff, P + MUSIC_DEVICE_DIFF_OFFSET_FLOAT, sizeof(int));
+        const bool withMuBOverT = (viscous && diff == 1);
+        if (withMuBOverT && m->aCur == nil) {
+            m->aCur = [m->dev newBufferWithLength:sizeof(float) * n
+                                          options:MTLResourceStorageModeShared];
+            m->aOld = [m->dev newBufferWithLength:sizeof(float) * n
+                                          options:MTLResourceStorageModeShared];
+            if (m->aCur == nil || m->aOld == nil) {
+                setErr(err, errLen, "out of device memory", nil);
+                return 1;
+            }
+        }
+        // without diffusion the cell kernel does not read them
+        id<MTLBuffer> aIn =
+            (withMuBOverT ? (rk == 0 ? m->aCur : m->aOld) : m->pCur);
+        id<MTLBuffer> aPrev =
+            (withMuBOverT ? (rk == 0 ? m->aOld : m->aCur) : m->pCur);
         const size_t pb = paramBytes;
         // each kernel binds everything it reads, so that the profile mode
         // can give each one a command buffer of its own
@@ -407,6 +435,23 @@ static int metalStage(
             [enc setBuffer:pIn offset:0 atIndex:4];
             dispatch(enc, m->psPressure, n);
         } copy]];
+        if (withMuBOverT) {
+            // rk 0: the stage's input and tau_{n-1}; rk 1: the input only
+            const int nFill = (rk == 0 ? 2 : 1);
+            for (int k = 0; k < nFill; k++) {
+                id<MTLBuffer> s = (k == 0 ? sIn : sPrev);
+                id<MTLBuffer> a = (k == 0 ? aIn : aPrev);
+                [names addObject:@"muBOverT"];
+                [work addObject:[^(id<MTLComputeCommandEncoder> enc) {
+                    [enc setBytes:Pp length:pb atIndex:0];
+                    [enc setBuffer:m->eosDesc offset:0 atIndex:1];
+                    [enc setBuffer:m->eosTable offset:0 atIndex:2];
+                    [enc setBuffer:s offset:0 atIndex:3];
+                    [enc setBuffer:a offset:0 atIndex:4];
+                    dispatch(enc, m->psMuBOverT, n);
+                } copy]];
+            }
+        }
         // the faces
         for (int d = 1; d <= 3; d++) {
             const int nf = faceCount(m->nx, m->ny, m->neta, d);
@@ -454,6 +499,8 @@ static int metalStage(
             if (viscous) {
                 for (int d = 0; d < 3; d++)
                     [enc setBuffer:m->wFace[d] offset:0 atIndex:12 + d];
+                [enc setBuffer:aIn offset:0 atIndex:17];
+                [enc setBuffer:aPrev offset:0 atIndex:18];
                 dispatch(enc, m->psCellVisc[rk], n);
             } else {
                 dispatch(enc, m->psCell, n);

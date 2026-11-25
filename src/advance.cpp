@@ -66,6 +66,20 @@ void Advance::AdvanceIt(
     if (!pressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
     // the first stage's slice is kept for the second stage only
     pressureCurrOwner_ = (rk_flag == 0 ? &arenaFieldsCurr : nullptr);
+    // mu_B / T for the derivatives of the baryon diffusion; in the second
+    // stage arenaFieldsPrev is the first stage's arenaFieldsCurr, unchanged
+    // since
+    const bool withMuBOverT =
+        (DATA.viscosity_flag == 1 && DATA.turn_on_diff == 1);
+    if (withMuBOverT) {
+        if (rk_flag == 1 && muBOverTCurrOwner_ == &arenaFieldsPrev) {
+            std::swap(muBOverTPrev_, muBOverTCurr_);
+        } else {
+            computeMuBOverT(arenaFieldsPrev, muBOverTPrev_);
+        }
+        computeMuBOverT(arenaFieldsCurr, muBOverTCurr_);
+        muBOverTCurrOwner_ = (rk_flag == 0 ? &arenaFieldsCurr : nullptr);
+    }
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
         faceFluxes_);
@@ -102,7 +116,9 @@ void Advance::AdvanceIt(
                     // D^tau(mu_B/T) only enters the baryon diffusion
                     u_derivative_helper.MakedU(
                         tau_rk, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix,
-                        iy, ieta, &pressureCurr_, DATA.turn_on_diff == 1);
+                        iy, ieta, &pressureCurr_, DATA.turn_on_diff == 1,
+                        withMuBOverT ? &muBOverTCurr_ : nullptr,
+                        withMuBOverT ? &muBOverTPrev_ : nullptr);
                     double theta_local =
                         u_derivative_helper.calculate_expansion_rate(
                             tau_rk, arenaFieldsCurr, fieldIdx);
@@ -316,6 +332,23 @@ void Advance::reconstructAndStore(
     arenaFieldsNext.rhos_[fieldIdx] = grid_rk_t.rhos;
     for (int ii = 0; ii < 4; ii++) {
         arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
+    }
+}
+
+void Advance::computeMuBOverT(
+    const Fields &arena, std::vector<double> &alpha) const {
+    const int ncells = arena.nStorage();
+    alpha.resize(ncells);
+#pragma omp parallel for
+    for (int idx = 0; idx < ncells; idx++) {
+        const double e = arena.e_[idx];
+        const double rhob = arena.rhob_[idx];
+        const double rhoq = arena.rhoq_[idx];
+        const double rhos = arena.rhos_[idx];
+        alpha[idx] = (eos.get_muB(e, rhob, rhoq, rhos)
+                      / std::max(
+                          eos.get_temperature(e, rhob, rhoq, rhos),
+                          Util::small_eps));
     }
 }
 

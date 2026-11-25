@@ -75,14 +75,27 @@ kernel void musicWFace(
         device const float *wFaceY [[buffer(13)]],                           \
         device const float *wFaceEta [[buffer(14)]],                         \
         device const float *src [[buffer(15)]],                              \
+        device const float *aCurr [[buffer(17)]],                            \
+        device const float *aPrev [[buffer(18)]],                            \
         uint gid [[thread_position_in_grid]]) {                              \
         if (int(gid) >= P.nx * P.ny * P.neta) return;                        \
         kernelCellVisc<float, STAGE>(                                        \
-            P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta,    \
-            wFaceX, wFaceY, wFaceEta, src, sNext, int(gid), flags);          \
+            P, D, tab, sCurr, sPrev, pCurr, pPrev, aCurr, aPrev, fluxX,      \
+            fluxY, fluxEta, wFaceX, wFaceY, wFaceEta, src, sNext, int(gid),  \
+            flags);                                                          \
     }
 MUSIC_CELL_VISC(musicCellVisc0, 0)
 MUSIC_CELL_VISC(musicCellVisc1, 1)
+
+// mu_B / T of a slice (baryon diffusion)
+kernel void musicMuBOverT(
+    constant MSP &P [[buffer(0)]], constant MED &D [[buffer(1)]],
+    device const float *tab [[buffer(2)]],
+    device const float *s [[buffer(3)]], device float *a [[buffer(4)]],
+    uint gid [[thread_position_in_grid]]) {
+    if (int(gid) >= P.nx * P.ny * P.neta) return;
+    kernelMuBOverT(P, D, tab, s, a, int(gid));
+}
 
 kernel void musicStringSource(
     constant MSP &P [[buffer(0)]], device const float *S [[buffer(16)]],
