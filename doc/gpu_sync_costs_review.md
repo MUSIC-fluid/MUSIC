@@ -61,6 +61,41 @@ The device's own counters give the same picture: 2.28 s copying in total (7 full
   - The loop took 47.3 s before and 46.5–46.8 s after, in two runs with only one coarsening.
 - **Not run:** a (3+1)D run with vorticity output. Its path is unchanged: it still remaps, copies and extrapolates `freezeoutFieldPrev`.
 
+## Done: OpenMP on the host of GPU runs
+
+**Before,** CMake skipped OpenMP for Apple clang, so every Metal build ran its host work on one thread.
+
+**The build change:**
+- With Apple clang, CMake now looks for libomp: `LIBOMP_ROOT`, or Homebrew's `/opt/homebrew/opt/libomp` or `/usr/local/opt/libomp`.
+- When it finds it, it compiles with `-Xpreprocessor -fopenmp` and links `libomp`, into the library, the executable and the unit tests.
+- Other compilers use `find_package(OpenMP)` as before.
+- `-Dopenmp=OFF` builds without OpenMP. Without libomp, the build goes on single-threaded and says so.
+
+**The remap loop is now parallel.** `coarseGrainAndEnlargeGrid` had no OpenMP pragma. Its new cells are independent: each reads the old copy and writes only itself, and the shared `Reconst` is already used this way in `Advance::AdvanceIt`. So the loop over (η, y) is now `omp parallel for`, with a reduction over the count of cells remapped with the ideal part only. This also speeds up CPU runs.
+
+**Results:**
+- The 2D fireball (beastMode 3 with enlargement and coarsening; CPU and Metal; ideal and viscous) gives bit-identical outputs (md5) to the build without OpenMP.
+- The (3+1)D strings event on Metal differs only in the last digit of S, ⟨u_⊥⟩ and the v2 proxy. That comes from the order in which the parallel freeze-out finder writes the surface; the parallel remap alone changes nothing.
+- All 48 unit tests pass with OpenMP.
+- With `-Dopenmp=OFF` the build has no libomp.
+
+**3D strings event on Metal, 10 threads:**
+
+| part | 1 thread | OpenMP | OpenMP + parallel remap |
+|---|---|---|---|
+| regrid (`regridTransverse`, 3 Fields) | 4.0–5.2 s | 4.0 s | **0.77 s** |
+| freeze-out finder + Fields copies (48 steps) | 2.7 s | 1.36 s | 1.34–1.44 s |
+| copy of the current slice on freeze-out steps (48) | 1.86 s | 0.65 s | 0.67–0.71 s |
+| momentum-anisotropy output (4) | 1.14 s | 0.28 s | 0.28 s |
+| wait for the device on freeze-out steps (48) | 0.0003 s | 1.5 s | 1.5–1.6 s |
+| whole loop | 46.5–46.8 s | 42.4–42.6 s | 38.8–40.7 s |
+| run wall time | 47.7 s | 43.5–43.8 s | 39.9–42.5 s |
+
+- **Freeze-out steps are no longer bound by the host.** The wait for the device on those steps is 1.5 s again, which is GPU time the host work now fits inside.
+- **The run is 12–16 % faster than with one host thread,** and the regrid 5× faster.
+- **Against beastMode 1** on the same GPU (65.8–70.3 s), beastMode 3 is now 1.55–1.76× faster, close to the 1.74× fewer cell updates.
+- **What is left of the host work** is the grid-edge check (0.2 s), the Fields copies of the freeze-out steps (0.8–0.9 s, serial `std::copy`), and the syncs around the regrid.
+
 ## Details and options
 
 ### 1. The regrid (largest item)
@@ -80,7 +115,7 @@ At 60 × 60 × 107 new cells per Field, on one thread, that takes 5–6 s. The G
   - On the device path, the host `fpNext` is never uploaded: only `fpCurr` and `fpPrev` are, after `invalidate()`.
   - On the CPU path, the next RK step writes every cell of `fpNext`. Before relying on this, check that no stage reads `fpNext` before writing it, for example as the starting guess of the velocity solve (`Advance` passes it near `advance.cpp:206`).
   - This saves a fifth, about 1.1–1.3 s.
-- **Build the Metal executable with OpenMP** (Homebrew libomp with Apple clang, or g++ for the host files). The remap loop is independent per new cell. This also speeds up the freeze-out finder and the anisotropy output, which are single-threaded in the Metal build too.
+- **(Done; see above.) Build the Metal executable with OpenMP** (Homebrew libomp with Apple clang, or g++ for the host files). The remap loop is independent per new cell. This also speeds up the freeze-out finder and the anisotropy output, which are single-threaded in the Metal build too.
 - **Remap on the device.** It needs a kernel for the filter, plus the device versions of the reconstruction, which already exist for the RK update. It also saves the two syncs and the upload around the regrid. This is the most work.
 
 ### 2. Freeze-out steps

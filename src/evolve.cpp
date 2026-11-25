@@ -839,8 +839,14 @@ void Evolve::coarseGrainAndEnlargeGrid(
     Reconst reconstHelper(eos, DATA.echo_level, DATA.beastMode);
     int nIdealRemap = 0;  // coarse cells remapped with the ideal part only
 
-    for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
-        for (int iy = 0; iy < arenaCurr.nY(); iy++) {
+    // each new cell reads arenaCopy and writes only itself (Reconst is
+    // shared as in Advance::AdvanceIt)
+    const int nEtaRemap = arenaCurr.nEta();
+    const int nYRemap = arenaCurr.nY();
+#pragma omp parallel for collapse(2) schedule(dynamic, 4) \
+    reduction(+ : nIdealRemap)
+    for (int ieta = 0; ieta < nEtaRemap; ieta++) {
+        for (int iy = 0; iy < nYRemap; iy++) {
             const Stencil &sy = stencilY[iy];
             for (int ix = 0; ix < arenaCurr.nX(); ix++) {
                 const Stencil &sx = stencilX[ix];

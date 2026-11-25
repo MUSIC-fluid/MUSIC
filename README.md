@@ -89,6 +89,12 @@ and use the sample input file, type:
 
     export OMP_NUM_THREADS=2
     ./MUSIChydro input_example
+
+With Apple clang (macOS), OpenMP needs the libomp runtime (`brew install libomp`, or set
+`LIBOMP_ROOT` to its prefix); `cmake` uses it when it finds it. OpenMP also parallelises the
+host work of a GPU run (`gpu_backend` > 0): the freeze-out surface, the outputs and the
+beastMode grid changes. `cmake -Dopenmp=OFF` builds without it.
+
 Once the prerequisites are installed, you can build the package using:
 
     make -j 10 #Adjust 10 to the number of cores available.

@@ -29,8 +29,31 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    message("Using Clang compiler without OpenMP parallelization... ")
+# OpenMP parallelises the host code, also when the hydro runs on a GPU
+# (the freeze-out finder, the beastMode regrid, the outputs)
+option (openmp "Use OpenMP on the host when the compiler supports it" ON)
+set(OPENMP_LIBS "")
+if (NOT openmp)
+    set(OpenMP_CXX_FLAGS "")
+    message("OpenMP: OFF")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    # Apple clang compiles OpenMP but has no runtime: use libomp
+    # (brew install libomp, or LIBOMP_ROOT=<prefix>)
+    find_path(LIBOMP_INCLUDE_DIR omp.h
+        HINTS $ENV{LIBOMP_ROOT}/include /opt/homebrew/opt/libomp/include
+              /usr/local/opt/libomp/include)
+    find_library(LIBOMP_LIBRARY omp
+        HINTS $ENV{LIBOMP_ROOT}/lib /opt/homebrew/opt/libomp/lib
+              /usr/local/opt/libomp/lib)
+    if (LIBOMP_INCLUDE_DIR AND LIBOMP_LIBRARY)
+        set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${LIBOMP_INCLUDE_DIR}")
+        set(OPENMP_LIBS ${LIBOMP_LIBRARY})
+        message("OpenMP: Apple clang with ${LIBOMP_LIBRARY}")
+    else ()
+        set(OpenMP_CXX_FLAGS "")
+        message("OpenMP: not found for Apple clang (brew install libomp), "
+                "building without OpenMP parallelization")
+    endif ()
 else ()
     find_package(OpenMP)
     if (OpenMP_FOUND)
@@ -86,7 +109,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(CMAKE_CXX_FLAGS "-std=c++11  -stdlib=libc++ -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -std=c++11  -stdlib=libc++ -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 endif()
 
 if (unittest)
