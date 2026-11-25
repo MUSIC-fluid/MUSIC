@@ -745,15 +745,21 @@ struct Thermal {
     Real e, rhob, p, dpde, dpdrhob, cs2, T, muB, s;
 };
 
-template <typename Real>
+template <typename Real, int EosType = -1>
+MD_FN EosGrad<Real> eosPressureGrad(
+    MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
+    Real rhob, Real rhoq, Real rhos);
+
+template <typename Real, int EosType = -1>
 MD_FN Thermal<Real> eosThermal(
     MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
     Real rhob, Real rhoq, Real rhos) {
+    const int type = (EosType < 0 ? MD_EOS_TYPE(d) : EosType);
     const Real smallEps = Real(1e-16);
     Thermal<Real> t;
     t.e = e;
     t.rhob = rhob;
-    if (MD_EOS_TYPE(d) == 0) {
+    if (type == 0) {
         // EOS_idealgas::getThermalVariables
         const Real x = idealMuBOverT(d, tab, e, rhob);
         const Real T = idealTofEX(d, e, x);
@@ -766,9 +772,10 @@ MD_FN Thermal<Real> eosThermal(
         t.s = dmax(smallEps, T * T * T * idealS(d, x));
         return (t);
     }
-    if (MD_EOS_TYPE(d) == 2) {
+    if (type == 2) {
         // EOS_base::getThermalVariables with EOS_neos
-        const EosGrad<Real> g = eosPressureGrad(d, tab, e, rhob, rhoq, rhos);
+        const EosGrad<Real> g =
+            eosPressureGrad<Real, EosType>(d, tab, e, rhob, rhoq, rhos);
         t.p = g.p;
         t.dpde = g.dpde;
         t.dpdrhob = g.dpdrhob;
@@ -800,7 +807,7 @@ MD_FN Thermal<Real> eosThermal(
         t.s = dmax(smallEps, entropy);
         return (t);
     }
-    if (MD_EOS_TYPE(d) == 3) {
+    if (type == 3) {
         // EOS_4D::getThermalVariables
         float TildeVar[4];
         eos4DTilde(d, e, rhob, rhoq, rhos, TildeVar);
@@ -839,7 +846,8 @@ MD_FN Thermal<Real> eosThermal(
         return (t);
     }
     // EOS_base::getThermalVariables with EOS_hotQCD: mu = 0
-    const EosGrad<Real> g = eosPressureGrad(d, tab, e, rhob, rhoq, rhos);
+    const EosGrad<Real> g =
+        eosPressureGrad<Real, EosType>(d, tab, e, rhob, rhoq, rhos);
     t.p = g.p;
     t.dpde = g.dpde;
     t.dpdrhob = g.dpdrhob;
@@ -856,35 +864,38 @@ MD_FN Thermal<Real> eosThermal(
 }
 
 //! EOS::get_pressure
-template <typename Real>
+//! A negative EosType uses the descriptor or the backend's run specialization.
+template <typename Real, int EosType = -1>
 MD_FN Real eosPressure(
     MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
     Real rhob, Real rhoq, Real rhos) {
+    const int type = (EosType < 0 ? MD_EOS_TYPE(d) : EosType);
     const Real smallEps = Real(1e-16);
-    if (MD_EOS_TYPE(d) == 0) return Real(1) / Real(3) * e;
-    if (MD_EOS_TYPE(d) == 3) return eos4DPressure(d, tab, e, rhob, rhoq, rhos);
-    if (MD_EOS_TYPE(d) == 1) return dmax(smallEps, eosInterp1D(d, tab, e));
+    if (type == 0) return Real(1) / Real(3) * e;
+    if (type == 3) return eos4DPressure(d, tab, e, rhob, rhoq, rhos);
+    if (type == 1) return dmax(smallEps, eosInterp1D(d, tab, e));
     const int t = eosTableIdx(d, e);
     return dmax(smallEps, eosInterp2D(d, tab, e, fabs(rhob), t));
 }
 
 //! EOS::get_pressure_with_gradients_and_cs2 (n_Q, n_S enter only the 4D
 //! EoS; for the others dP/dn_Q = dP/dn_S = 0)
-template <typename Real>
+template <typename Real, int EosType>
 MD_FN EosGrad<Real> eosPressureGrad(
     MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
     Real rhob, Real rhoq, Real rhos) {
+    const int type = (EosType < 0 ? MD_EOS_TYPE(d) : EosType);
     const Real smallEps = Real(1e-16);
     EosGrad<Real> g;
-    if (MD_EOS_TYPE(d) == 0) {
+    if (type == 0) {
         g.dpde = Real(1) / Real(3);
         g.p = g.dpde * e;
         g.dpdrhob = Real(0);
         g.cs2 = g.dpde;
         return g;
     }
-    if (MD_EOS_TYPE(d) == 3) return eos4DGrad(d, tab, e, rhob, rhoq, rhos);
-    if (MD_EOS_TYPE(d) == 1) {
+    if (type == 3) return eos4DGrad(d, tab, e, rhob, rhoq, rhos);
+    if (type == 1) {
         eosInterp1DGrad(d, tab, e, g.p, g.dpde);
         g.p = dmax(smallEps, g.p);
         g.dpdrhob = Real(0);
@@ -902,26 +913,27 @@ MD_FN EosGrad<Real> eosPressureGrad(
 
 //! EOS::get_temperature and EOS::get_muB (the mu_B / T gradients of the
 //! baryon diffusion)
-template <typename Real>
+template <typename Real, int EosType = -1>
 MD_FN void eosTMuB(
     MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
     Real rhob, Real rhoq, Real rhos, MD_THREAD Real &T, MD_THREAD Real &muB) {
+    const int type = (EosType < 0 ? MD_EOS_TYPE(d) : EosType);
     const Real smallEps = Real(1e-16);
-    if (MD_EOS_TYPE(d) == 0) {
+    if (type == 0) {
         // EOS_idealgas
         const Real x = idealMuBOverT(d, tab, e, rhob);
         T = idealTofEX(d, e, x);
         muB = copysign(x * idealTofEX(d, e, x), rhob);
         return;
     }
-    if (MD_EOS_TYPE(d) == 1) {
+    if (type == 1) {
         // EOS_hotQCD: mu_B = 0
         const Real T5 = eosInterp1DAt(d, tab, d.tOffset, e);
         T = dmax(smallEps, Real(pow(T5, Real(0.2))));
         muB = Real(0.);
         return;
     }
-    if (MD_EOS_TYPE(d) == 2) {
+    if (type == 2) {
         // EOS_neos
         const int it = eosTableIdx(d, e);
         const Real nb = fabs(rhob);
@@ -950,32 +962,38 @@ MD_FN void eosTMuB(
 //! tables EOS_base::calculate_velocity_of_sound_sq with the finite
 //! differences of get_dpOverde3 and get_dpOverdrhob2 (NEOS; hotQCD has
 //! dP/dn_B = 0), clamped to [0.01, 1]
-template <typename Real>
+template <typename Real, int EosType = -1>
 MD_FN Real eosCs2(
     MD_CONST const EosDesc<Real> &d, MD_GLOBAL const Real *tab, Real e,
     Real rhob, Real rhoq, Real rhos) {
+    const int type = (EosType < 0 ? MD_EOS_TYPE(d) : EosType);
     const Real smallEps = Real(1e-16);
-    if (MD_EOS_TYPE(d) == 0) return (Real(1.) / Real(3.));
-    if (MD_EOS_TYPE(d) == 3) return (eos4DGrad(d, tab, e, rhob, rhoq, rhos).cs2);
+    if (type == 0) return (Real(1.) / Real(3.));
+    if (type == 3) return (eos4DGrad(d, tab, e, rhob, rhoq, rhos).cs2);
     // EOS_base::get_dpOverde3
     const Real de = dmax(Real(0.01), Real(0.01) * e);
     const Real eLeft = dmax(Real(1e-16), e - de);
     const Real eRight = e + de;
-    const Real pL = eosPressure(d, tab, eLeft, rhob, Real(0.), Real(0.));
-    const Real pR = eosPressure(d, tab, eRight, rhob, Real(0.), Real(0.));
+    const Real pL = eosPressure<Real, EosType>(
+        d, tab, eLeft, rhob, Real(0.), Real(0.));
+    const Real pR = eosPressure<Real, EosType>(
+        d, tab, eRight, rhob, Real(0.), Real(0.));
     const Real dpde = (pR - pL) / (eRight - eLeft);
     Real dpdrho = Real(0.);
-    if (MD_EOS_TYPE(d) == 2) {
+    if (type == 2) {
         // EOS_base::get_dpOverdrhob2
         const int t = eosTableIdx(d, e);
         const Real deltaRhob = d.nbSpacing[t];
         const Real rhobLeft = rhob - deltaRhob * Real(0.5);
         const Real rhobRight = rhob + deltaRhob * Real(0.5);
-        const Real qL = eosPressure(d, tab, e, rhobLeft, Real(0.), Real(0.));
-        const Real qR = eosPressure(d, tab, e, rhobRight, Real(0.), Real(0.));
+        const Real qL = eosPressure<Real, EosType>(
+            d, tab, e, rhobLeft, Real(0.), Real(0.));
+        const Real qR = eosPressure<Real, EosType>(
+            d, tab, e, rhobRight, Real(0.), Real(0.));
         dpdrho = (qR - qL) / (rhobRight - rhobLeft);
     }
-    const Real pressure = eosPressure(d, tab, e, rhob, Real(0.), Real(0.));
+    const Real pressure = eosPressure<Real, EosType>(
+        d, tab, e, rhob, Real(0.), Real(0.));
     Real v_sound = dpde + rhob / (dmax(e + pressure, Real(0.)) + smallEps) * dpdrho;
     v_sound = dmax(Real(0.01), dmin(Real(1.0), v_sound));
     return (v_sound);

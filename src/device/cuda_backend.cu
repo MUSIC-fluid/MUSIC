@@ -134,13 +134,14 @@ __global__ void cudaPressure(
     music_device::kernelPressure(P, D, tab, s, p, i);
 }
 
-template <typename Real>
+template <typename Real, int EosType>
 __global__ void cudaFace(
     const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
     const Real *s, const Real *p, int direction, Real *flux, int *flags) {
     const int f = blockIdx.x * blockDim.x + threadIdx.x;
     if (f >= faceCount(P.nx, P.ny, P.neta, direction)) return;
-    music_device::kernelFace(P, D, tab, s, p, direction, f, flux, flags);
+    music_device::kernelFace<Real, EosType>(
+        P, D, tab, s, p, direction, f, flux, flags);
 }
 
 template <typename Real>
@@ -164,7 +165,7 @@ __global__ void cudaWFace(
     music_device::kernelWFace(P, s, direction, f, out);
 }
 
-template <typename Real>
+template <typename Real, int EosType>
 __global__ void cudaCellVisc(
     const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
     const Real *sCurr, const Real *sPrev, const Real *pCurr,
@@ -173,7 +174,7 @@ __global__ void cudaCellVisc(
     const Real *wFaceEta, const Real *src, Real *sNext, int *flags) {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= P.nx * P.ny * P.neta) return;
-    music_device::kernelCellVisc(
+    music_device::kernelCellVisc<Real, -1, EosType>(
         P, D, tab, sCurr, sPrev, pCurr, pPrev, fluxX, fluxY, fluxEta, wFaceX,
         wFaceY, wFaceEta, src, sNext, i, flags);
 }
@@ -286,6 +287,10 @@ struct DeviceBase {
 
 template <typename Real>
 struct Device : public DeviceBase {
+    // The hotQCD viscous specialization is enabled for single precision.
+    static constexpr int kHotQCDViscousEosType =
+        (sizeof(Real) == sizeof(float) ? 1 : -1);
+
     Real *slice[3] = {NULL, NULL, NULL};
     Real *pCur = NULL, *pPred = NULL;
     Real *flux[3] = {NULL, NULL, NULL};
@@ -319,10 +324,8 @@ struct Device : public DeviceBase {
         const int want = requestedBlock();
         block[kKStrings] = blockFor(cudaStringSource<Real>, want);
         block[kKPressure] = blockFor(cudaPressure<Real>, want);
-        block[kKFace] = blockFor(cudaFace<Real>, want);
         block[kKWFace] = blockFor(cudaWFace<Real>, want);
         block[kKCell] = blockFor(cudaCell<Real>, want);
-        block[kKCellVisc] = blockFor(cudaCellVisc<Real>, want);
         // one thread per (eta, x) row: few threads, small blocks
         block[kKConservation] = 32;
         const char *p = getenv("MUSIC_CUDA_PROFILE");
@@ -668,6 +671,29 @@ struct Device : public DeviceBase {
             return 1;
         }
         memcpy(&desc, d, sizeof(desc));
+        // Use the register and block-size limits of the selected face kernel.
+        const int want = requestedBlock();
+        switch (desc.type) {
+            case 0:
+                block[kKFace] = blockFor(cudaFace<Real, 0>, want);
+                break;
+            case 1:
+                block[kKFace] = blockFor(cudaFace<Real, 1>, want);
+                break;
+            case 2:
+                block[kKFace] = blockFor(cudaFace<Real, 2>, want);
+                break;
+            case 3:
+                block[kKFace] = blockFor(cudaFace<Real, 3>, want);
+                break;
+            default:
+                block[kKFace] = blockFor(cudaFace<Real, -1>, want);
+                break;
+        }
+        block[kKCellVisc] =
+            (desc.type == 1
+                 ? blockFor(cudaCellVisc<Real, kHotQCDViscousEosType>, want)
+                 : blockFor(cudaCellVisc<Real, -1>, want));
         cudaFree(table);
         table = NULL;
         const size_t bytes = (tableBytes > 0 ? tableBytes : sizeof(Real));
@@ -725,6 +751,23 @@ struct Device : public DeviceBase {
                    : 1;
     }
 
+    template <int EosType>
+    void launchFace(const StepParams<Real> &P, const Real *s, const Real *p,
+                    int direction, int nFaces) {
+        cudaFace<Real, EosType><<<grid(nFaces, kKFace), block[kKFace]>>>(
+            P, desc, table, s, p, direction, flux[direction - 1], flags);
+    }
+
+    template <int EosType>
+    void launchViscousCell(
+        int n, const StepParams<Real> &P, const Real *sIn, const Real *sPrev,
+        const Real *pIn, Real *sOut) {
+        cudaCellVisc<Real, EosType>
+            <<<grid(n, kKCellVisc), block[kKCellVisc]>>>(
+                P, desc, table, sIn, sPrev, pIn, pCur, flux[0], flux[1],
+                flux[2], wFace[0], wFace[1], wFace[2], src, sOut, flags);
+    }
+
     int stage(const void *params, size_t bytes, int rk, int *flagsOut,
               char *err, int len) {
         if (bytes != sizeof(StepParams<Real>)) {
@@ -775,8 +818,25 @@ struct Device : public DeviceBase {
             for (int d = 1; d <= 3; d++) {
                 const int nf = faceCount(nx, ny, neta, d);
                 tic();
-                cudaFace<Real><<<grid(nf, kKFace), block[kKFace]>>>(
-                    P, desc, table, sIn, pIn, d, flux[d - 1], flags);
+                // Dispatch by EoS before launch so the primitive solver
+                // compiles only the selected pressure and gradient paths.
+                switch (desc.type) {
+                    case 0:
+                        launchFace<0>(P, sIn, pIn, d, nf);
+                        break;
+                    case 1:
+                        launchFace<1>(P, sIn, pIn, d, nf);
+                        break;
+                    case 2:
+                        launchFace<2>(P, sIn, pIn, d, nf);
+                        break;
+                    case 3:
+                        launchFace<3>(P, sIn, pIn, d, nf);
+                        break;
+                    default:
+                        launchFace<-1>(P, sIn, pIn, d, nf);
+                        break;
+                }
                 toc(kKFace);
                 if (viscous) {
                     tic();
@@ -787,11 +847,12 @@ struct Device : public DeviceBase {
             }
             tic();
             if (viscous) {
-                cudaCellVisc<Real>
-                    <<<grid(n, kKCellVisc), block[kKCellVisc]>>>(
-                        P, desc, table, sIn, sPrev, pIn, pCur, flux[0],
-                        flux[1], flux[2], wFace[0], wFace[1], wFace[2], src,
-                        sOut, flags);
+                if (desc.type == 1) {
+                    launchViscousCell<kHotQCDViscousEosType>(
+                        n, P, sIn, sPrev, pIn, sOut);
+                } else {
+                    launchViscousCell<-1>(n, P, sIn, sPrev, pIn, sOut);
+                }
                 toc(kKCellVisc);
             } else {
                 cudaCell<Real><<<grid(n, kKCell), block[kKCell]>>>(

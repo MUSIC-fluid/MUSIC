@@ -456,7 +456,7 @@ struct Gradients {
     Real dMuBT[4];   // DmuMuBoverTVec: partial^mu (mu_B / T)
 };
 
-template <typename Real>
+template <typename Real, int EosType = -1>
 struct ViscSolver {
     MD_CONST const StepParams<Real> *P_;
     MD_CONST const EosDesc<Real> *d_;
@@ -559,7 +559,7 @@ struct ViscSolver {
             const Real eps = sCurr[i];
             const Real weight = idealEoMWeight(eps);
             if (weight > Real(0.)) {
-                const EosGrad<Real> eg = eosPressureGrad(
+                const EosGrad<Real> eg = eosPressureGrad<Real, EosType>(
                     *d_, tab, eps, sCurr[n + i], sCurr[2 * n + i],
                     sCurr[3 * n + i]);
                 const Real Pp = eg.p;
@@ -777,7 +777,8 @@ struct ViscSolver {
     //! mu_B / T of cell I of slice s, as eos.get_muB / eos.get_temperature
     MD_FN Real muBOverT(MD_GLOBAL const Real *s, int n, int I) const {
         Real T, muB;
-        eosTMuB(*d_, tab, s[I], s[n + I], s[2 * n + I], s[3 * n + I], T, muB);
+        eosTMuB<Real, EosType>(
+            *d_, tab, s[I], s[n + I], s[2 * n + I], s[3 * n + I], T, muB);
         return (muB / dmax(T, Real(1e-16)));
     }
 
@@ -820,7 +821,7 @@ struct ViscSolver {
     }
     MD_FN Real alphaB(Real e, Real nb) const {
         Real T, muB;
-        eosTMuB(*d_, tab, e, nb, Real(0.), Real(0.), T, muB);
+        eosTMuB<Real, EosType>(*d_, tab, e, nb, Real(0.), Real(0.), T, muB);
         return (muB / dmax(T, Real(1e-16)));
     }
 
@@ -1283,8 +1284,8 @@ struct ViscSolver {
              + Real(2.) * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
         Real pi_local = grid_pt.pi;
         Real bulksize = Real(3.) * pi_local * pi_local;
-        Real p_local =
-            eosPressure(*d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        Real p_local = eosPressure<Real, EosType>(
+            *d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
         Real eq_size = dmax(
             e_local * e_local + Real(3.) * p_local * p_local,
             tinyNormal<Real>());
@@ -1384,10 +1385,10 @@ struct ViscSolver {
         MD_THREAD VCell<Real> &grid_pt, MD_THREAD const Real *Lambdas) const {
         Real eps = grid_pt.c.e;
         Real rhob = grid_pt.c.rhob;
-        Real cs2 =
-            eosCs2(*d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
-        Real Pr =
-            eosPressure(*d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        Real cs2 = eosCs2<Real, EosType>(
+            *d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        Real Pr = eosPressure<Real, EosType>(
+            *d_, tab, eps, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
         // TransportCoeffs: the second-order coefficients
         const Real tau_pipi = Real(10.) / Real(7.);
         const Real delta_pipi = Real(4.) / Real(3.);
@@ -1450,8 +1451,8 @@ struct ViscSolver {
     MD_FN void questRevertResummed(MD_THREAD VCell<Real> &grid_pt) const {
         Real e_local = grid_pt.c.e;
         Real rhob = grid_pt.c.rhob;
-        Real p_local =
-            eosPressure(*d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
+        Real p_local = eosPressure<Real, EosType>(
+            *d_, tab, e_local, rhob, grid_pt.c.rhoq, grid_pt.c.rhos);
         Real pi_00 = grid_pt.W[0];
         Real pi_01 = grid_pt.W[1];
         Real pi_02 = grid_pt.W[2];
@@ -1617,7 +1618,7 @@ struct ViscSolver {
 //! kernel and its register cost (9% of that kernel with EoS 20). It gates
 //! only the fixed-point branch; every arithmetic use of P.rkFlag stays a
 //! run-time value, so the arithmetic is the same
-template <typename Real, int kStage = -1>
+template <typename Real, int kStage = -1, int EosType = -1>
 MD_FN void kernelCellVisc(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *sCurr,
@@ -1726,7 +1727,7 @@ MD_FN void kernelCellVisc(
     }
     cellAddSource(P, src, i, qi);
     cellRkAverage(P, sPrev, pPrev, i, qi);
-    const Solver<Real> solver = {&P, &d, tab};
+    const Solver<Real, EosType> solver = {&P, &d, tab};
     const Real pressure = pCurr[i];
     const Real tauNext = P.tau + P.dtau;
     int flagAll = 0;
@@ -1743,10 +1744,10 @@ MD_FN void kernelCellVisc(
     int flagUsed = flag;
 
     // ----- the viscous update ---------------------------------------------
-    const ViscSolver<Real> vs = {&P, &d, tab};
+    const ViscSolver<Real, EosType> vs = {&P, &d, tab};
     Gradients<Real> G;
     vs.gradients(tau, sCurr, sPrev, pCurr, i, wFluxDiv, G);
-    const Thermal<Real> th = eosThermal(
+    const Thermal<Real> th = eosThermal<Real, EosType>(
         d, tab, curr.c.e, curr.c.rhob, curr.c.rhoq, curr.c.rhos);
     vs.firstRKStepW(curr, prev, G, th, next);
 
@@ -1871,7 +1872,7 @@ MD_FN void kernelCellVisc(
         const bool changed =
             (flagUsed & (kFlagMomentumCap | kFlagRegulate | kFlagRevert)) != 0;
         const Real pOut =
-            (changed ? eosPressure(
+            (changed ? eosPressure<Real, EosType>(
                            d, tab, next.c.e, next.c.rhob, next.c.rhoq,
                            next.c.rhos)
                      : Real(0));

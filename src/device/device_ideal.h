@@ -161,7 +161,7 @@ MD_FN Real minmodDx(Real up1, Real u, Real um1, Real theta) {
 // |f| <= u0 + 1/absErr for u0, Newton steps inside the bracket). mdDiv
 // stays only for tauq / tau, whose numerator can be inf; / 2 is a
 // multiply.
-template <typename Real>
+template <typename Real, int EosType = -1>
 struct Solver {
     // pointers: MSL has no reference members
     MD_CONST const StepParams<Real> *P_;
@@ -181,7 +181,7 @@ struct Solver {
     }
 
     MD_FN Real pressure(Real e, Real rhob, Real f) const {
-        return eosPressure(*d_, tab, e, rhob, J0Q_ * f, J0S_ * f);
+        return eosPressure<Real, EosType>(*d_, tab, e, rhob, J0Q_ * f, J0S_ * f);
     }
 
     // Reconst::reconst_velocity_f
@@ -421,7 +421,7 @@ struct Solver {
         const Real M = sqrt(K00);
         const Real T00 = q[0];
         const Real J0B = q[4], J0Q = q[5], J0S = q[6];
-        Solver<Real> s = *this;
+        Solver s = *this;
         s.J0Q_ = J0Q;
         s.J0S_ = J0S;
         if (T00 < P_->absErr) return -2;
@@ -458,11 +458,12 @@ struct Solver {
         g.rhos = rhos;
         Real p;
         if (eosOut) {
-            eosOut->g = eosPressureGrad(*d_, tab, epsilon, rhob, rhoq, rhos);
+            eosOut->g = eosPressureGrad<Real, EosType>(
+                *d_, tab, epsilon, rhob, rhoq, rhos);
             eosOut->valid = true;
             p = eosOut->g.p;
         } else {
-            p = eosPressure(*d_, tab, epsilon, rhob, rhoq, rhos);
+            p = eosPressure<Real, EosType>(*d_, tab, epsilon, rhob, rhoq, rhos);
         }
         const Real fac = mdDivF(u[0], T00 + p);
         u[1] = q[1] * fac;
@@ -589,7 +590,7 @@ MD_FN int faceCount(int nx, int ny, int neta, int direction) {
 }
 
 //! Advance::computeFaceFlux for face number f along direction
-template <typename Real>
+template <typename Real, int EosType = -1>
 MD_FN void kernelFace(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *s,
@@ -614,7 +615,7 @@ MD_FN void kernelFace(
     const Cell<Real> cL = loadCell(s, n, IL);
     const Cell<Real> cR = loadCell(s, n, IR);
     const Cell<Real> cRR = loadCell(s, n, IRR);
-    const Solver<Real> solver = {&P, &d, tab};
+    const Solver<Real, EosType> solver = {&P, &d, tab};
     int flag = 0;
     Cell<Real> gL, gR;
     EosState<Real> eL, eR;
@@ -639,8 +640,10 @@ MD_FN void kernelFace(
         }
         gL.u[0] = sqrt(Real(1) + u2L);
         gR.u[0] = sqrt(Real(1) + u2R);
-        eL.g = eosPressureGrad(d, tab, gL.e, gL.rhob, gL.rhoq, gL.rhos);
-        eR.g = eosPressureGrad(d, tab, gR.e, gR.rhob, gR.rhoq, gR.rhos);
+        eL.g = eosPressureGrad<Real, EosType>(
+            d, tab, gL.e, gL.rhob, gL.rhoq, gL.rhos);
+        eR.g = eosPressureGrad<Real, EosType>(
+            d, tab, gR.e, gR.rhob, gR.rhoq, gR.rhos);
         for (int a = 0; a < 7; a++) {
             qL[a] = tau * TJb(gL, a, 0, eL.g.p);
             qR[a] = tau * TJb(gR, a, 0, eR.g.p);
@@ -661,9 +664,11 @@ MD_FN void kernelFace(
         gL = solver.reconstruct(tau, qL, cL, &eL, pL, flag);
         gR = solver.reconstruct(tau, qR, cR, &eR, pR, flag);
         if (!eL.valid)
-            eL.g = eosPressureGrad(d, tab, gL.e, gL.rhob, gL.rhoq, gL.rhos);
+            eL.g = eosPressureGrad<Real, EosType>(
+                d, tab, gL.e, gL.rhob, gL.rhoq, gL.rhos);
         if (!eR.valid)
-            eR.g = eosPressureGrad(d, tab, gR.e, gR.rhob, gR.rhoq, gR.rhos);
+            eR.g = eosPressureGrad<Real, EosType>(
+                d, tab, gR.e, gR.rhob, gR.rhoq, gR.rhos);
     }
     const Real aL = maxSpeed(tau, direction, gL, eL.g, flag);
     const Real aR = maxSpeed(tau, direction, gR, eR.g, flag);
