@@ -953,9 +953,15 @@ MD_FN void eosTMuB(
     eos4DEval(d, tab, eos4DTable(d, tab, kEos4DT), TildeVar, c, ResArr, false);
     ResArr[0] *= scale;
     T = dmax(smallEps, Real(ResArr[0]));
-    eos4DEval(d, tab, eos4DTable(d, tab, kEos4DMuB), TildeVar, c, ResArr, false);
-    ResArr[0] *= scale;
-    muB = Real(ResArr[0]);
+    // ideal hydro uploads only P and T (DeviceHydro, nTab): its only caller
+    // here, the grid maxima of the conservation rows, reads T alone
+    muB = Real(0.);
+    if (d.f4NTables > kEos4DMuB) {
+        eos4DEval(
+            d, tab, eos4DTable(d, tab, kEos4DMuB), TildeVar, c, ResArr, false);
+        ResArr[0] *= scale;
+        muB = Real(ResArr[0]);
+    }
 }
 
 //! EOS::get_cs2, which Advance::nCausalityConstraints reads: for the

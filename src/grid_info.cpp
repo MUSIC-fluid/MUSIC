@@ -1087,8 +1087,8 @@ void Cell_info::get_maximum_energy_density(
 #pragma omp parallel for collapse(3) if (sweep) \
     reduction(max : eps_max, rhob_max, rhoq_max, rhos_max, T_max)
     for (int ieta = 0; ieta < (sweep ? neta : 0); ieta++)
-        for (int ix = 0; ix < nx; ix++)
-            for (int iy = 0; iy < ny; iy++) {
+        for (int iy = 0; iy < ny; iy++)
+            for (int ix = 0; ix < nx; ix++) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 const auto eps_local = arena.e_[fieldIdx];
                 const auto rhob_local = arena.rhob_[fieldIdx];

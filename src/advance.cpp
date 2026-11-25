@@ -77,8 +77,8 @@ void Advance::AdvanceIt(
 
 #pragma omp parallel for collapse(3) schedule(dynamic, 64)
     for (int ieta = 0; ieta < grid_neta; ieta++)
-        for (int ix = 0; ix < grid_nx; ix++)
-            for (int iy = 0; iy < grid_ny; iy++) {
+        for (int iy = 0; iy < grid_ny; iy++)
+            for (int ix = 0; ix < grid_nx; ix++) {
                 int fieldIdx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
 
                 double eta_s_local = DATA.etaAt(ieta);
