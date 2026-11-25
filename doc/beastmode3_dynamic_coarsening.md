@@ -190,6 +190,29 @@ The test is the same event as above with `gpu_backend = 2`. Tolerance 10⁻¹² 
 - **On Metal the old check was not a big cost:** 1.2 s of a 50 s run, about 2 %, which is below the run-to-run noise of the wall time (±3 s). The host and the GPU share memory, so the sync only converts float to double.
 - **On CUDA the saving should be larger, but it is not measured.** A full sync of the two slices is 2 × 31 × 1.54 M doubles = 0.76 GB over PCIe. That is about 30–60 ms at 12–25 GB/s, plus the conversion, for each check. The reduction copies 0.6 MB.
 
-### Another finding: the grid-edge check
+### The grid-edge check, also on the device
 
-With beastMode 3 on Metal, the run spends 8.9 s copying to the host, against 2.0 s for beastMode 1, and has 575 partial syncs, one per step. These come from `fluidNearGridEdge`, which syncs the edge shell of the grid (`syncShell`) every step. That costs about 7 s of the 52 s run, six times more than the old coarsening check did. It is the next candidate for a device reduction, or for a check every few steps. It is likely part of why beastMode 3 saves only 1.25× in wall time over beastMode 1 on Metal, against 1.74× on the CPU.
+**The problem.** With beastMode 3, `Evolve::fluidNearGridEdge` runs every step: it checks whether any cell above freeze-out is in a band along the x and y edges. On a device it used to copy that band to the host first (`syncShell`, every component of the band's cells). In the 3D strings event on Metal those 560 copies took about 6 s of the 52 s run, against 2.0 s of copying for beastMode 1.
+
+**The fix.**
+- `kernelEdgeMaxRow` (`src/device/device_diag.h`) computes the largest e in the band for each (η, x) row.
+- `DeviceHydro::edgeMaxE` takes the largest of those, and the host compares it with the freeze-out threshold. That is nx · neta numbers per step.
+- The host path is still used when the host Fields are current.
+- It is implemented for backend 1, Metal and CUDA. The CUDA version is not compiled or tested.
+- The unit test "Device grid-edge check equals the host one" checks on backend 1 that the band maximum equals that of the synced Fields exactly, for three band sizes in double and float.
+
+**3D strings event on Metal, tolerance 0.01:**
+
+| | copying to the host | partial syncs | grid-edge checks | wall time |
+|---|---|---|---|---|
+| before (band copied) | 8.07 s, 8.26 s | 560 | — | 52.5 s, 54.7 s |
+| after (device reduction) | 2.33 s, 2.28 s | 0 | 0.23 s for 560 (0.42 ms each) | 49.4 s, 47.6 s |
+| beastMode 1 (two runs) | 2.02 s, 2.09 s | 0 | — | 65.8 s, 70.3 s |
+
+- **Saved:** 5.8 s of copying per run, about 10 % of the wall time.
+- **Results unchanged:** the observables are bit-identical before and after.
+- **Speed-up over beastMode 1 on Metal:** now 1.4×, up from 1.25×.
+
+**The enlargement path.** The strings event never comes near the grid edge, so I also ran the 2D fireball of the `beastmode3` integration test on Metal, where the grid is enlarged once. The previous and the new executable enlarge and coarsen at the same steps, and the surface fluxes are bit-identical.
+
+On that small grid (45² cells), a kernel launch costs more than the copy it replaces: 0.21 ms against about 0.01 ms per step. In total that is 0.045 s.

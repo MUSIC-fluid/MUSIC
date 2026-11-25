@@ -2636,6 +2636,74 @@ TEST_CASE("Device coarsening indicator equals the host one") {
     }
 }
 
+TEST_CASE("Device grid-edge check equals the host one") {
+    // beastMode 3 checks every step whether the fluid nears the grid edge
+    // (Evolve::fluidNearGridEdge). On a device the edge band is reduced
+    // there (DeviceHydro::edgeMaxE, kernelEdgeMaxRow) instead of copied:
+    // on backend 1 the largest e in the band must equal that of the synced
+    // Fields exactly, in double and float, and the check must agree
+    for (int gpuFloat = 0; gpuFloat < 2; gpuFloat++) {
+        CAPTURE(gpuFloat);
+        InitData DATA = idealDeviceParameters(false, 0);
+        DATA.gpu_backend = 1;
+        DATA.gpu_float = gpuFloat;
+        DATA.useEpsFO = 1;
+        DATA.freeze_eps_flag = 0;
+        DATA.N_freeze_out = 1;
+        DATA.eps_freeze_min = 0.4;
+        DATA.eps_freeze_max = 0.4;
+        DATA.gridPadding = 0.6;
+        DATA.fac_x = 1;
+        DATA.fac_y = 1;
+        EOS eos(0);
+        Evolve evolve(eos, DATA, nullptr);
+        evolve.initialize_freezeout_surface_info();
+        Fields a(DATA.nx, DATA.ny, DATA.neta), b(a), c(a);
+        fillLumpyIdeal(a);
+        b = a;
+        c = a;
+        Fields *fpPrev = &b, *fpCurr = &a, *fpNext = &c;
+        double tau = DATA.tau0;
+        for (int it = 0; it < 2; it++) {
+            evolve.preparePressure(*fpCurr);
+            evolve.AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+            tau += DATA.delta_tau;
+        }
+        DeviceHydro *dh = evolve.deviceHydro();
+        REQUIRE(dh != nullptr);
+        REQUIRE(!dh->hostCurrent());
+        const int bands[3][2] = {{1, 1}, {2, 3}, {6, 5}};
+        double devMax[3];
+        for (int k = 0; k < 3; k++)
+            devMax[k] = dh->edgeMaxE(*fpCurr, bands[k][0], bands[k][1]);
+        const bool devNear = evolve.fluidNearGridEdge(*fpCurr);
+        evolve.syncHost(*fpCurr, *fpPrev);
+        REQUIRE(dh->hostCurrent());
+        const int nx = DATA.nx, ny = DATA.ny;
+        for (int k = 0; k < 3; k++) {
+            CAPTURE(k);
+            const int bx = bands[k][0], by = bands[k][1];
+            double hostMax = 0.;
+            int nBand = 0;
+            for (int ieta = 0; ieta < DATA.neta; ieta++)
+                for (int iy = 0; iy < ny; iy++)
+                    for (int ix = 0; ix < nx; ix++)
+                        if (ix < bx || ix >= nx - bx || iy < by
+                            || iy >= ny - by) {
+                            hostMax = std::max(
+                                hostMax,
+                                fpCurr->e_[fpCurr->getFieldIdx(ix, iy, ieta)]);
+                            nBand++;
+                        }
+            CHECK(nBand < nx * ny * DATA.neta);
+            CHECK(hostMax > 0.);
+            CHECK(devMax[k] == hostMax);
+        }
+        // the host path now (the Fields are current)
+        CHECK(evolve.fluidNearGridEdge(*fpCurr) == devNear);
+    }
+}
+
 TEST_CASE("Device reads of tau_n during a step equal those after it") {
     // Evolve takes the conservation rows from the step that made the
     // slice (DeviceHydro::conservationAhead), and the eta window and the

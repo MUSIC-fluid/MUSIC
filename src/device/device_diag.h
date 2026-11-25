@@ -158,6 +158,27 @@ MD_FN void kernelCoarseningRow(
     r[5] = nCells;
 }
 
+//! the largest e of one (eta, x) row of the slice s (row = ix + nx ieta)
+//! in the band of bandX (bandY) cells along the x (y) edges, for
+//! Evolve::fluidNearGridEdge; 0 if the row has no cell in the band
+template <typename Real>
+MD_FN void kernelEdgeMaxRow(
+    int nx, int ny, int neta, int bandX, int bandY, MD_GLOBAL const Real *s,
+    MD_GLOBAL Real *out, int row) {
+    const int ix = row % nx;
+    const int ieta = row / nx;
+    const bool xEdge = (ix < bandX || ix >= nx - bandX);
+    Real eMax = Real(0.);
+    for (int iy = 0; iy < ny; iy++) {
+        if (!xEdge && iy >= bandY && iy < ny - bandY) {
+            iy = ny - bandY - 1;  // skip the interior
+            continue;
+        }
+        eMax = dmax(eMax, s[ix + nx * (iy + ny * ieta)]);
+    }
+    out[row] = eMax;
+}
+
 }  // namespace music_device
 
 #endif  // SRC_DEVICE_DEVICE_DIAG_H_

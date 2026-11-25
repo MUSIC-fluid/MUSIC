@@ -41,6 +41,7 @@ enum {
     // psCellVisc[rk]: the viscous cell update of each RK stage
     id<MTLComputePipelineState> psWFace, psCellVisc[2];
     id<MTLComputePipelineState> psStrings, psConservation, psCoarsening;
+    id<MTLComputePipelineState> psEdgeMax;
     // next holds tau_{n-1} at the start of a step
     id<MTLBuffer> slice[3];
     id<MTLBuffer> pCur, pPred;
@@ -50,6 +51,7 @@ enum {
     id<MTLBuffer> strings;   // the packed strings (device_strings.h)
     id<MTLBuffer> consOut;   // the conservation rows
     id<MTLBuffer> coarsenOut;  // the coarsening rows
+    id<MTLBuffer> edgeOut;     // the grid-edge rows
     id<MTLCommandBuffer> pending;  // the first stage, in flight
     // conservationBegin: the conservation kernel queued behind the step,
     // and the size of its rows
@@ -108,13 +110,13 @@ static int buildPipelines(
         setErr(err, errLen, "kernel compilation failed", e);
         return 1;
     }
-    const char *names[9] = {"musicPressure",     "musicFace",
-                            "musicCell",         "musicWFace",
-                            "musicCellVisc0",    "musicStringSource",
-                            "musicConservation", "musicCellVisc1",
-                            "musicCoarsening"};
-    id<MTLComputePipelineState> ps[9];
-    for (int k = 0; k < 9; k++) {
+    const char *names[10] = {"musicPressure",     "musicFace",
+                             "musicCell",         "musicWFace",
+                             "musicCellVisc0",    "musicStringSource",
+                             "musicConservation", "musicCellVisc1",
+                             "musicCoarsening",   "musicEdgeMax"};
+    id<MTLComputePipelineState> ps[10];
+    for (int k = 0; k < 10; k++) {
         id<MTLFunction> f =
             [lib newFunctionWithName:[NSString stringWithUTF8String:names[k]]];
         if (f == nil) {
@@ -136,6 +138,7 @@ static int buildPipelines(
     m->psStrings = ps[5];
     m->psConservation = ps[6];
     m->psCoarsening = ps[8];
+    m->psEdgeMax = ps[9];
     return 0;
 }
 
@@ -713,6 +716,54 @@ static int metalCoarsening(
     }
 }
 
+//! kernelEdgeMaxRow of the current slice, waited for
+static int metalEdgeMax(
+    void *dev, int bandX, int bandY, void *out, size_t outBytes, char *err,
+    int errLen) {
+    @autoreleasepool {
+        MusicMetalDevice *m = get(dev);
+        if (waitPending(m, err, errLen)) return 1;
+        if (ensurePipelines(m, err, errLen)) return 1;
+        if (outBytes < sizeof(float) * (size_t)m->nx * m->neta) {
+            setErr(err, errLen, "the edge buffer is too small", nil);
+            return 1;
+        }
+        if (m->edgeOut == nil || [m->edgeOut length] < outBytes) {
+            m->edgeOut =
+                [m->dev newBufferWithLength:outBytes
+                                    options:MTLResourceStorageModeShared];
+            if (m->edgeOut == nil) {
+                setErr(err, errLen, "out of device memory", nil);
+                return 1;
+            }
+        }
+        const int dims[5] = {m->nx, m->ny, m->neta, bandX, bandY};
+        id<MTLCommandBuffer> cb = [m->queue commandBuffer];
+        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+        [enc setBytes:dims length:sizeof(dims) atIndex:0];
+        [enc setBuffer:m->slice[m->cur] offset:0 atIndex:3];
+        [enc setBuffer:m->edgeOut offset:0 atIndex:5];
+        [enc setComputePipelineState:m->psEdgeMax];
+        [enc dispatchThreads:MTLSizeMake(m->nx * m->neta, 1, 1)
+            threadsPerThreadgroup:MTLSizeMake(32, 1, 1)];
+        [enc endEncoding];
+        [cb commit];
+        [cb waitUntilCompleted];
+        if (cb.error != nil) {
+            setErr(err, errLen, "the grid-edge kernel failed", cb.error);
+            return 1;
+        }
+        if (m->profile) {
+            NSNumber *old = m->profileSeconds[@"edgeMax"];
+            m->profileSeconds[@"edgeMax"] =
+                @((old ? [old doubleValue] : 0.)
+                  + (cb.GPUEndTime - cb.GPUStartTime));
+        }
+        memcpy(out, [m->edgeOut contents], outBytes);
+        return 0;
+    }
+}
+
 static int metalFetch(
     void *dev, int which, int firstComp, int nComp, char *err, int errLen) {
     (void)which;
@@ -742,7 +793,7 @@ static const MusicDeviceApi kMetalApi = {
     metalSpecialize, metalFinish, metalFetchUnwritten,
     metalConservationBegin, metalConservationEnd,
     NULL,  // fetchCells: state() is the slice itself (unified memory)
-    metalCoarsening,
+    metalCoarsening, metalEdgeMax,
 };
 
 const MusicDeviceApi *music_metal_api(void) { return &kMetalApi; }

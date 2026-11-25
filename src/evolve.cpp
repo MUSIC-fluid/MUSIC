@@ -1051,8 +1051,10 @@ bool Evolve::fluidNearGridEdge(Fields &arena) {
         std::max(
             2 * DATA.fac_y + 2, static_cast<int>(std::ceil(
                                     0.5 * DATA.gridPadding / DATA.delta_y))));
-    if (deviceHydro_ && deviceHydro_->active())
-        deviceHydro_->syncShell(arena, nullptr, bandX, bandY, 0);
+    // the state on the device: reduce the band there, without copying it
+    if (deviceHydro_ && deviceHydro_->active()
+        && !deviceHydro_->hostCurrent())
+        return (deviceHydro_->edgeMaxE(arena, bandX, bandY) > eThreshold);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         for (int iy = 0; iy < ny; iy++) {
             const bool yEdge = (iy < bandY || iy >= ny - bandY);

@@ -151,6 +151,20 @@ class CpuBackend : public Backend {
             kernelCoarseningRow(nx_, ny_, neta_, thr, s, o, row);
         return (true);
     }
+    bool edgeMax(
+        int bandX, int bandY, void *out, size_t outBytes, std::string &err) {
+        const int rows = nx_ * neta_;
+        if (outBytes < sizeof(Real) * rows) {
+            err = "the edge buffer is too small";
+            return (false);
+        }
+        Real *o = static_cast<Real *>(out);
+        const Real *s = slice_[cur_].data();
+#pragma omp parallel for schedule(static)
+        for (int row = 0; row < rows; row++)
+            kernelEdgeMaxRow(nx_, ny_, neta_, bandX, bandY, s, o, row);
+        return (true);
+    }
 
     bool stage(
         const void *params, size_t paramBytes, int rk, int &flags,
@@ -366,6 +380,13 @@ class CApiBackend : public Backend {
                 dev_, eThreshold, out, outBytes, err_, sizeof(err_)),
             err));
     }
+    bool edgeMax(
+        int bandX, int bandY, void *out, size_t outBytes, std::string &err) {
+        return (check(
+            api_->edgeMax(
+                dev_, bandX, bandY, out, outBytes, err_, sizeof(err_)),
+            err));
+    }
 };
 
 }  // namespace
@@ -475,6 +496,9 @@ DeviceHydro::~DeviceHydro() {
     if (nCoarsenChecks_ > 0)
         music_message << ", " << coarsenSeconds_ << " s for "
                       << nCoarsenChecks_ << " coarsening checks";
+    if (nEdgeChecks_ > 0)
+        music_message << ", " << edgeSeconds_ << " s for " << nEdgeChecks_
+                      << " grid-edge checks";
     if (source_)
         music_message << ", " << sourceSeconds_
                       << (strings_ ? " s packing the strings"
@@ -723,6 +747,33 @@ void DeviceHydro::coarseningSums(double eThreshold, double sums[6]) {
     coarsenSeconds_ += std::chrono::duration<double>(
                            std::chrono::steady_clock::now() - t0)
                            .count();
+}
+
+double DeviceHydro::edgeMaxE(const Fields &curr, int bandX, int bandY) {
+    requireIdle("edgeMaxE");
+    if (&curr != lastCurr_) fail("edgeMaxE: not the slice of the last step");
+    const auto t0 = std::chrono::steady_clock::now();
+    const size_t nRows = static_cast<size_t>(nx_) * neta_;
+    std::string err;
+    double eMax = 0.;
+    if (float_) {
+        std::vector<float> out(nRows);
+        if (!backend_->edgeMax(
+                bandX, bandY, out.data(), out.size() * sizeof(float), err))
+            fail(err);
+        for (float v : out) eMax = std::max(eMax, static_cast<double>(v));
+    } else {
+        std::vector<double> out(nRows);
+        if (!backend_->edgeMax(
+                bandX, bandY, out.data(), out.size() * sizeof(double), err))
+            fail(err);
+        for (double v : out) eMax = std::max(eMax, v);
+    }
+    nEdgeChecks_++;
+    edgeSeconds_ += std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - t0)
+                        .count();
+    return (eMax);
 }
 
 template <typename Real>

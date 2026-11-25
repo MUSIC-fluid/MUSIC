@@ -124,6 +124,12 @@ typedef struct MusicDeviceApi {
     int (*coarsening)(
         void *dev, double eThreshold, void *out, size_t outBytes, char *err,
         int errLen);
+    // the grid-edge check of beastMode 3 (kernelEdgeMaxRow, device_diag.h)
+    // of the current slice: the largest e in the edge band of each (eta, x)
+    // row, written to out (outBytes = neta nx Real)
+    int (*edgeMax)(
+        void *dev, int bandX, int bandY, void *out, size_t outBytes,
+        char *err, int errLen);
 } MusicDeviceApi;
 
 //! the backends compiled into this build (NULL if not)

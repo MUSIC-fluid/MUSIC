@@ -112,3 +112,12 @@ kernel void musicCoarsening(
     kernelCoarseningRow(dims[0], dims[1], dims[2], eThreshold, s, out,
                         int(gid));
 }
+
+// dims: nx, ny, neta, bandX, bandY
+kernel void musicEdgeMax(
+    constant int *dims [[buffer(0)]], device const float *s [[buffer(3)]],
+    device float *out [[buffer(5)]], uint gid [[thread_position_in_grid]]) {
+    if (int(gid) >= dims[0] * dims[2]) return;
+    kernelEdgeMaxRow(dims[0], dims[1], dims[2], dims[3], dims[4], s, out,
+                     int(gid));
+}
