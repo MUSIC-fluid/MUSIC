@@ -96,7 +96,7 @@ InitData read_in_parameters(std::string input_file) {
 
     parameter_list.gridPadding = getParameter(input_file, "gridPadding", 3.0);
     parameter_list.beastModeCoarsenTolerance =
-        getParameter(input_file, "beastModeCoarsenTolerance", 0.0);
+        getParameter(input_file, "beastModeCoarsenTolerance", 0.01);
     parameter_list.beastModeMaxCoarsenFactor =
         getParameter(input_file, "beastModeMaxCoarsenFactor", 4);
     parameter_list.gridPaddingCells = 0;

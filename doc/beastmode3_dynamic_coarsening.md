@@ -21,7 +21,7 @@ Investigation on branch `gpu` (after 82cc757). The prototype is in the working t
 
 | parameter | default | meaning |
 |---|---|---|
-| `beastModeCoarsenTolerance` | 0 | > 0: beastMode 3 coarsens when the indicator's energy-weighted mean drops below it. 0 keeps the current schedule. |
+| `beastModeCoarsenTolerance` | 0.01 | > 0: beastMode 3 coarsens when the indicator's energy-weighted mean drops below it. 0 keeps the old step-count schedule. |
 | `beastModeMaxCoarsenFactor` | 4 | Δτ, dx and dy each grow at most by this factor over the run. Applies to beastMode 2 and 3, with either trigger. |
 
 - **Where** (`src/evolve.cpp`): `Evolve::coarseningError` computes the indicator: energy-weighted mean and maximum, for e and for u^x and u^y. The main loop checks it every 24 steps, after the string sources are done, and logs it.

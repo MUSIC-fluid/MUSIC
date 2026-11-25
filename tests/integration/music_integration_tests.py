@@ -635,6 +635,9 @@ def test_beastmode3(r):
     # dx = 0.19 fm, dtau = 0.02 fm/c: after 192 steps dx/(2 dtau) < 5, so
     # beastMode 3 doubles dtau and coarsens the grid. The fireball fits in
     # the 8.36 fm start grid at tau0 but outgrows it later.
+    # beastModeCoarsenTolerance = 0 keeps the step-count schedule: the
+    # default dynamic trigger judges this steep fireball too curved to
+    # coarsen before it freezes out, and this test is about the remap
     # beastMode > 0 limits the face states in the primitive variables
     # (face_reconstruction = 1), so the reference does too: this test is
     # about the grid changes, not the face scheme
@@ -651,7 +654,8 @@ def test_beastmode3(r):
     check(woods_saxon_2d(x)[0].max() < 0.05 and woods_saxon_2d(x)[:, 0].max()
           < 0.05, "the initial state does not fit in the start grid")
     log, _, t_bm = r.run(bm, _fireball_2d_params(
-        x, tau0, e_fo, beastMode=3, gridPadding=2.0))
+        x, tau0, e_fo, beastMode=3, gridPadding=2.0,
+        beastModeCoarsenTolerance=0.))
     check("All cells frozen out" in log, "beastMode 3 run did not freeze out")
     nenlarge = log.count("BeastMode: enlarged the grid")
     ncoarsen = log.count(", dx = ")
