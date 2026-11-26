@@ -24,7 +24,7 @@ class Advance {
     Diss diss_helper;
     Minmod minmod;
     Reconst reconst_helper;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("⏩ Advance")};
     TransportCoeffs transport_coeffs_;
 
     bool flag_add_hydro_source;

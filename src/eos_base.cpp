@@ -613,7 +613,7 @@ void EOS_base::resize_table_info_arrays() {
 //! The tolerance allows for rounding in e spacings read from ASCII
 //! headers, which (e_length - 1) * e_spacing amplifies.
 bool EOS_base::check_table_seams() const {
-    pretty_ostream msg;
+    pretty_ostream msg(music_message.get_tag());
     bool ok = true;
     for (int t = 0; t < number_of_tables; t++) {
         if (e_spacing[t] > 0.) continue;

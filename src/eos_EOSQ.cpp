@@ -12,6 +12,7 @@ using std::string;
 using std::stringstream;
 
 EOS_eosQ::EOS_eosQ() {
+    music_message.set_tag("🧮 EOS_eosQ");
     set_EOS_id(1);
     set_number_of_tables(0);
     set_eps_max(1e5);

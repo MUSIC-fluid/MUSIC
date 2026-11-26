@@ -12,6 +12,7 @@
 
 // Constructor
 HydroSourceTmunu::HydroSourceTmunu(InitData &DATA_in) : DATA(DATA_in) {
+    music_message.set_tag("📥 HydroSourceTmunu");
     // Read the IP-Glasma event file
     readIPGevent();
     tau_source_ = DATA.tau0;

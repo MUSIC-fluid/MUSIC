@@ -40,7 +40,7 @@ class MUSIC {
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("🎹 MUSIC")};
 
   public:
     MUSIC(std::string input_file);

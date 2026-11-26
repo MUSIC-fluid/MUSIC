@@ -21,7 +21,7 @@ class EOS_base {
     bool flag_muQ = false;
 
   public:
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("📐 EOS_base")};
     std::vector<double> nb_bounds;
     std::vector<double> e_bounds;
 

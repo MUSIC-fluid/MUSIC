@@ -616,9 +616,12 @@ int Evolve::EvolveIt(
         // fpCurr has not changed since preparePressure
         AdvanceRK(tau, fpPrev, fpCurr, fpNext);
 
-        music_message << emoji::clock() << " Done time step " << it << "/"
-                      << itmax << " tau = " << tau << " fm/c";
-        music_message.flush("info");
+        // below echo_level 5 only every 10th step
+        if (DATA.echo_level >= 5 || it % 10 == 0) {
+            music_message << emoji::clock() << " Done time step " << it
+                          << "/" << itmax << " tau = " << tau << " fm/c";
+            music_message.flush("info");
+        }
         if (frozen == 1 && tau > source_tau_max) {
             syncAll();
             if (DATA.outputEvolutionData > 1 && DATA.outputEvolutionData < 5) {

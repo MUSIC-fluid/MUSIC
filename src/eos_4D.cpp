@@ -12,6 +12,7 @@ using std::string;
 using std::stringstream;
 
 EOS_4D::EOS_4D() {
+    music_message.set_tag("🎲 EOS_4D");
     set_EOS_id(20);
     set_number_of_tables(0);
     resize_table_info_arrays();

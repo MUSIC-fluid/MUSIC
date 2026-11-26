@@ -32,7 +32,7 @@ class HydroinfoMUSIC {
     int itaumax, ixmax, iymax, ietamax;
 
     std::vector<fluidCell_ideal> lattice_ideal;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("💾 HydroinfoMUSIC")};
 
   public:
     HydroinfoMUSIC();   // constructor

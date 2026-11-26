@@ -30,7 +30,7 @@ class Cell_info {
     const InitData &DATA;
     const EOS &eos;
     U_derivative u_derivative_helper;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("📊 Cell_info")};
 
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;

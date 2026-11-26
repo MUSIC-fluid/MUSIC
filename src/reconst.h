@@ -27,7 +27,7 @@ struct ReconstEos {
 class Reconst {
   private:
     const EOS &eos;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("🔧 Reconst")};
 
     const int max_iter;
     double rel_err;

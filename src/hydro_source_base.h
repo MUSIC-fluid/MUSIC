@@ -16,7 +16,7 @@ class HydroSourceBase {
     double sigma_eta_ = 0.1;
 
   public:
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("🔥 HydroSourceBase")};
 
     HydroSourceBase() = default;
     virtual ~HydroSourceBase() {}

@@ -26,9 +26,12 @@
 //! Thread-safe message logger. Loggers are shared class members that are
 //! also used inside OpenMP parallel loops, so every thread builds its
 //! message in its own buffer, and each finished line is written to the
-//! screen in one piece under a lock.
+//! screen in one piece under a lock. The tag (an emoji and the name of the
+//! owning class, set with set_tag) follows the memory usage of info and
+//! debug lines and the emoji of warning and error lines.
 class pretty_ostream {
   private:
+    std::string tag_;
     std::mutex buffersMutex_;
     std::map<std::thread::id, std::unique_ptr<std::ostringstream>> buffers_;
 
@@ -40,12 +43,19 @@ class pretty_ostream {
 
   public:
     pretty_ostream();
-    // a copy starts with empty buffers; pending messages are not copied
+    //! a logger with a tag, e.g. pretty_ostream("🌱 Init")
+    explicit pretty_ostream(const std::string& tag);
+    // a copy keeps the tag and starts with empty buffers; pending messages
+    // are not copied
     pretty_ostream(const pretty_ostream&);
     pretty_ostream& operator=(const pretty_ostream&);
     ~pretty_ostream();
 
     void flush(std::string type);
+
+    //! the emoji and class name printed with every message
+    void set_tag(const std::string& tag) { tag_ = tag; }
+    const std::string& get_tag() const { return (tag_); }
 
     //! This function output information message
     void info(std::string message);

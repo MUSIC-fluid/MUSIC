@@ -20,7 +20,7 @@ class Init {
     InitData &DATA;
     const EOS &eos;
     std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("🌱 Init")};
 
     // support for JETSCAPE
     std::vector<double> jetscape_initial_energy_density;

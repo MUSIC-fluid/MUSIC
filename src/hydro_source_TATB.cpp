@@ -15,6 +15,7 @@
 using std::string;
 
 HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
+    music_message.set_tag("🥞 HydroSourceTATB");
     double tau_overlap = 2. * 7. / (sinh(DATA_.beam_rapidity));
     tau_source = std::max(DATA_.tau0, tau_overlap);
     set_source_tau_min(tau_source);

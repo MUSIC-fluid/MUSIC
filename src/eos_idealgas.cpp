@@ -5,6 +5,7 @@
 #include <cmath>
 
 EOS_idealgas::EOS_idealgas() {
+    music_message.set_tag("🎈 EOS_idealgas");
     set_EOS_id(0);
     set_number_of_tables(0);
     set_eps_max(1e5);

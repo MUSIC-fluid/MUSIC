@@ -31,7 +31,7 @@ class Diss {
     }
 
     const int echo_level_ = DATA.echo_level;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("💧 Diss")};
 
     //! the face fluxes of one direction (computeWFluxDivergence)
     std::vector<double> wFaceFluxes_;

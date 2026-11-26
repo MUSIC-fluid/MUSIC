@@ -11,6 +11,7 @@ using std::string;
 using std::stringstream;
 
 EOS_WB::EOS_WB() {
+    music_message.set_tag("📘 EOS_WB");
     set_EOS_id(8);
     set_number_of_tables(0);
     set_eps_max(1e5);

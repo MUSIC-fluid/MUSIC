@@ -13,6 +13,7 @@ using std::string;
 using std::stringstream;
 
 EOS_UH::EOS_UH() {
+    music_message.set_tag("🏫 EOS_UH");
     set_EOS_id(19);
     set_number_of_tables(0);
     set_eps_max(1e5);

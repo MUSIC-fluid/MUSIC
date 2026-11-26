@@ -125,7 +125,7 @@ class Freeze {
 
     int system_status_;
 
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("🧊 Freeze")};
     std::vector<SurfaceElement> surface;
     Particle *particleList;
     int NCells;

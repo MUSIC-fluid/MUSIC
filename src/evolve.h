@@ -28,7 +28,7 @@ class Evolve {
     Advance advance;
     // the ideal update on a device (gpu_backend > 0)
     std::unique_ptr<DeviceHydro> deviceHydro_;
-    pretty_ostream music_message;
+    pretty_ostream music_message{std::string("⏳ Evolve")};
 
     // simulation information
     int rk_order;

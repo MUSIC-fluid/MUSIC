@@ -10,7 +10,7 @@ using Util::getParameter;
 
 namespace ReadInParameters {
 
-pretty_ostream music_message;
+pretty_ostream music_message("📋 ReadInParameters");
 
 InitData read_in_parameters(std::string input_file) {
     InitData parameter_list;

@@ -12,6 +12,7 @@ using std::string;
 using std::stringstream;
 
 EOS_1DGenerator::EOS_1DGenerator(const int eos_id_in) : eos_id(eos_id_in) {
+    music_message.set_tag("🧰 EOS_1DGenerator");
     set_EOS_id(eos_id);
     set_number_of_tables(0);
     set_eps_max(1e5);

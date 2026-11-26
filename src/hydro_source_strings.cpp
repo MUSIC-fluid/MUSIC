@@ -22,6 +22,7 @@ using std::string;
 constexpr double HydroSourceStrings::smearingCutoff;
 
 HydroSourceStrings::HydroSourceStrings(InitData &DATA_in) : DATA(DATA_in) {
+    music_message.set_tag("🧵 HydroSourceStrings");
     set_source_tau_min(std::numeric_limits<double>::infinity());
     set_source_tau_max(0.0);
     set_source_tauStart_max(0.0);
@@ -725,6 +726,12 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
             && std::max(it->tau_end_left, it->tau_end_right) >= begin)
             QCD_strings_list_current_tau.push_back(it);
     }
+    // only for a time step in which strings deposit
+    if (QCD_strings_list_current_tau.empty()
+        && QCD_strings_baryon_list_current_tau.empty()
+        && QCD_strings_electric_list_current_tau.empty()
+        && QCD_strings_remnant_list_current_tau.empty())
+        return;
     music_message << "hydro_source: tau = " << tau_local << " fm."
                   << " number of strings for energy density: "
                   << QCD_strings_list_current_tau.size()

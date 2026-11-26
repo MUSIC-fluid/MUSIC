@@ -13,6 +13,7 @@ using std::string;
 using std::stringstream;
 
 EOS_BEST::EOS_BEST() {
+    music_message.set_tag("🏆 EOS_BEST");
     set_EOS_id(17);
     set_number_of_tables(0);
     set_eps_max(1e5);

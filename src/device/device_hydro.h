@@ -230,7 +230,7 @@ class DeviceHydro {
   private:
     const InitData &DATA;
     const EOS &eos_;
-    mutable pretty_ostream music_message;
+    mutable pretty_ostream music_message{std::string("🚀 DeviceHydro")};
     std::unique_ptr<music_device::Backend> backend_;
     std::shared_ptr<HydroSourceBase> source_;
     bool float_ = false;
