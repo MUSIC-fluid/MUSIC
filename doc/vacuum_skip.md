@@ -27,8 +27,11 @@ noted.
 * **mu_B / T cache.** With diffusion on, mu_B / T is only filled in the
   cells that are read: those that are not frozen, and their neighbours.
 * **Sources.** Skipping is off while a hydro source can still deposit
-  energy (until `source_tau_max + dtau`), since the source can heat any
-  cell.
+  energy, since the source can heat any cell. That lasts until
+  `get_source_tau_end() + dtau`: `source_tau_max` for the sources that
+  deposit within one time-step bin (strings, TATB, T^{mu nu}), and
+  `source_tau_max + 5 sigma_tau` for AMPT, whose partons deposit with a
+  Gaussian tail in tau.
 * **Log.** At the end the run logs the fraction of cell updates and faces
   that were skipped.
 

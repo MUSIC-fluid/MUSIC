@@ -45,6 +45,12 @@ class HydroSourceBase {
     //! Return false only when all source terms vanish at this stage time.
     virtual bool is_active_at(double tau) const { return true; }
 
+    //! the last tau at which the source deposits, apart from the time-step
+    //! bin it is deposited in (the vacuum skipping of Advance and
+    //! DeviceHydro stays off until one delta_tau after it). A source with a
+    //! tail in tau (AMPT) overrides it
+    virtual double get_source_tau_end() const { return (source_tau_max_); }
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     virtual void get_hydro_energy_source(

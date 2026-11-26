@@ -176,7 +176,7 @@ void Advance::AdvanceIt(
     const bool skipVacuum =
         (DATA.vacuumSkipEnergy > 0.
          && !(flag_add_hydro_source
-              && tauStage <= hydro_source_terms_ptr->get_source_tau_max()
+              && tauStage <= hydro_source_terms_ptr->get_source_tau_end()
                                  + DATA.delta_tau));
     if (skipVacuum) {
         nCellsFrozen_ += markVacuum(arenaFieldsCurr);

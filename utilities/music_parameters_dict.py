@@ -111,6 +111,11 @@ hydro_dict = {
                                # (MUSIC's default is 1 when beastMode > 0)
     'Runge_Kutta_order': 2,  # order of Runge_Kutta for temporal evolution (must be 1 or 2)
     'boost_invariant': 0,    # initial condition is boost invariant
+    'vacuumSkipEnergy': -1,  # GeV/fm^3: interior faces whose stencil is below it
+                             # get zero flux and cells whose stencil is below it
+                             # skip the viscous update (doc/vacuum_skip.md).
+                             # 0: off; negative: the default of beastMode,
+                             # 1e-8 (beastMode 0), 1e-6 (1), 1e-4 (>= 2)
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,               # turn on viscosity in the evolution

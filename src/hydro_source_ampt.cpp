@@ -169,7 +169,7 @@ void HydroSourceAMPT::get_hydro_energy_source(
     const double prefactor_prep = 1. / (M_PI * sigma_x * sigma_x);
     const double prefactor_tau = 1. / dtau;
     const double prefactor_etas = 1. / (sqrt(M_PI) * sigma_eta);
-    const double n_sigma_skip = 5.;
+    const double n_sigma_skip = kNSigmaSkip;
     const double skip_dis_x = n_sigma_skip * sigma_x;
     const double skip_dis_eta = n_sigma_skip * sigma_eta;
     const double exp_tau = 1. / tau;
@@ -229,7 +229,7 @@ double HydroSourceAMPT::get_hydro_rhob_source(
     const double dtau = DATA.delta_tau;
 
     const double exp_tau = 1.0 / tau;
-    const double n_sigma_skip = 5.;
+    const double n_sigma_skip = kNSigmaSkip;
     const double prefactor_prep = 1. / (M_PI * sigma_x * sigma_x);
     const double prefactor_etas = 1. / (sqrt(M_PI) * sigma_eta);
     const double prefactor_tau = 1. / dtau;

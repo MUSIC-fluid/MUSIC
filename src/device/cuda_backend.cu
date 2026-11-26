@@ -932,11 +932,22 @@ struct Device : public DeviceBase {
             // the second stage sPrev is the first stage's sIn (aCur)
             const bool withMuBOverT = (viscous && P.diff == 1);
             if (withMuBOverT && aCur == NULL) {
-                if (!ok(cudaMalloc((void **)&aCur, sizeof(Real) * n),
-                        "cudaMalloc", err, len)
-                    || !ok(cudaMalloc((void **)&aOld, sizeof(Real) * n),
-                           "cudaMalloc", err, len))
+                // both or neither: a failed second allocation must not
+                // leave aCur set, or a later stage would skip this and
+                // write through aOld = NULL
+                Real *a = NULL, *b = NULL;
+                const bool okA = ok(cudaMalloc((void **)&a, sizeof(Real) * n),
+                                    "cudaMalloc", err, len);
+                const bool okB =
+                    okA
+                    && ok(cudaMalloc((void **)&b, sizeof(Real) * n),
+                          "cudaMalloc", err, len);
+                if (!okB) {
+                    if (okA) cudaFree(a);
                     return 1;
+                }
+                aCur = a;
+                aOld = b;
             }
             // without diffusion the cell kernel does not read them
             const Real *aIn =

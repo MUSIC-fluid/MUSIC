@@ -32,6 +32,13 @@ class HydroSourceAMPT : public HydroSourceBase {
     HydroSourceAMPT(const InitData &DATA_in);
     ~HydroSourceAMPT();
 
+    //! the partons deposit within kNSigmaSkip widths of their tau, so the
+    //! last ones until tau_max + kNSigmaSkip sigma_tau
+    static constexpr double kNSigmaSkip = 5.;
+    double get_source_tau_end() const override {
+        return (get_source_tau_max() + kNSigmaSkip * get_sigma_tau());
+    }
+
     //! This function reads in the partons information from the AMPT model
     void read_in_AMPT_partons();
 
@@ -39,15 +46,15 @@ class HydroSourceAMPT : public HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const;
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const override;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu) const;
+        const FlowVec &u_mu) const override;
 
-    void prepare_list_for_current_tau_frame(const double tau_local);
+    void prepare_list_for_current_tau_frame(const double tau_local) override;
 };
 
 #endif  // SRC_HYDRO_SOURCE_AMPT_H_

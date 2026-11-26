@@ -818,7 +818,7 @@ bool DeviceHydro::vacuumSkipAt(double tauRk) const {
              || source_->get_number_of_sources() > 0));
     return (
         !(withSource
-          && tauRk <= source_->get_source_tau_max() + DATA.delta_tau));
+          && tauRk <= source_->get_source_tau_end() + DATA.delta_tau));
 }
 
 template <typename Real>
