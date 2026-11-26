@@ -222,7 +222,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     if (std::isfinite(total_energy) && participants > 0.
         && total_energy > participants * Util::m_N) {
         beamRapidity = acosh(total_energy / (participants * Util::m_N));
-        music_message << "HydroSourceStrings: beam rapidity of the event = "
+        music_message << "beam rapidity of the event = "
                       << beamRapidity << " (from ecm: " << DATA.beam_rapidity
                       << ")";
         music_message.flush("info");
@@ -242,10 +242,10 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         }
         minSigmaEta = std::min(minSigmaEta, it->sigma_eta);
     }
-    music_message << "HydroSourceStrings: tau_min = " << get_source_tau_min()
+    music_message << "tau_min = " << get_source_tau_min()
                   << " fm/c.";
     music_message.flush("info");
-    music_message << "HydroSourceStrings: tau_max = " << get_source_tau_max()
+    music_message << "tau_max = " << get_source_tau_max()
                   << " fm/c.";
     music_message.flush("info");
 
@@ -363,7 +363,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
                     (static_cast<int>(DATA.delta_tau * 1000)) / 1000.;
             DATA.nt = static_cast<int>(DATA.tau_size / DATA.delta_tau + 0.5);
         }
-        music_message << "[HydroSource] Grid info: x_size = " << DATA.x_size
+        music_message << "Grid info: x_size = " << DATA.x_size
                       << ", y_size = " << DATA.y_size
                       << ", dx = " << DATA.delta_x
                       << " fm, dy = " << DATA.delta_y

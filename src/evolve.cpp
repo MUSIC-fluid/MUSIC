@@ -618,7 +618,7 @@ int Evolve::EvolveIt(
 
         // below echo_level 5 only every 10th step
         if (DATA.echo_level >= 5 || it % 10 == 0) {
-            music_message << emoji::clock() << " Done time step " << it
+            music_message << "Done time step " << it
                           << "/" << itmax << " tau = " << tau << " fm/c";
             music_message.flush("info");
         }

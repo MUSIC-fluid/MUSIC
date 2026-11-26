@@ -236,11 +236,11 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.delta_eta = 0.1;
     }
-    music_message << " DeltaX = " << parameter_list.delta_x << " fm";
+    music_message << "DeltaX = " << parameter_list.delta_x << " fm";
     music_message.flush("info");
-    music_message << " DeltaY = " << parameter_list.delta_y << " fm";
+    music_message << "DeltaY = " << parameter_list.delta_y << " fm";
     music_message.flush("info");
-    music_message << " DeltaETA = " << parameter_list.delta_eta;
+    music_message << "DeltaETA = " << parameter_list.delta_eta;
     music_message.flush("info");
 
     // Initial_time_tau_0:  in fm
@@ -249,10 +249,9 @@ InitData read_in_parameters(std::string input_file) {
     // Delta_Tau: time step to use in [fm].
     parameter_list.delta_tau = getParameter(input_file, "Delta_Tau", 0.02);
     parameter_list.dtaudxRatio = getParameter(input_file, "dtaudxRatio", 0.1);
-    music_message << " dtaudxRatio = " << parameter_list.dtaudxRatio;
+    music_message << "dtaudxRatio = " << parameter_list.dtaudxRatio;
     music_message.flush("info");
-
-    music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
+    music_message << "DeltaTau = " << parameter_list.delta_tau << " fm";
     music_message.flush("info");
 
     // Total_evolution_time_tau
@@ -262,10 +261,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "Total_evolution_time_tau", 50.));
     parameter_list.nt = static_cast<int>(
         parameter_list.tau_size / (parameter_list.delta_tau) + 0.5);
-    music_message << "read_in_parameters: Time step size = "
-                  << parameter_list.delta_tau;
-    music_message.flush("info");
-    music_message << "read_in_parameters: Number of time steps required = "
+    music_message << "Number of time steps required = "
                   << parameter_list.nt;
     music_message.flush("info");
 
@@ -1011,11 +1007,10 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size / (parameter_list.delta_tau) + 0.5);
-            music_message << "read_in_parameters: Time step size = "
+            music_message << "Time step size = "
                           << parameter_list.delta_tau;
             music_message.flush("info");
-            music_message << "read_in_parameters: "
-                          << "Number of time steps required = "
+            music_message << "Number of time steps required = "
                           << parameter_list.nt;
             music_message.flush("info");
         }
