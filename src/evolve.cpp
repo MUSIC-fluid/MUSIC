@@ -186,15 +186,22 @@ int Evolve::EvolveIt(
                     if (!checkOnDevice) syncAll();
                     const CoarseningError err =
                         coarseningError(*fpCurr, checkOnDevice);
-                    music_message
-                        << "BeastMode: tau = " << tau << " fm/c, coarsening "
-                        << "error e mean = " << err.eMean
-                        << ", max = " << err.eMax << ", u mean = " << err.uMean
-                        << ", max = " << err.uMax << ", cells = " << err.nCells;
-                    music_message.flush("info");
                     coarsenGrid =
                         (err.nCells > 0
                          && err.eMean < DATA.beastModeCoarsenTolerance);
+                    // the indicator of a check that keeps the grid, only
+                    // above the default echo_level (9): a coarsening logs
+                    // the new grid below
+                    if (!coarsenGrid && DATA.echo_level > 9) {
+                        music_message
+                            << "BeastMode: tau = " << tau
+                            << " fm/c, don't coarsen yet: e mean = "
+                            << err.eMean << ", max = " << err.eMax
+                            << ", u mean = " << err.uMean
+                            << ", max = " << err.uMax
+                            << ", cells = " << err.nCells;
+                        music_message.flush("info");
+                    }
                 }
                 // the time step follows the grid when it can; otherwise it
                 // doubles on the CFL margin alone
