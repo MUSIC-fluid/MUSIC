@@ -1,0 +1,189 @@
+# Skipping near-vacuum cells (`vacuumSkipEnergy`)
+
+2026-11-25, branch `gpu` at 3be45fe plus the uncommitted changes described
+here. Apple M4, 10 OpenMP threads, CPU hydro (gpu_backend 0).
+
+## What it does
+
+`vacuumSkipEnergy` (GeV/fm^3; 0 turns it off; the default depends on
+`beastMode`, see Defaults) is the threshold below which a cell counts as vacuum. In each RK stage
+`Advance::markVacuum` marks the vacuum cells of the current slice:
+
+* **Faces.** An interior face whose four KT stencil cells (ILL, IL, IR,
+  IRR) are all vacuum gets zero flux. `computeFaceFluxes` skips its
+  reconstruction and the Riemann solve. The faces on the grid boundary are
+  always computed, because `check_conservation_law` computes the boundary
+  outflow from them.
+* **Cells.** A cell is *frozen* if it is not at the grid edge and it and
+  its neighbours at +-1 and +-2 along each axis are all vacuum. A frozen
+  cell still gets `FirstRKStepT` (its fluxes are zero, so this is the
+  conservative tau update of T^{tau mu} and J^tau). It skips the velocity
+  derivatives, the dissipative sources and the W divergences. Its W^{mu nu}
+  and Pi are only diluted by tau, `tau / (tau + dtau)` in the first stage
+  (`Advance::frozenViscousUpdate`). In the second stage they are copied,
+  so the backward differences of tau W telescope as they do when
+  V* = V_{n+1}.
+* **mu_B / T cache.** With diffusion on, mu_B / T is only filled in the
+  cells that are read: those that are not frozen, and their neighbours.
+* **Sources.** Skipping is off while a hydro source can still deposit
+  energy (until `source_tau_max + dtau`), since the source can heat any
+  cell.
+* **Log.** At the end the run logs the fraction of cell updates and faces
+  that were skipped.
+
+The logic is all in `Advance::AdvanceIt`, so it covers gpu_backend 0 only.
+The device backends do not read the parameter yet.
+
+## Test problem
+
+The setup is the full event of `doc/openmp_cpu_scaling.md`: TATB,
+96 x 96 x 64 cells, EoS 14 (NEOS-BQS), shear + bulk + second order + baryon
+diffusion, 295 steps, tau = 1.35 to 6 fm, and freeze-out at
+e_FO = 0.3 GeV/fm^3. The conservation numbers are the maximum over the run
+of `global_conservation_laws.dat`, boundary outflow included.
+
+## Viscous hydro: speed against conservation
+
+| e_vac (GeV/fm^3) | wall (s) | cell updates skipped | faces skipped | max dE/E0 | max dPz/E0 | max dN_B/N_B0 |
+|---|---|---|---|---|---|---|
+| 0 (off) | 119.1 | | | 1.6e-7 | 2.2e-7 | 2.2e-7 |
+| 1e-10 | 105.8 | 21 % | 27 % | 1.7e-7 | 2.6e-7 | 2.2e-7 |
+| 1e-8 | 100.0 | 31 % | 39 % | 1.2e-7 | 2.0e-7 | 2.3e-7 |
+| **1e-6** | **84.1** | **46 %** | **54 %** | **2.2e-6** | **7.4e-7** | **2.8e-7** |
+| 1e-4 | 64.9 | 64 % | 71 % | 8.5e-5 | 6.0e-5 | 7.8e-5 |
+| 1e-3 | 55.7 | 72 % | 79 % | 1.6e-3 | 1.1e-2 | 3.9e-4 |
+
+* **Up to 1e-8, conservation is unchanged.** The deviations stay at the
+  1e-7 level of the run without skipping.
+* **At 1e-6, the run is 29 % faster** and dE/E0 is 2e-6. That is ten times
+  the baseline, but still at the O(dtau^2) level that the integration
+  tests allow (2e-5).
+* **At 1e-4 and above, the deviations grow** smoothly at late times
+  (tau > 4.5 fm), when the fireball has spread into the dilute region.
+
+### Where the leak comes from
+
+* **Ideal hydro conserves exactly at any threshold.** The ideal run of the
+  same event gives dE/E0 = 5.9e-9 at both 1e-4 and 1e-3 (1.6e-8 without
+  skipping), and it is 2 - 2.3x faster (36.8 s against 19.0 s and 16.2 s).
+  The zero-flux faces and the frozen cells conserve exactly by
+  construction.
+* **The viscous leak is not in the frozen W update.** Skipping only the
+  faces, while every cell keeps its full viscous update, gives the same
+  dE/E0 at 1e-4 (1.2e-4). Copying W in the second stage instead of
+  diluting it changes nothing either.
+* **It comes from zero ideal fluxes in contact with viscous dynamics.** The
+  cells just outside the frozen region see a stalled neighbour. The
+  velocity gradient across that boundary is large, so W there is large
+  compared with e. `QuestRevert` then limits W, and it does not conserve
+  T^{mu nu}. The leak therefore scales with how much energy sits in the
+  cells near the threshold, and that grows quickly above 1e-6.
+* **Two errors fixed along the way:**
+  * Copying the frozen cell state, instead of the zero-flux update, made
+    tau T^{tau tau} grow by dtau / tau every step (2.4e-3 at 1e-4).
+  * Zeroing the boundary faces broke the outflow term of the
+    conservation check.
+
+## Observables
+
+These come from the freeze-out surface at e_FO = 0.3 GeV/fm^3, all
+per-thread files summed. The table shows the relative change against the
+run without skipping. The weights are u^mu dsigma_mu; "v2 proxy" is
+<u_x^2 - u_y^2> / <u_x^2 + u_y^2>.
+
+| e_vac | surface cells | V = sum u.dsigma | <u_perp> | v2 proxy | N_B on the surface | <T> |
+|---|---|---|---|---|---|---|
+| (off: values) | 165895 | 114.49 | 0.2023 | 0.0813 | 7.262 | 0.747 |
+| 1e-10 | same | -2e-12 | 8e-11 | 2e-9 | 2e-12 | -7e-13 |
+| 1e-8 | same | 1e-11 | 7e-12 | -8e-11 | 1e-11 | 3e-13 |
+| 1e-6 | same | 1e-12 | 3e-12 | 8e-11 | -8e-13 | 2e-13 |
+| 1e-4 | same | 6e-12 | 1e-10 | -2e-9 | -1e-12 | 2e-12 |
+| 1e-3 | same | 6e-9 | 5e-8 | 1e-6 | 6e-8 | -5e-9 |
+
+The surface is the same to the float precision of the output (about 1e-7)
+for every threshold up to 1e-4. Even at 1e-3 the changes are around 1e-6.
+The conservation leak is in the dilute matter outside the surface, which
+is energy that particlization never sees. A threshold more than 2 - 3
+orders of magnitude below e_FO cannot reach the surface within the event.
+
+## Also fixed: the ideal-gas mu_B / T solve in dilute cells
+
+The integration test (EoS 0, the ideal gas with baryons) was first
+**slower** with skipping: 14.2 s against 5.1 s. That had two causes.
+
+1. **`EOS_idealgas::get_muB_over_T` underflow.** When n_B^4 / e^3
+   underflows (n_B ~ 1e-80 in the dilute tails), the table guess is 0. The
+   code then called the robust solver `x_of_rho`, which started from
+   x = 1e-300 and took its full 60 log/exp Newton steps without reaching
+   the answer. With skipping, the frozen cells keep their tiny n_B instead
+   of being diluted further, so 15 M calls took this path, against 0.27 M
+   without skipping. In this limit x << 1 and the exact small-x solution
+   is x = 27 n (3a / e)^{3/4} / b. The code now returns it directly. The
+   outputs are bit-identical (conservation file, with and without
+   skipping), because the old path converged to the same value or to
+   something negligible in these cells. This also speeds up every EoS 0
+   run with baryons in its tails.
+2. **Load imbalance in `computeMuBOverT` and `computePressure`.** Both
+   used a static schedule, while the EoS cost differs from cell to cell.
+   They now use `schedule(dynamic, 512)`, which is bit-identical.
+
+With both fixes the integration test takes **3.8 s with skipping against
+5.1 s without**. The EoS 14 full event is not affected: its table lookups
+cost the same in every cell.
+
+## Defaults
+
+When `vacuumSkipEnergy` is not in the input file (or is negative), the
+default follows `beastMode` (`read_in_parameters.cpp`). The beastMode
+used is the final one, after the reset of beastMode >= 2 to 1 for the
+evolution output:
+
+| beastMode | default vacuumSkipEnergy (GeV/fm^3) |
+|---|---|
+| 0 | 1e-8 |
+| 1 | 1e-6 |
+| >= 2 | 1e-4 |
+
+A value given in the input overrides the default, and 0 turns skipping
+off. With these defaults all 25 integration tests and the unit tests
+pass. The `vacuum_skip` test sets 0 explicitly for its reference run.
+
+## Recommendation
+
+* **Viscous hydro: `vacuumSkipEnergy 1e-6`.** That is 5.5 orders of
+  magnitude below e_FO = 0.3. It gives 1.4x on this grid, with energy
+  conserved to 2e-6 and an unchanged freeze-out surface. 1e-8 is the safe
+  choice when conservation at the 1e-7 level matters, and gives 1.2x.
+* **Ideal hydro: any threshold well below e_FO**, for example 1e-4, which
+  gives 2x. Conservation is exact.
+* The gain grows with the vacuum fraction of the grid, so it is larger on
+  generous grids and late in the event. It is 0 % at the start of a tight
+  grid.
+* Set it to 0 for the tests that check the dilute dynamics themselves.
+
+## Tests
+
+* **New integration test `vacuum_skip`.** It runs a 41 x 41 x 49 TATB event
+  with shear, bulk and diffusion (EoS 0), with and without
+  `vacuumSkipEnergy 1e-6`. It checks that:
+  * more than 10 % of the cell updates are skipped (35 % here);
+  * E and N_B are conserved to 2e-5 (measured: 1e-7);
+  * E differs from the run without skipping by less than 1e-6 (measured:
+    9e-10);
+  * the freeze-out surface has the same number of cells and the same
+    volume (measured: identical).
+* **All 25 integration tests pass** (memory_history is skipped without its
+  driver), and the unit tests pass. With `vacuumSkipEnergy 0` the outputs
+  are bit-identical to before.
+
+## Not done
+
+* **Device backends.** The CPU backend, Metal and CUDA ignore the
+  parameter. The same face mask and frozen-cell branch would fit into the
+  face and cell kernels, but on a GPU skipped threads in a warp save
+  little unless the frozen cells are compacted first. Compacting at tile
+  granularity (for example 8 x 8 x 1) would be the way to do it there.
+* **Tiles on the CPU.** The mask is built per cell in every stage (two
+  passes over the grid, about 1 % of the time). An active-tile list would
+  also skip the loop overhead of the frozen cells. That is a further gain,
+  but a small one.

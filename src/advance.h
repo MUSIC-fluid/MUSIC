@@ -56,6 +56,27 @@ class Advance {
     //! of each AdvanceIt (computeFaceFluxes)
     FaceFluxes faceFluxes_;
 
+    //! vacuumSkipEnergy: per storage index of arenaFieldsCurr, ghost cells
+    //! included, 1 if e < vacuumSkipEnergy (vacuum_), and for the cells of
+    //! the grid 1 if the cell and the cells up to two away along each axis
+    //! are vacuum (frozen_: its update is skipped)
+    std::vector<unsigned char> vacuum_;
+    std::vector<unsigned char> frozen_;
+    //! the cells whose mu_B / T is read: all but the frozen cells whose
+    //! neighbours are frozen too (U_derivative reads one cell away)
+    std::vector<unsigned char> needMuBOverT_;
+    //! cell updates and faces of the run, and how many were skipped
+    long long nCellUpdates_ = 0, nCellsFrozen_ = 0;
+    long long nFaces_ = 0, nFacesSkipped_ = 0;
+
+    //! fills vacuum_ and frozen_ for arena; returns the frozen cells
+    long long markVacuum(const Fields &arena);
+    //! the viscous update of a frozen cell (see AdvanceIt)
+    void frozenViscousUpdate(
+        const double tau, const int rk_flag, const Fields &arenaFieldsPrev,
+        const Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+        const int fieldIdx) const;
+
     //! KT flux through one face (see computeFaceFluxes)
     void computeFaceFlux(
         const double tau, const Fields &arena,
@@ -95,6 +116,8 @@ class Advance {
     Advance(
         const EOS &eosIn, const InitData &DATA_in,
         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+    //! reports the skipped vacuum work (vacuumSkipEnergy > 0)
+    ~Advance();
 
     //! source terms enter the update (the device path has none yet)
     bool hasHydroSource() const { return (flag_add_hydro_source); }
@@ -133,8 +156,10 @@ class Advance {
 
     //! fills alpha[idx] = mu_B / max(T, small_eps) of every cell of arena,
     //! ghost cells included, as U_derivative evaluates it
+    //! need (optional): only the cells with need[idx] != 0
     void computeMuBOverT(
-        const Fields &arena, std::vector<double> &alpha) const;
+        const Fields &arena, std::vector<double> &alpha,
+        const std::vector<unsigned char> *need = nullptr) const;
 
     void FirstRKStepW(
         const double tau_it, Fields &arenaFieldsPrev, const Cell_small &grid_c,
@@ -153,9 +178,12 @@ class Advance {
 
     //! fills fluxes with the KT fluxes of arena at tau through every face;
     //! pressure: computePressure of arena
+    //! vacuum (optional, vacuum_): faces whose four stencil cells are
+    //! vacuum get zero flux
     void computeFaceFluxes(
         const double tau, const Fields &arena,
-        const std::vector<double> &pressure, FaceFluxes &fluxes);
+        const std::vector<double> &pressure, FaceFluxes &fluxes,
+        const std::vector<unsigned char> *vacuum = nullptr);
 
     //! adds the flux divergence (and the Milne geometric terms) of the
     //! cell (ix, iy, ieta) times delta_tau to qi; fluxes: computeFaceFluxes

@@ -90,7 +90,14 @@ double EOS_idealgas::get_muB_over_T(const double e, const double rhob) const {
     const int i = std::min(static_cast<int>(pos), int(x_table_.size()) - 2);
     const double f = pos - i;
     double x = x_table_[i] * (1. - f) + x_table_[i + 1] * f;
-    if (x <= 0.) return (x_of_rho(rho, x));
+    if (x <= 0.) {
+        // rho below the first table step by more than the double range:
+        // C (n^4) underflowed, as in the dilute tails (n_B ~ 1e-80). There
+        // x << 1 and the small-x limit N = b x / 27, D = a of
+        // n / e^{3/4} = N / (3 D)^{3/4} is exact to rounding. (x_of_rho
+        // started at 1e-300 and could not reach it in its 60 steps)
+        return (27. * n * pow(3. * coeff_a() / e, 0.75) / coeff_b());
+    }
     const double b = coeff_b();
     for (int iter = 0; iter < 8; iter++) {
         const double N = N_of_x(x), D = D_of_x(x);

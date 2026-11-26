@@ -99,6 +99,10 @@ InitData read_in_parameters(std::string input_file) {
         getParameter(input_file, "beastModeCoarsenTolerance", 0.01);
     parameter_list.beastModeMaxCoarsenFactor =
         getParameter(input_file, "beastModeMaxCoarsenFactor", 4);
+    // vacuumSkipEnergy: negative (not given) picks the default of the
+    // beastMode, below (after beastMode may have been reset)
+    parameter_list.vacuumSkipEnergy =
+        getParameter(input_file, "vacuumSkipEnergy", -1.);
     parameter_list.gridPaddingCells = 0;
 
     //////////////////////////////////////////////////////////////////////////
@@ -503,6 +507,19 @@ InitData read_in_parameters(std::string input_file) {
                       << ", resetting beastMode=1";
         music_message.flush("info");
         parameter_list.beastMode = 1;
+    }
+    // default vacuumSkipEnergy (GeV/fm^3) by beastMode, see
+    // doc/vacuum_skip.md: 1e-8 keeps the conservation laws at the level of
+    // the run without skipping, 1e-6 conserves E to ~2e-6, 1e-4 to ~1e-4
+    // in viscous hydro (exact in ideal hydro)
+    if (parameter_list.vacuumSkipEnergy < 0.) {
+        if (parameter_list.beastMode == 0) {
+            parameter_list.vacuumSkipEnergy = 1e-8;
+        } else if (parameter_list.beastMode == 1) {
+            parameter_list.vacuumSkipEnergy = 1e-6;
+        } else {
+            parameter_list.vacuumSkipEnergy = 1e-4;
+        }
     }
 
     // only works for output_evolution_data == 1

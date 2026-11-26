@@ -51,6 +51,15 @@ typedef struct init_data {
     //! beastMode >= 2: delta_tau, delta_x and delta_y grow at most by this
     //! factor (a power of 2) during the run
     int beastModeMaxCoarsenFactor;
+    //! vacuumSkipEnergy (GeV/fm^3, 0: off; default 1e-8 for beastMode 0,
+    //! 1e-6 for beastMode 1, 1e-4 for beastMode >= 2): cells below it are
+    //! vacuum. A
+    //! face whose four stencil cells are vacuum gets zero flux, and a cell
+    //! whose stencil (two cells along each axis) is all vacuum skips the
+    //! face reconstructions and the viscous update: its T^{tau mu} gets the
+    //! zero-flux update and W, Pi are only diluted by tau (Advance::AdvanceIt).
+    //! Not while sources still deposit energy. See doc/vacuum_skip.md
+    double vacuumSkipEnergy;
     //! extra grid cells added on each side when re-running hydro
     //! (used by Initial_profile 11/111; in number of cells, not fm)
     int gridPaddingCells;

@@ -62,6 +62,7 @@ import argparse
 import glob
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -421,6 +422,47 @@ def test_conservation_outflow(r):
     report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 5e-5)
     report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0], 1e-5)
     report("max |Px - Px0| / E0", np.max(np.abs(Px - Px[0])) / E[0], 1e-6)
+
+
+def test_vacuum_skip(r):
+    # vacuumSkipEnergy: faces whose stencil is all below it get zero flux
+    # and the cells whose stencil is all below it skip the face
+    # reconstructions and the viscous update. The surface at e_fo (far
+    # above the threshold) must not change, and E, N_B stay conserved
+    def run(tag, extra):
+        wd = r.workdir("vacuum_skip_" + tag)
+        write_TATB(wd, 41, 12.0, NA=15., NB=10., b=1.0)
+        params = tatb_params(41, 12.0, 49, 12.0, 1.8, **extra)
+        params.update(freeze_out_params(0.3, every=5))
+        params.update({
+            "Viscosity_Flag_Yes_1_No_0": 1,
+            "Include_Shear_Visc_Yes_1_No_0": 1,
+            "Shear_to_S_ratio": 0.12,
+            "Include_Bulk_Visc_Yes_1_No_0": 1,
+            "Include_second_order_terms": 1,
+            "turn_on_baryon_diffusion": 1,
+            "kappa_coefficient": 0.2,
+        })
+        log, _, seconds = r.run(wd, params)
+        return log, read_conservation(wd), read_surface(wd), seconds
+
+    _, c0, s0, t0 = run("off", {"vacuumSkipEnergy": 0.})
+    log, c1, s1, t1 = run("on", {"vacuumSkipEnergy": 1e-6})
+    skipped = re.findall(r"vacuum skip .*\(([0-9.]+)%\) and", log)
+    check(skipped, "no vacuum skip summary in the log")
+    print("    {}% of the cell updates skipped, {:.1f} s -> {:.1f} s".format(
+        skipped[-1], t0, t1))
+    check(float(skipped[-1]) > 10., "almost nothing was skipped")
+    E, NB = c1[:, 1], c1[:, 5]
+    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 2e-5)
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-5)
+    report("max |E - E(off)| / E0", np.max(np.abs(E - c0[:, 1])) / E[0], 1e-6)
+    check(len(s0) == len(s1), "the freeze-out surface has {} cells, {} "
+          "without skipping".format(len(s1), len(s0)))
+    def volume(s):
+        return np.sum(s[:, 4:8] * s[:, 8:12])
+    report("|V_surface / V_surface(off) - 1|", rel(volume(s1), volume(s0)),
+           1e-6)
 
 
 def _write_lumpy_TATB(wd, n, size):
@@ -1625,6 +1667,7 @@ TESTS = [
     ("lumpy_second_order", test_lumpy_second_order),
     ("lumpy_viscous_Du", test_lumpy_viscous_Du),
     ("lumpy_diffusion", test_lumpy_diffusion),
+    ("vacuum_skip", test_vacuum_skip),
     ("freezeout_balance", test_freezeout_balance),
     ("beastmode3", test_beastmode3),
     ("rerun", test_rerun),

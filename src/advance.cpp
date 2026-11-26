@@ -44,6 +44,112 @@ Advance::Advance(
     }
 }
 
+Advance::~Advance() {
+    if (nCellUpdates_ == 0 || DATA.vacuumSkipEnergy <= 0.) return;
+    music_message << "vacuum skip (e < " << DATA.vacuumSkipEnergy
+                  << " GeV/fm^3): " << nCellsFrozen_ << " of " << nCellUpdates_
+                  << " cell updates ("
+                  << 100. * nCellsFrozen_ / std::max(1LL, nCellUpdates_)
+                  << "%) and " << nFacesSkipped_ << " of " << nFaces_
+                  << " faces ("
+                  << 100. * nFacesSkipped_ / std::max(1LL, nFaces_)
+                  << "%) skipped";
+    music_message.flush("info");
+}
+
+//! the viscous update of a frozen cell: tau W^{mu nu}, tau Pi and
+//! tau Pi_chem are kept in the first stage (W* tau_{n+1} = W_n tau_n), and
+//! the second stage keeps the predictor, W_{n+1} = W*. Then the RK average
+//! of the backward differences of tau V telescopes as in
+//! stage2ViscousFixedPoint (V_{n+1} = V*), also when the cell was not
+//! frozen in the first stage
+void Advance::frozenViscousUpdate(
+    const double tau, const int rk_flag, const Fields &arenaFieldsPrev,
+    const Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+    const int fieldIdx) const {
+    const double tauNext = tau + DATA.delta_tau;
+    const double s = tau / tauNext;
+    auto update = [&](const FieldComponent &prev, const FieldComponent &curr,
+                      FieldComponent &next) {
+        next[fieldIdx] = (rk_flag == 0 ? s * curr[fieldIdx] : curr[fieldIdx]);
+    };
+    for (int k = 0; k < 14; k++)
+        update(
+            arenaFieldsPrev.Wmunu_[k], arenaFieldsCurr.Wmunu_[k],
+            arenaFieldsNext.Wmunu_[k]);
+    update(
+        arenaFieldsPrev.piBulk_, arenaFieldsCurr.piBulk_,
+        arenaFieldsNext.piBulk_);
+    update(
+        arenaFieldsPrev.piBulkChem_, arenaFieldsCurr.piBulkChem_,
+        arenaFieldsNext.piBulkChem_);
+}
+
+long long Advance::markVacuum(const Fields &arena) {
+    const int ncells = arena.nStorage();
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const int neta = arena.nEta();
+    const double eVacuum = DATA.vacuumSkipEnergy / Util::hbarc;  // 1/fm^4
+    vacuum_.resize(ncells);
+    frozen_.assign(ncells, 0);
+#pragma omp parallel for schedule(static)
+    for (int idx = 0; idx < ncells; idx++) {
+        vacuum_[idx] = (arena.e_[idx] < eVacuum ? 1 : 0);
+    }
+    // the faces of a cell read the cells up to two away along each axis
+    // (their KT stencils), the derivatives one away
+    const int sx = (nx > 1), sy = (ny > 1), seta = (neta > 1);
+    long long nFrozen = 0;
+#pragma omp parallel for collapse(3) schedule(static) reduction(+ : nFrozen)
+    for (int ieta = 0; ieta < neta; ieta++)
+        for (int iy = 0; iy < ny; iy++)
+            for (int ix = 0; ix < nx; ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, ieta);
+                // a cell at the grid edge has a boundary face, which is
+                // always computed (computeFaceFluxes)
+                const bool atEdge =
+                    ((sx && (ix == 0 || ix == nx - 1))
+                     || (sy && (iy == 0 || iy == ny - 1))
+                     || (seta && (ieta == 0 || ieta == neta - 1)));
+                bool all = (!atEdge && vacuum_[idx] == 1);
+                for (int k = 1; k <= 2 && all; k++) {
+                    all = (vacuum_[arena.getFieldIdxHalo(ix + k * sx, iy, ieta)]
+                           && vacuum_[arena.getFieldIdxHalo(ix - k * sx, iy, ieta)]
+                           && vacuum_[arena.getFieldIdxHalo(ix, iy + k * sy, ieta)]
+                           && vacuum_[arena.getFieldIdxHalo(ix, iy - k * sy, ieta)]
+                           && vacuum_[arena.getFieldIdxHalo(
+                               ix, iy, ieta + k * seta)]
+                           && vacuum_[arena.getFieldIdxHalo(
+                               ix, iy, ieta - k * seta)]);
+                }
+                if (all) {
+                    frozen_[idx] = 1;
+                    nFrozen++;
+                }
+            }
+    // mu_B / T is read at the cells that are not frozen and at their
+    // neighbours (U_derivative::MakeDSpatial). A frozen cell is not at the
+    // grid edge, so its neighbours are cells of the grid; the ghost cells
+    // are always filled
+    needMuBOverT_.assign(ncells, 1);
+#pragma omp parallel for collapse(3) schedule(static)
+    for (int ieta = 0; ieta < neta; ieta++)
+        for (int iy = 0; iy < ny; iy++)
+            for (int ix = 0; ix < nx; ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, ieta);
+                needMuBOverT_[idx] =
+                    !(frozen_[idx]
+                      && frozen_[arena.getFieldIdx(ix + sx, iy, ieta)]
+                      && frozen_[arena.getFieldIdx(ix - sx, iy, ieta)]
+                      && frozen_[arena.getFieldIdx(ix, iy + sy, ieta)]
+                      && frozen_[arena.getFieldIdx(ix, iy - sy, ieta)]
+                      && frozen_[arena.getFieldIdx(ix, iy, ieta + seta)]
+                      && frozen_[arena.getFieldIdx(ix, iy, ieta - seta)]);
+            }
+    return (nFrozen);
+}
+
 //! this function evolves one Runge-Kutta step in tau
 void Advance::AdvanceIt(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
@@ -64,6 +170,18 @@ void Advance::AdvanceIt(
         pressureValid = false;
     }
     if (!pressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
+    // vacuumSkipEnergy: not while a source can still deposit energy into
+    // the vacuum
+    const double tauStage = tau + rk_flag * DATA.delta_tau;
+    const bool skipVacuum =
+        (DATA.vacuumSkipEnergy > 0.
+         && !(flag_add_hydro_source
+              && tauStage <= hydro_source_terms_ptr->get_source_tau_max()
+                                 + DATA.delta_tau));
+    if (skipVacuum) {
+        nCellsFrozen_ += markVacuum(arenaFieldsCurr);
+        nCellUpdates_ += static_cast<long long>(grid_nx) * grid_ny * grid_neta;
+    }
     // the first stage's slice is kept for the second stage only
     pressureCurrOwner_ = (rk_flag == 0 ? &arenaFieldsCurr : nullptr);
     // mu_B / T for the derivatives of the baryon diffusion; in the second
@@ -71,18 +189,23 @@ void Advance::AdvanceIt(
     // since
     const bool withMuBOverT =
         (DATA.viscosity_flag == 1 && DATA.turn_on_diff == 1);
+    // since. With vacuum skipping only the cells that are read are filled,
+    // and the frozen cells change between the stages: no reuse then
+    const std::vector<unsigned char> *needMuBOverT =
+        (skipVacuum ? &needMuBOverT_ : nullptr);
     if (withMuBOverT) {
         if (rk_flag == 1 && muBOverTCurrOwner_ == &arenaFieldsPrev) {
             std::swap(muBOverTPrev_, muBOverTCurr_);
         } else {
-            computeMuBOverT(arenaFieldsPrev, muBOverTPrev_);
+            computeMuBOverT(arenaFieldsPrev, muBOverTPrev_, needMuBOverT);
         }
-        computeMuBOverT(arenaFieldsCurr, muBOverTCurr_);
-        muBOverTCurrOwner_ = (rk_flag == 0 ? &arenaFieldsCurr : nullptr);
+        computeMuBOverT(arenaFieldsCurr, muBOverTCurr_, needMuBOverT);
+        muBOverTCurrOwner_ =
+            (rk_flag == 0 && !skipVacuum ? &arenaFieldsCurr : nullptr);
     }
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
-        faceFluxes_);
+        faceFluxes_, skipVacuum ? &vacuum_ : nullptr);
     // the W flux divergence (viscous runs) and d_m (tau W^{m alpha}), in
     // one pass over the faces
     diss_helper.computeWDivergences(
@@ -94,6 +217,11 @@ void Advance::AdvanceIt(
         for (int iy = 0; iy < grid_ny; iy++)
             for (int ix = 0; ix < grid_nx; ix++) {
                 int fieldIdx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+                // the cell and its stencil are vacuum: its six faces have
+                // zero flux, so FirstRKStepT keeps tau T^{tau mu} (one
+                // reconstruction), and the viscous update is replaced by
+                // the one that keeps tau W and tau Pi
+                const bool frozenCell = (skipVacuum && frozen_[fieldIdx]);
 
                 double eta_s_local = DATA.etaAt(ieta);
                 double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
@@ -104,6 +232,14 @@ void Advance::AdvanceIt(
                     tau, x_local, y_local, eta_s_local, ix, iy, ieta, rk_flag,
                     fieldIdx, arenaFieldsCurr, arenaFieldsNext, arenaFieldsPrev,
                     pressureCurr_, qiFinal, pressurePrev);
+
+                if (frozenCell) {
+                    if (DATA.viscosity_flag == 1)
+                        frozenViscousUpdate(
+                            tau, rk_flag, arenaFieldsPrev, arenaFieldsCurr,
+                            arenaFieldsNext, fieldIdx);
+                    continue;
+                }
 
                 if (DATA.viscosity_flag == 1) {
                     // arenaFieldsCurr is at tau_rk: tau_n in the first RK
@@ -336,11 +472,15 @@ void Advance::reconstructAndStore(
 }
 
 void Advance::computeMuBOverT(
-    const Fields &arena, std::vector<double> &alpha) const {
+    const Fields &arena, std::vector<double> &alpha,
+    const std::vector<unsigned char> *need) const {
     const int ncells = arena.nStorage();
     alpha.resize(ncells);
-#pragma omp parallel for
+    // dynamic: the EoS cost differs between cells (the ideal gas solves
+    // mu_B / T iteratively, slowest in the dilute cells)
+#pragma omp parallel for schedule(dynamic, 512)
     for (int idx = 0; idx < ncells; idx++) {
+        if (need != nullptr && (*need)[idx] == 0) continue;
         const double e = arena.e_[idx];
         const double rhob = arena.rhob_[idx];
         const double rhoq = arena.rhoq_[idx];
@@ -358,7 +498,8 @@ void Advance::computePressure(
     // pressure past the grid edge
     const int ncells = arena.nStorage();
     pressure.resize(ncells);
-#pragma omp parallel for
+    // dynamic: the EoS cost differs between cells (see computeMuBOverT)
+#pragma omp parallel for schedule(dynamic, 512)
     for (int idx = 0; idx < ncells; idx++) {
         pressure[idx] = eos.get_pressure(
             arena.e_[idx], arena.rhob_[idx], arena.rhoq_[idx],
@@ -857,28 +998,56 @@ void Advance::QuestRevert_qmu(
 //! either side and their outer neighbours (clamped at the grid edges).
 void Advance::computeFaceFluxes(
     const double tau, const Fields &arena, const std::vector<double> &pressure,
-    FaceFluxes &fluxes) {
+    FaceFluxes &fluxes, const std::vector<unsigned char> *vacuum) {
     const int nx = arena.nX();
     const int ny = arena.nY();
     const int neta = arena.nEta();
     fluxes.resize(nx, ny, neta);
+    long long nSkipped = 0, nAll = 0;
     for (int direction = 1; direction <= 3; direction++) {
         const int nfx = nx + (direction == 1);
         const int nfy = ny + (direction == 2);
         const int nfeta = neta + (direction == 3);
-#pragma omp parallel for collapse(3) schedule(dynamic, 64)
+        const int dx = (direction == 1);
+        const int dy = (direction == 2);
+        const int deta = (direction == 3);
+        nAll += static_cast<long long>(nfx) * nfy * nfeta;
+#pragma omp parallel for collapse(3) schedule(dynamic, 64) \
+    reduction(+ : nSkipped)
         for (int feta = 0; feta < nfeta; feta++)
             for (int fy = 0; fy < nfy; fy++)
                 for (int fx = 0; fx < nfx; fx++) {
                     TJbVec flux;
-                    computeFaceFlux(
-                        tau, arena, pressure, direction, fx, fy, feta, flux);
+                    // the four cells of the KT stencil (computeFaceFlux);
+                    // the boundary faces are always computed: the
+                    // outflow of Cell_info::check_conservation_law
+                    // evaluates them itself
+                    const int f = (dx ? fx : (dy ? fy : feta));
+                    const int nf = (dx ? nfx : (dy ? nfy : nfeta));
+                    if (vacuum != nullptr && f > 0 && f < nf - 1
+                        && (*vacuum)[arena.getFieldIdxHalo(
+                            fx - 2 * dx, fy - 2 * dy, feta - 2 * deta)]
+                        && (*vacuum)[arena.getFieldIdxHalo(
+                            fx - dx, fy - dy, feta - deta)]
+                        && (*vacuum)[arena.getFieldIdxHalo(fx, fy, feta)]
+                        && (*vacuum)[arena.getFieldIdxHalo(
+                            fx + dx, fy + dy, feta + deta)]) {
+                        flux.fill(0.);
+                        nSkipped++;
+                    } else {
+                        computeFaceFlux(
+                            tau, arena, pressure, direction, fx, fy, feta,
+                            flux);
+                    }
                     const int faceIdx =
                         fluxes.getFaceIdx(direction, fx, fy, feta);
                     for (int alpha = 0; alpha < 7; alpha++) {
                         fluxes.flux(direction, alpha, faceIdx) = flux[alpha];
                     }
                 }
+    }    if (vacuum != nullptr) {
+        nFaces_ += nAll;
+        nFacesSkipped_ += nSkipped;
     }
 }
 
