@@ -308,6 +308,56 @@ relative to the largest E of the run.
   9e-7 of the run without skipping. Backend 1 differs by 0 and Metal by
   4.7e-6.
 
+## Tried and rejected: local Bjorken expansion of the frozen cells
+
+The Milne eta terms of the update (MakeDeltaQI) come only from the face
+fluxes. With zero flux a frozen cell therefore keeps tau T^{tau tau}
+constant: e ~ 1/tau. Bjorken flow has d(tau e)/dtau = -P instead, which
+gives e ~ tau^{-4/3} for P = e/3. In a uniform 3D box below the threshold
+(21 x 21 x 13 cells, e = 1e-5 GeV/fm^3, e_vac = 1e-4, ideal gas), the
+central T ratio was 0.75984, exactly the 1/tau value. The edge cells,
+which are not frozen, follow Bjorken. The pressure jump between the two
+compressed the edge cells until the run stopped on the "maximum energy
+density increased by more than a factor of 5" guard at tau = 1.3 fm. In
+2+1D it stopped at 1.8 fm. In real events the vacuum is far below e_fo
+and the guard is never reached, but the same mismatch at the edge of the
+frozen region is what drives the viscous leak (see "Where the leak comes
+from").
+
+Three ways of making the frozen cells expand as Bjorken flow were tried:
+
+1. **The static pressure flux on every skipped face**, tau_d (P_L + P_R)
+   / 2 along the face direction. This is conservative (one value per
+   face) and costs nothing.
+   * The uniform box then follows Bjorken exactly: a T ratio of 0.44964
+     in 2+1D, the analytic value, and 0.44940 in 3D, the same as without
+     skipping. The runs finish.
+   * N_B conservation of the 96 x 96 x 64 viscous event improved to 2e-7
+     at every threshold.
+   * But the pressure gradients at the edge of the vacuum push momentum
+     into cells with tiny e, and nothing carries it away. The
+     superluminal-momentum caps went from 0.68 M to 15.3 M (ideal event,
+     1e-4), and conservation got worse:
+     * ideal hydro: dE/E0 = 4.4e-5 at 1e-4 and 3.3e-4 at 1e-3 (5.9e-9
+       with zero flux);
+     * viscous hydro: dE/E0 = 2.6e-4 and dPz/E0 = 1.0e-3 at 1e-4, and
+       2.7e-2 and 0.10 at 1e-3 (8.5e-5 and 6.0e-5, and 1.6e-3 and 1.1e-2,
+       with zero flux). At 1e-6 the change is small (1.8e-6 against
+       2.2e-6).
+2. **The pressure flux on the eta faces only**, where the Bjorken work
+   comes from. The box run still stopped on the guard (tau = 1.8 fm).
+3. **Zero flux and a local Bjorken source** in each frozen cell,
+   tau T^{tau tau} -= 2 sinh_deta P dtau, without the momentum kicks.
+   This is not conservative. The frozen cells followed Bjorken, but the
+   run stopped at tau = 1.3 fm as before: the edge cells are not frozen
+   but have zero-flux faces, so they still dilute as 1/tau and the jump
+   only moves.
+
+The zero-flux freeze is kept. It conserves exactly in ideal hydro, and its
+viscous leak is small at the default thresholds. Making the vacuum
+expand as Bjorken flow without the momentum pile-up would need the
+advective flux as well, which is the full KT face the skipping avoids.
+
 ## Not done
 
 * **Device compaction.** The skipped threads still launch. A list of
