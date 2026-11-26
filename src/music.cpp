@@ -38,7 +38,7 @@ MUSIC::MUSIC(std::string input_file)
 
     // setup hydro evolution information
     hydro_info_ptr = nullptr;
-    if (DATA.store_hydro_info_in_memory == 1) {
+    if (DATA.store_hydro_info_in_memory) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC>();
     }
 
@@ -88,6 +88,7 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 
 //! This function initialize hydro
 void MUSIC::initialize_hydro() {
+    DATA.applyViscosityFlag();
     clean_all_the_surface_files();
 
     generate_hydro_source_terms();
@@ -101,7 +102,7 @@ void MUSIC::initialize_hydro() {
 int MUSIC::run_hydro() {
     Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
 
-    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
+    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC>();
     }
     int evoStatus = evolve_local.EvolveIt(
@@ -150,6 +151,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     vector<double> pi_03_in, vector<double> pi_11_in, vector<double> pi_12_in,
     vector<double> pi_13_in, vector<double> pi_22_in, vector<double> pi_23_in,
     vector<double> pi_33_in, vector<double> Bulk_pi_in) {
+    DATA.applyViscosityFlag();
     DATA.Initial_profile = 42;
     clean_all_the_surface_files();
 
@@ -180,7 +182,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 void MUSIC::get_hydro_info(
     const double x, const double y, const double z, const double t,
     fluidCell *fluid_cell_info) {
-    if (DATA.store_hydro_info_in_memory == 0 || hydro_info_ptr == nullptr) {
+    if (!DATA.store_hydro_info_in_memory || hydro_info_ptr == nullptr) {
         music_message << "hydro evolution informaiton is not stored "
                       << "in the momeory! Please set the parameter "
                       << "store_hydro_info_in_memory to 1~";
@@ -191,7 +193,7 @@ void MUSIC::get_hydro_info(
 }
 
 void MUSIC::clear_hydro_info_from_memory() {
-    if (DATA.store_hydro_info_in_memory == 0 || hydro_info_ptr == nullptr) {
+    if (!DATA.store_hydro_info_in_memory || hydro_info_ptr == nullptr) {
         music_message << "The parameter store_hydro_info_in_memory is 0. "
                       << "No need to clean memory~";
         music_message.flush("warning");

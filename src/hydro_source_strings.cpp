@@ -179,9 +179,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             source_tau = std::max(source_tau, new_string->tau_baryon_left);
         if (new_string->baryon_frac_r != 0.)
             source_tau = std::max(source_tau, new_string->tau_baryon_right);
-        if (!DATA.use_BQ_ratios && new_string->Qe_left != 0.)
+        if (!DATA.use_rhoQS_to_rhoB_ratios && new_string->Qe_left != 0.)
             source_tau = std::max(source_tau, new_string->tau_Qe_left);
-        if (!DATA.use_BQ_ratios && new_string->Qe_right != 0.)
+        if (!DATA.use_rhoQS_to_rhoB_ratios && new_string->Qe_right != 0.)
             source_tau = std::max(source_tau, new_string->tau_Qe_right);
 
         if (new_string->eta_s_left < 1 && new_string->eta_s_right > -1) {
@@ -200,9 +200,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             source_start = std::min(source_start, new_string->tau_baryon_left);
         if (new_string->baryon_frac_r != 0.)
             source_start = std::min(source_start, new_string->tau_baryon_right);
-        if (!DATA.use_BQ_ratios && new_string->Qe_left != 0.)
+        if (!DATA.use_rhoQS_to_rhoB_ratios && new_string->Qe_left != 0.)
             source_start = std::min(source_start, new_string->tau_Qe_left);
-        if (!DATA.use_BQ_ratios && new_string->Qe_right != 0.)
+        if (!DATA.use_rhoQS_to_rhoB_ratios && new_string->Qe_right != 0.)
             source_start = std::min(source_start, new_string->tau_Qe_right);
         set_source_tau_min(std::min(get_source_tau_min(), source_start));
     }
@@ -257,8 +257,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message << ", total electric charges = "
-                  << (DATA.use_BQ_ratios ? 0.4 * total_baryon_number
-                                         : total_electric_charges);
+                  << (DATA.use_rhoQS_to_rhoB_ratios
+                          ? DATA.ratio_q * total_baryon_number
+                          : total_electric_charges);
     music_message.flush("info");
     if (DATA.dynamicGridDetermination) {
         double xMax = 0.;
@@ -281,15 +282,15 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             includeEta(it->eta_s_right);
             if (it->baryon_frac_l != 0.) includeEta(it->eta_s_baryon_left);
             if (it->baryon_frac_r != 0.) includeEta(it->eta_s_baryon_right);
-            if (!DATA.use_BQ_ratios && it->Qe_left != 0.)
+            if (!DATA.use_rhoQS_to_rhoB_ratios && it->Qe_left != 0.)
                 includeEta(it->eta_s_Qe_left);
-            if (!DATA.use_BQ_ratios && it->Qe_right != 0.)
+            if (!DATA.use_rhoQS_to_rhoB_ratios && it->Qe_right != 0.)
                 includeEta(it->eta_s_Qe_right);
 
             // Bound the tilted centerline as well as the fixed end sources.
             const double xc = 0.5 * (it->x_pl + it->x_pr);
             const double yc = 0.5 * (it->y_pl + it->y_pr);
-            if (DATA.string_tilt_update == 1) {
+            if (DATA.string_tilt_update) {
                 if (std::abs(it->mass - MASS_PARTON) < MASS_PARTON_TOLERANCE) {
                     if (it->x_pl != it->x_pr)
                         xMax = std::max(xMax, std::abs(xc) + 2.);
@@ -472,9 +473,9 @@ void HydroSourceStrings::compute_norm_for_strings(
             includeEta(it->eta_s_right);
             if (it->baryon_frac_l != 0.) includeEta(it->eta_s_baryon_left);
             if (it->baryon_frac_r != 0.) includeEta(it->eta_s_baryon_right);
-            if (!DATA.use_BQ_ratios && it->Qe_left != 0.)
+            if (!DATA.use_rhoQS_to_rhoB_ratios && it->Qe_left != 0.)
                 includeEta(it->eta_s_Qe_left);
-            if (!DATA.use_BQ_ratios && it->Qe_right != 0.)
+            if (!DATA.use_rhoQS_to_rhoB_ratios && it->Qe_right != 0.)
                 includeEta(it->eta_s_Qe_right);
             if (!DATA.dynamicGridDetermination) {
                 const double padding = sourceCutoff * it->sigma_x;
@@ -526,7 +527,7 @@ void HydroSourceStrings::compute_norm_for_strings(
         stringEnergy += energy;
         stringPz += lossL + lossR;
         it->string_tilt = DATA.stringTransverseShiftFrac;
-        if (DATA.string_tilt_update == 1) {
+        if (DATA.string_tilt_update) {
             it->string_tilt = 0.;
             if (energy > 0.
                 && std::abs(it->mass - MASS_PARTON) < MASS_PARTON_TOLERANCE) {
@@ -616,13 +617,15 @@ void HydroSourceStrings::compute_norm_for_strings(
         normalizeEnd(
             it->x_pl, it->y_pl, it->eta_s_left, it->y_l, it->remnant_l,
             it->eta_s_baryon_left, it->baryon_frac_l, it->eta_s_Qe_left,
-            DATA.use_BQ_ratios ? 0. : it->Qe_left, it->E_remnant_norm_L,
-            it->remnant_shift_L, it->B_norm_L, it->Q_norm_L);
+            DATA.use_rhoQS_to_rhoB_ratios ? 0. : it->Qe_left,
+            it->E_remnant_norm_L, it->remnant_shift_L, it->B_norm_L,
+            it->Q_norm_L);
         normalizeEnd(
             it->x_pr, it->y_pr, it->eta_s_right, it->y_r, it->remnant_r,
             it->eta_s_baryon_right, it->baryon_frac_r, it->eta_s_Qe_right,
-            DATA.use_BQ_ratios ? 0. : it->Qe_right, it->E_remnant_norm_R,
-            it->remnant_shift_R, it->B_norm_R, it->Q_norm_R);
+            DATA.use_rhoQS_to_rhoB_ratios ? 0. : it->Qe_right,
+            it->E_remnant_norm_R, it->remnant_shift_R, it->B_norm_R,
+            it->Q_norm_R);
     }
 
     if (!std::isfinite(event_energy))
@@ -999,9 +1002,9 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu) const {
     double res = 0.;
-    if (DATA.use_BQ_ratios) {
+    if (DATA.use_rhoQS_to_rhoB_ratios) {
         double nb = get_hydro_rhob_source(tau, x, y, eta_s, u_mu);
-        res = 0.4 * nb;
+        res = DATA.ratio_q * nb;
         return (res);
     }
     if (QCD_strings_electric_list_current_tau.size() == 0) return (res);

@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
     music.run_hydro();
 
     const InitData &DATA = music.getParameters();
-    if (DATA.store_hydro_info_in_memory != 1 || DATA.outputEvolutionData != 1
-        || DATA.outputBinaryEvolution != 0) {
+    if (!DATA.store_hydro_info_in_memory || DATA.outputEvolutionData != 1
+        || DATA.outputBinaryEvolution) {
         std::cerr << "the input must set store_hydro_info_in_memory 1, "
                   << "output_evolution_data 1, outputBinaryEvolution 0"
                   << std::endl;

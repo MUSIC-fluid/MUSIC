@@ -217,7 +217,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
     }
 
     double *bulk_deltaf_coeffs = new double[3];
-    if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
+    if (DATA_ptr->turn_on_bulk && DATA_ptr->include_deltaf_bulk) {
         if (bulk_deltaf_kind == 0) {
             bulk_deltaf_coeffs = new double[3];
         } else {
@@ -246,7 +246,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
             double pt = pt_array[ipt];
             double y_local;
             // rapidity as a function of pseudorapidity:
-            if (DATA->pseudofreeze == 1) {
+            if (DATA->pseudofreeze) {
                 y_local = Rap(eta, pt, m);
             } else {
                 y_local = eta;
@@ -306,7 +306,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
                 double W23 = 0.0;
                 double W33 = 0.0;
                 int flag_shear_deltaf = 0;
-                if (DATA->turn_on_shear == 1 && DATA->include_deltaf == 1) {
+                if (DATA->turn_on_shear && DATA->include_deltaf == 1) {
                     flag_shear_deltaf = 1;
                     W00 = surface[icell].W[0][0];
                     W01 = surface[icell].W[0][1];
@@ -322,7 +322,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
 
                 double Pi_bulk = 0.0;
                 int flag_bulk_deltaf = 0;
-                if (DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1) {
+                if (DATA->turn_on_bulk && DATA->include_deltaf_bulk) {
                     flag_bulk_deltaf = 1;
                     Pi_bulk = surface[icell].pi_b;
                     getbulkvisCoefficients(T, bulk_deltaf_coeffs);
@@ -336,13 +336,13 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
                 double deltaf_qmu_coeff_14mom_DV = 0.0;
                 double deltaf_qmu_coeff_14mom_BV = 0.0;
                 int flag_qmu_deltaf = 0;
-                if (DATA->turn_on_diff == 1 && DATA->include_deltaf_qmu == 1) {
+                if (DATA->turn_on_diff && DATA->include_deltaf_qmu) {
                     flag_qmu_deltaf = 1;
                     qmu_0 = surface[icell].q[0];
                     qmu_1 = surface[icell].q[1];
                     qmu_2 = surface[icell].q[2];
                     qmu_3 = surface[icell].q[3];
-                    if (DATA->deltaf_14moments == 0) {
+                    if (!DATA->deltaf_14moments) {
                         deltaf_qmu_coeff = get_deltaf_qmu_coeff(T, muB);
                     } else {
                         deltaf_qmu_coeff_14mom_DV =
@@ -352,7 +352,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
                     }
                 }
                 double rhoB = 0.0;
-                if (DATA->turn_on_rhob == 1) {
+                if (DATA->turn_on_rhob) {
                     rhoB = surface[icell].rho_B;
                 }
 
@@ -470,7 +470,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
                                 qmufactor =
                                     (ptau * qmu_0 - px * qmu_1 - py * qmu_2
                                      - peta * qmu_3);
-                                if (DATA->deltaf_14moments == 0) {
+                                if (!DATA->deltaf_14moments) {
                                     delta_f_qmu =
                                         (f * (1. - sign * f)
                                          * (prefactor_qmu - baryon / E)
@@ -544,7 +544,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
         delete[] temp_sum;
     }
 
-    if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
+    if (DATA_ptr->turn_on_bulk && DATA_ptr->include_deltaf_bulk) {
         delete[] bulk_deltaf_coeffs;
     }
 
@@ -637,7 +637,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
     }
 
     double *bulk_deltaf_coeffs = new double[3];
-    if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
+    if (DATA_ptr->turn_on_bulk && DATA_ptr->include_deltaf_bulk) {
         if (bulk_deltaf_kind == 0) {
             bulk_deltaf_coeffs = new double[3];
         } else {
@@ -697,7 +697,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
             double W23 = 0.0;
             double W33 = 0.0;
             int flag_shear_deltaf = 0;
-            if (DATA->turn_on_shear == 1 && DATA->include_deltaf == 1) {
+            if (DATA->turn_on_shear && DATA->include_deltaf == 1) {
                 flag_shear_deltaf = 1;
                 W00 = surface[icell].W[0][0];
                 W01 = surface[icell].W[0][1];
@@ -713,7 +713,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
 
             double Pi_bulk = 0.0;
             int flag_bulk_deltaf = 0;
-            if (DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1) {
+            if (DATA->turn_on_bulk && DATA->include_deltaf_bulk) {
                 flag_bulk_deltaf = 1;
                 Pi_bulk = surface[icell].pi_b;
                 getbulkvisCoefficients(T, bulk_deltaf_coeffs);
@@ -873,7 +873,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
         delete[] temp_sum[ipt];
     }
     delete[] temp_sum;
-    if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
+    if (DATA_ptr->turn_on_bulk && DATA_ptr->include_deltaf_bulk) {
         delete[] bulk_deltaf_coeffs;
     }
 
@@ -944,7 +944,7 @@ void Freeze::compute_thermal_spectra(
                     particleList[i].muAtFreezeOut
                     - particleList[part].muAtFreezeOut);
                 if (mass_diff < mass_tol && mu_diff < mu_tol
-                    && (DATA->turn_on_rhob == 0
+                    && (!DATA->turn_on_rhob
                         || particleList[i].baryon
                                == particleList[part].baryon)) {
                     // here we assume zero mu_B
@@ -1218,12 +1218,12 @@ void Freeze::rapidity_integrated_flow(
 
     double testmin;
     if (yflag) {
-        if (DATA->pseudofreeze == 1)
+        if (DATA->pseudofreeze)
             testmin = Rap(particleList[j].y[0], particleList[j].pt[0], m);
         else
             testmin = particleList[j].y[0];
     } else {
-        if (DATA->pseudofreeze == 1)
+        if (DATA->pseudofreeze)
             testmin = particleList[j].y[0];
         else
             testmin = PseudoRap(particleList[j].y[0], particleList[j].pt[0], m);
@@ -1240,13 +1240,13 @@ void Freeze::rapidity_integrated_flow(
     }
     double testmax;
     if (yflag) {
-        if (DATA->pseudofreeze == 1)
+        if (DATA->pseudofreeze)
             testmax =
                 Rap(particleList[j].y[neta - 1], particleList[j].pt[0], m);
         else
             testmax = particleList[j].y[neta - 1];
     } else {
-        if (DATA->pseudofreeze == 1)
+        if (DATA->pseudofreeze)
             testmax = particleList[j].y[neta - 1];
         else
             testmax =
@@ -1281,7 +1281,7 @@ void Freeze::rapidity_integrated_flow(
                 double rap_local = particleList[j].y[ieta];
 
                 double eta_local, y_local;
-                if (DATA->pseudofreeze == 1) {
+                if (DATA->pseudofreeze) {
                     eta_local = rap_local;
                     etalist[ieta] = eta_local;
                     y_local = Rap(eta_local, pt, m);  // get rapidity

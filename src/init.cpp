@@ -124,12 +124,9 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
-        if (DATA.reRunCount == 0) {
-            DATA.gridPaddingCells = 0;
-        } else {
-            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
-            DATA.nx += 2 * DATA.gridPaddingCells;
-            DATA.ny += 2 * DATA.gridPaddingCells;
+        if (DATA.reRunCount > 0) {
+            DATA.nx += 2 * DATA.reRunPaddingCells();
+            DATA.ny += 2 * DATA.reRunPaddingCells();
             // keep dx, dy fixed and the grid centred at x = y = 0
             DATA.x_size = DATA.delta_x * (DATA.nx - 1);
             DATA.y_size = DATA.delta_y * (DATA.ny - 1);
@@ -144,14 +141,11 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
-        if (DATA.reRunCount == 0) {
-            DATA.gridPaddingCells = 0;
-        } else {
+        if (DATA.reRunCount > 0) {
             // the source keeps TA, TB on the original grid and is zero
             // outside it, so only the hydro grid is enlarged
-            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
-            DATA.nx += 2 * DATA.gridPaddingCells;
-            DATA.ny += 2 * DATA.gridPaddingCells;
+            DATA.nx += 2 * DATA.reRunPaddingCells();
+            DATA.ny += 2 * DATA.reRunPaddingCells();
             // keep dx, dy fixed and the grid centred at x = y = 0
             DATA.x_size = DATA.delta_x * (DATA.nx - 1);
             DATA.y_size = DATA.delta_y * (DATA.ny - 1);
@@ -241,7 +235,7 @@ void Init::InitArena(
 
     InitTJb(arenaFieldsPrev, arenaFieldsCurr);
 
-    if (DATA.output_initial_density_profiles == 1) {
+    if (DATA.output_initial_density_profiles) {
         output_initial_density_profiles(arenaFieldsCurr);
     }
 } /* InitArena */
@@ -269,8 +263,8 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
             initial_Gubser_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
 
-        if (DATA.turn_on_QS == 1) {
-            if (DATA.use_rhoQS_to_rhoB_ratios == 1) {
+        if (DATA.turn_on_QS) {
+            if (DATA.use_rhoQS_to_rhoB_ratios) {
                 music_message << "Electric charge and strangeness densities "
                               << "initialized with"
                               << "rhoQ = " << DATA.ratio_q << " rhoB"
@@ -372,7 +366,7 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
 
     // *** This should be modified for each initial conditions case.
 
-    if (DATA.viscosity_flag == 0) {
+    if (!DATA.viscosity_flag) {
         // for ideal hydrodynamic simualtions set all viscous tensor to zero
         music_message << "Running ideal hydrodynamic simulations ...";
         music_message.flush("info");
@@ -403,7 +397,7 @@ void Init::initial_Gubser_XY(
     int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
     std::string input_filename;
     std::string input_filename_prev;
-    if (DATA.turn_on_shear == 1) {
+    if (DATA.turn_on_shear) {
         input_filename = "tests/Gubser_flow/Initial_Profile.dat";
     } else {
         input_filename = "tests/Gubser_flow/y=0_tau=1.00_ideal.dat";
@@ -418,7 +412,7 @@ void Init::initial_Gubser_XY(
         exit(1);
     }
     ifstream profile_prev;
-    if (DATA.turn_on_shear == 0) {
+    if (!DATA.turn_on_shear) {
         profile_prev.open(input_filename_prev.c_str());
         if (!profile_prev.good()) {
             music_message << "Init::InitTJb: "
@@ -452,7 +446,7 @@ void Init::initial_Gubser_XY(
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             int idx = ix * ny + iy;
-            if (DATA.turn_on_shear == 1) {
+            if (DATA.turn_on_shear) {
                 profile >> dummy >> dummy >> temp_profile_ed[idx]
                     >> temp_profile_ux[idx] >> temp_profile_uy[idx];
                 profile >> temp_profile_pixx[idx] >> temp_profile_piyy[idx]
@@ -470,7 +464,7 @@ void Init::initial_Gubser_XY(
         }
     }
     profile.close();
-    if (DATA.turn_on_shear == 0) {
+    if (!DATA.turn_on_shear) {
         profile_prev.close();
     }
 
@@ -478,7 +472,7 @@ void Init::initial_Gubser_XY(
         for (int iy = 0; iy < ny; iy++) {
             int idx_loc = ix * ny + iy;
             double rhob = 0.0;
-            if (DATA.turn_on_shear == 0 && DATA.turn_on_rhob == 1) {
+            if (!DATA.turn_on_shear && DATA.turn_on_rhob) {
                 rhob = temp_profile_rhob[idx_loc];
             }
             double epsilon = temp_profile_ed[idx_loc];
@@ -500,7 +494,7 @@ void Init::initial_Gubser_XY(
                 arenaFieldsPrev.u_[i][idx] = arenaFieldsCurr.u_[i][idx];
             }
 
-            if (DATA.turn_on_shear == 0) {
+            if (!DATA.turn_on_shear) {
                 double utau_prev = sqrt(
                     1.
                     + temp_profile_ux_prev[idx_loc]
@@ -513,7 +507,7 @@ void Init::initial_Gubser_XY(
                 arenaFieldsPrev.u_[3][idx] = 0.;
             }
 
-            if (DATA.turn_on_shear == 1) {
+            if (DATA.turn_on_shear) {
                 arenaFieldsCurr.Wmunu_[0][idx] = temp_profile_pi00[idx_loc];
                 arenaFieldsCurr.Wmunu_[1][idx] = temp_profile_pi0x[idx_loc];
                 arenaFieldsCurr.Wmunu_[2][idx] = temp_profile_pi0y[idx_loc];
@@ -628,7 +622,7 @@ void Init::initial_IPGlasma_XY(
     double eta = DATA.etaAt(ieta);
     double eta_envelop_ed =
         eta_profile_plateau(eta, DATA.eta_flat / 2.0, DATA.eta_fall_off);
-    int entropy_flag = DATA.initializeEntropy;
+    const bool entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             int idx_loc = ix * ny + iy;
@@ -636,7 +630,7 @@ void Init::initial_IPGlasma_XY(
 
             double rhob = 0.0;
             double epsilon = 0.0;
-            if (entropy_flag == 0) {
+            if (!entropy_flag) {
                 epsilon =
                     (temp_profile_ed[idx_loc] * eta_envelop_ed * DATA.sFactor
                      / hbarc);  // 1/fm^4
@@ -815,7 +809,7 @@ void Init::initial_IPGlasma_XY_with_pi(
 
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
-                    if (DATA.turn_on_bulk_chem == 1) {
+                    if (DATA.turn_on_bulk_chem) {
                         arenaFieldsCurr.piBulk_[Fidx] = 0;
                         arenaFieldsCurr.piBulkChem_[Fidx] =
                             (epsilon / 3. - pressure) * DATA.preEqVisFactor;
@@ -1061,8 +1055,8 @@ void Init::initial_MCGlb_with_rhob(
         exit(1);
     }
 
-    const int nx = arenaFieldsCurr.nX() - 2 * DATA.gridPaddingCells;
-    const int ny = arenaFieldsCurr.nY() - 2 * DATA.gridPaddingCells;
+    const int nx = arenaFieldsCurr.nX() - 2 * DATA.reRunPaddingCells();
+    const int ny = arenaFieldsCurr.nY() - 2 * DATA.reRunPaddingCells();
     const int neta = arenaFieldsCurr.nEta();
 
     // the padding cells added on a re-run get the same floor as the
@@ -1113,7 +1107,7 @@ void Init::initial_MCGlb_with_rhob(
                 int idx = ix * ny + iy;
                 double rhob = 0.0;
                 double epsilon = 0.0;
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     rhob =
                         (temp_profile_TA[idx] * eta_rhob_right
                          + temp_profile_TB[idx] * eta_rhob_left);
@@ -1167,8 +1161,8 @@ void Init::initial_MCGlb_with_rhob(
                 epsilon = std::max(Util::small_eps, epsilon);
 
                 int idx_f = arenaFieldsCurr.getFieldIdx(
-                    ix + DATA.gridPaddingCells, iy + DATA.gridPaddingCells,
-                    ieta);
+                    ix + DATA.reRunPaddingCells(),
+                    iy + DATA.reRunPaddingCells(), ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 
@@ -1304,7 +1298,7 @@ void Init::initial_AMPT_XY(
             double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
             double rhob = 0.0;
             double epsilon = 0.0;
-            if (DATA.turn_on_rhob == 1) {
+            if (DATA.turn_on_rhob) {
                 rhob = hydro_source_terms_ptr.lock()
                            ->get_hydro_rhob_source_before_tau(
                                tau0, x_local, y_local, eta);
@@ -1589,7 +1583,7 @@ void Init::output_initial_density_profiles(Fields &arena) {
     music_message.info("output initial density profiles into a file... ");
     std::ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
-    if (DATA.turn_on_rhob == 1) {
+    if (DATA.turn_on_rhob) {
         of << "  rhob(1/fm^3)";
     }
     if (DATA.turn_on_QS) {
@@ -1607,10 +1601,10 @@ void Init::output_initial_density_profiles(Fields &arena) {
                 of << std::scientific << std::setw(18) << std::setprecision(8)
                    << x_local << "   " << y_local << "   " << eta_local << "   "
                    << arena.e_[fieldIdx] * hbarc;
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     of << "   " << arena.rhob_[fieldIdx];
                 }
-                if (DATA.turn_on_QS == 1) {
+                if (DATA.turn_on_QS) {
                     of << "   " << arena.rhoq_[fieldIdx];
                     of << "   " << arena.rhos_[fieldIdx];
                 }

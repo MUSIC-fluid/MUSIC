@@ -37,11 +37,11 @@ Freeze::Freeze(InitData *DATA_in) {
     bulk_deltaf_kind = 1;
 
     // read in tables for delta f coefficients
-    if (DATA_ptr->turn_on_diff == 1 && DATA_ptr->include_deltaf_qmu == 1) {
-        if (DATA_ptr->deltaf_14moments == 1) {
+    if (DATA_ptr->turn_on_diff && DATA_ptr->include_deltaf_qmu) {
+        if (DATA_ptr->deltaf_14moments) {
             load_deltaf_qmu_coeff_table_14mom(
                 "tables/deltaf_coefficients_14moments.dat");
-        } else if (DATA_ptr->include_deltaf_qmu == 1) {
+        } else if (DATA_ptr->include_deltaf_qmu) {
             load_deltaf_qmu_coeff_table(
                 "tables/Coefficients_RTA_diffusion.dat");
         }
@@ -104,7 +104,7 @@ void Freeze::checkForReadError(FILE *file, const char *name) {
 }
 
 void Freeze::read_particle_PCE_mu(InitData *DATA, EOS *eos) {
-    double ef = DATA->epsilonFreeze;
+    double ef = DATA->eps_freeze_max;
     music_message << "Determining chemical potentials at freeze out "
                   << "energy density " << ef << " GeV/fm^3.";
     music_message.flush("info");

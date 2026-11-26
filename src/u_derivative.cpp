@@ -34,7 +34,7 @@ void U_derivative::MakedU(
     MakeDTau(
         tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, withMuDerivative,
         muBOverTCurr, muBOverTPrev);
-    if (DATA.Du_from_ideal_EoM == 1) {
+    if (DATA.Du_from_ideal_EoM) {
         MakeDTauIdealEoM(tau, arenaFieldsCurr, fieldIdx);
     }
 }
@@ -490,7 +490,7 @@ int U_derivative::MakeDSpatial(
                 dUsup[m][direction] =
                     (minmod.minmod_dx(fp1, f, fm1) / delta[direction]);
             }
-            if (DATA.output_vorticity == 1) {
+            if (DATA.output_vorticity) {
                 for (int m = 0; m < 4; m++) {
                     const double f = arena.u_[m][Ic];
                     const double fp1 = arena.u_[m][Ip1];
@@ -520,7 +520,7 @@ int U_derivative::MakeDSpatial(
                 }
             }
 
-            if (DATA.Du_from_ideal_EoM == 1) {
+            if (DATA.Du_from_ideal_EoM) {
                 auto pressureAt = [&](const int I) {
                     if (pressure != nullptr) return ((*pressure)[I]);
                     return (eos.get_pressure(
@@ -538,7 +538,7 @@ int U_derivative::MakeDSpatial(
             // Here we make derivatives of muB/T
             // dUsup[rk_flag][4][n] = partial_n (muB/T)
             // partial_x (muB/T) and partial_y (muB/T) first
-            if (DATA.turn_on_diff == 1) {
+            if (DATA.turn_on_diff) {
                 // mu_B / T as Advance::computeMuBOverT gives it
                 auto alphaAt = [&](const int I) {
                     if (muBOverT != nullptr) return ((*muBOverT)[I]);
@@ -577,7 +577,7 @@ int U_derivative::MakeDSpatial(
 
 double U_derivative::idealEoMWeight(const InitData &DATA, const double eps) {
     // vacuum (eps < 1e-8): keep the backward difference
-    if (DATA.Du_from_ideal_EoM != 1 || eps < 1e-8) return 0.;
+    if (!DATA.Du_from_ideal_EoM || eps < 1e-8) return 0.;
     const double eDilute = DATA.Du_from_ideal_EoM_e_dilute / Util::hbarc;
     constexpr double blendRange = 5.;
     if (eps >= blendRange * eDilute) return 0.;
@@ -673,7 +673,7 @@ int U_derivative::MakeDTau(
     const bool haveMuBOverT =
         (muBOverTCurr != nullptr && muBOverTPrev != nullptr);
     const bool needT =
-        ((withMuDerivative && !haveMuBOverT) || DATA.output_vorticity == 1);
+        ((withMuDerivative && !haveMuBOverT) || DATA.output_vorticity);
     const double T = needT ? eos.get_temperature(eps, rhob, rhoq, rhos) : 0.;
     const double T_prev =
         needT ? eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev)
@@ -686,7 +686,7 @@ int U_derivative::MakeDTau(
         double f = (uCurr - uPrev) / DATA.delta_tau;
         dUsup[m][0] = -f;  // g^{00} = -1
 
-        if (DATA.output_vorticity == 1) {
+        if (DATA.output_vorticity) {
             if (T > T_tol && T_prev > T_tol) {
                 double duoverTdtau =
                     (uCurr / T - uPrev / T_prev) / DATA.delta_tau;

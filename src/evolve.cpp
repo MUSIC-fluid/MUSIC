@@ -50,10 +50,10 @@ int Evolve::EvolveIt(
     Fields &arenaFieldsPrev, Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
     HydroinfoMUSIC &hydro_info_ptr) {
     // first pass some control parameters
-    int freezeout_flag = DATA.doFreezeOut;
-    int freezeout_lowtemp_flag = DATA.doFreezeOut_lowtemp;
+    const bool freezeout_flag = DATA.doFreezeOut;
+    const bool freezeout_lowtemp_flag = DATA.doFreezeOut_lowtemp;
 
-    if (DATA.store_hydro_info_in_memory == 1) {
+    if (DATA.store_hydro_info_in_memory) {
         hydro_info_ptr.set_grid_infomatioin(DATA);
     }
 
@@ -70,7 +70,7 @@ int Evolve::EvolveIt(
     double source_tau_max = 0.0;
     if (hydro_source_terms_ptr) {
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
-        if (freezeout_lowtemp_flag == 1) {
+        if (freezeout_lowtemp_flag) {
             double freezeOutTauStart =
                 (hydro_source_terms_ptr->get_source_tauStart_max());
             freezeOutTauStart =
@@ -135,7 +135,7 @@ int Evolve::EvolveIt(
     // vorticity: otherwise it is not stored (on the device path fpPrev is
     // not even synced on the freeze-out steps)
     const bool storeFreezeoutPrev =
-        (DATA.output_vorticity == 1 && !DATA.boost_invariant);
+        (DATA.output_vorticity && !DATA.boost_invariant);
     while (tau < tauMax) {
         const std::vector<Fields *> allFields = {
             fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
@@ -317,11 +317,11 @@ int Evolve::EvolveIt(
                  && ((DATA.outputEvolutionData >= 1
                       && DATA.outputEvolutionData <= 4)
                      || DATA.outputEvolutionData == 7
-                     || DATA.store_hydro_info_in_memory == 1
-                     || DATA.output_outofequilibriumsize == 1));
+                     || DATA.store_hydro_info_in_memory
+                     || DATA.output_outofequilibriumsize));
             const bool freezeStep =
-                (freezeout_flag == 1
-                 && ((freezeout_lowtemp_flag == 1 && isFreezeStartStep)
+                (freezeout_flag
+                 && ((freezeout_lowtemp_flag && isFreezeStartStep)
                      || (itSince > 0
                          && tau - tauLastFreeze > (facTau - 0.5) * dt)));
             const auto atTau = [&](std::initializer_list<double> taus) {
@@ -336,11 +336,11 @@ int Evolve::EvolveIt(
                       && atTau({1.0, 1.2, 1.5, 2.0, 3.0}))
                      || (DATA.Initial_profile == 1
                          && atTau({1.0, 2.0, 5.0, 10.0, 20.0}))
-                     || (!DATA.boost_invariant && DATA.output_vorticity == 1)
+                     || (!DATA.boost_invariant && DATA.output_vorticity)
                      || DATA.output_OAM_density_Evolution == 2
                      || (DATA.output_OAM_density_Evolution == 1
                          && it == it_source_max)
-                     || DATA.output_hydro_debug_info == 1);
+                     || DATA.output_hydro_debug_info);
             }
             const bool fullStep =
                 (isFreezeStartStep || outputStep || checkStep || itSince == 0
@@ -351,7 +351,7 @@ int Evolve::EvolveIt(
                 // the Cornelius search reads fpPrev (and stores it for the
                 // next search) only for the vorticity; without it the
                 // stored previous slice is never read
-                if (DATA.output_vorticity == 1 && !DATA.boost_invariant) {
+                if (DATA.output_vorticity && !DATA.boost_invariant) {
                     syncAll();
                 } else {
                     syncCurrDuringStep = true;
@@ -434,15 +434,15 @@ int Evolve::EvolveIt(
             } else if (DATA.outputEvolutionData == 7) {
                 grid_info.OutputEvolutionDataXYEta_MLtraining(*fpCurr, tau);
             }
-            if (DATA.store_hydro_info_in_memory == 1) {
+            if (DATA.store_hydro_info_in_memory) {
                 grid_info.OutputEvolutionDataXYEta_memory(
                     *fpCurr, tau, hydro_info_ptr);
             }
 
-            // if (DATA.output_movie_flag == 1) {
+            // if (DATA.output_movie_flag) {
             //     grid_info.output_evolution_for_movie(*fpCurr, tau);
             // }
-            if (DATA.output_outofequilibriumsize == 1) {
+            if (DATA.output_outofequilibriumsize) {
                 grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr, tau);
             }
         }
@@ -516,7 +516,7 @@ int Evolve::EvolveIt(
                 }
             }
             if (!DATA.boost_invariant) {
-                if (DATA.output_vorticity == 1) {
+                if (DATA.output_vorticity) {
                     if (std::abs(tau - 1.0) < 1e-8 || std::abs(tau - 2.0) < 1e-8
                         || std::abs(tau - 5.0) < 1e-8
                         || std::abs(tau - 10.0) < 1e-8) {
@@ -572,7 +572,7 @@ int Evolve::EvolveIt(
                 }
             }
 
-            if (DATA.output_hydro_debug_info == 1) {
+            if (DATA.output_hydro_debug_info) {
                 grid_info.monitor_a_fluid_cell(
                     *fpCurr, *fpPrev, 100, 100, 0, tau);
             }
@@ -580,8 +580,8 @@ int Evolve::EvolveIt(
 
         // determine freeze-out surface
         int frozen = 0;
-        if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && isFreezeStartStep) {
+        if (freezeout_flag) {
+            if (freezeout_lowtemp_flag && isFreezeStartStep) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *fpCurr);
             }
             // avoid freeze-out at the first time step
@@ -1573,7 +1573,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                             fluid_cube[1][ii][jj][kk] =
                                 arena_current.getCell(fieldIdx);
 
-                            if (DATA.output_vorticity == 0) continue;
+                            if (!DATA.output_vorticity) continue;
 
                             // compute the vorticity tensors
                             Cell_aux aux_tmp;
@@ -1598,7 +1598,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                 auto fluid_center = four_dimension_linear_interpolation(
                     lattice_spacing, x_fraction, fluid_cube);
                 Cell_aux fluid_aux_center;
-                if (DATA.output_vorticity == 1) {
+                if (DATA.output_vorticity) {
                     fluid_aux_center = four_dimension_linear_interpolation(
                         lattice_spacing, x_fraction, fluid_aux_cube);
                 }
@@ -1698,7 +1698,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                         FOarray[32 + ii] =
                             static_cast<float>(fluid_center.Wmunu[10 + ii]);
 
-                    if (DATA.output_vorticity == 1) {
+                    if (DATA.output_vorticity) {
                         for (int ii = 0; ii < 6; ii++) {
                             // no minus sign because its definition is
                             // opposite to the kinetic vorticity
@@ -1786,7 +1786,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
 int Evolve::FreezeOut_equal_tau_Surface(double tau, Fields &arena_current) {
     // this function freeze-out fluid cells between epsFO and epsFO_low
     // on an equal time hyper-surface at the first time step
-    // this function will be trigged if freezeout_lowtemp_flag == 1
+    // this function will be trigged if freezeout_lowtemp_flag is set
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
 
@@ -1998,7 +1998,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
                 FOarray[33] = static_cast<float>(qx_center);
                 FOarray[34] = static_cast<float>(qy_center);
                 FOarray[35] = static_cast<float>(qeta_center);
-                if (DATA.output_vorticity == 1) {
+                if (DATA.output_vorticity) {
                     for (int ii = 0; ii < 6; ii++) {
                         // no minus sign because its definition is opposite to
                         // the kinetic vorticity
@@ -2461,7 +2461,7 @@ void Evolve::regulate_Wmunu(
 }
 
 void Evolve::initialize_freezeout_surface_info() {
-    if (DATA.useEpsFO == 0) {
+    if (!DATA.useEpsFO) {
         const double e_freeze = eos.get_T2e(DATA.TFO, 0.0) * Util::hbarc;
         epsFO_list.push_back(e_freeze);
         music_message << "Freeze out at a constant temperature T = " << DATA.TFO

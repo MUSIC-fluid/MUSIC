@@ -30,7 +30,7 @@ TransportCoeffs::TransportCoeffs(const InitData &Data_in)
 //! the parameters that the coefficients divide by: stop with an error
 //! instead of dividing by 0 (or by a width of the wrong sign)
 void TransportCoeffs::check_denominators() const {
-    if (DATA.viscosity_flag != 1) return;
+    if (!DATA.viscosity_flag) return;
     auto fail = [](const std::string &what) {
         std::cerr << "TransportCoeffs: " << what << std::endl;
         exit(1);

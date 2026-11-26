@@ -2201,7 +2201,7 @@ TEST_CASE("Asymmetric string grids conserve the integrated source totals") {
             CHECK(data.dynamicGridDetermination == dynamic);
             data.initName = file;
             data.stringSourceTauMax = tauCap;
-            data.use_BQ_ratios = false;
+            data.use_rhoQS_to_rhoB_ratios = false;
             data.stringSourceSigmaX = 0.48;
             data.stringSourceSigmaEta = 0.35;
             data.beam_rapidity = 10.;  // from ecm: overridden by the header
@@ -2890,7 +2890,7 @@ TEST_CASE("Device kernels reproduce baryon diffusion and Pi_chem of Advance") {
                 DATA.turn_on_bulk_chem = (mode != 0 ? 1 : 0);
                 DATA.kappa_coefficient = 0.2;
                 DATA.chem_rate_C = 2.;
-                gLumpyChem = (DATA.turn_on_bulk_chem == 1);
+                gLumpyChem = DATA.turn_on_bulk_chem;
                 const auto host = runViscousSteps(DATA, eosId, 0, 0, 4);
                 const auto dev = runViscousSteps(DATA, eosId, 1, 0, 4);
                 REQUIRE(host.size() == dev.size());
@@ -2908,8 +2908,8 @@ TEST_CASE("Device kernels reproduce baryon diffusion and Pi_chem of Advance") {
                 }
                 CAPTURE(nDiff);
                 CAPTURE(maxDiff);
-                CHECK((DATA.turn_on_diff == 1) == (qNorm > 0.));
-                CHECK((DATA.turn_on_bulk_chem == 1) == (chemNorm > 0.));
+                CHECK(DATA.turn_on_diff == (qNorm > 0.));
+                CHECK(DATA.turn_on_bulk_chem == (chemNorm > 0.));
                 CHECK(maxDiff == 0.);
                 const auto devF = runViscousSteps(DATA, eosId, 1, 1, 4);
                 double l1E = 0., normE = 0., l1Q = 0., normQ = 0., l1C = 0.,

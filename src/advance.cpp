@@ -218,8 +218,7 @@ void Advance::AdvanceIt(
     // mu_B / T for the derivatives of the baryon diffusion; in the second
     // stage arenaFieldsPrev is the first stage's arenaFieldsCurr, unchanged
     // since
-    const bool withMuBOverT =
-        (DATA.viscosity_flag == 1 && DATA.turn_on_diff == 1);
+    const bool withMuBOverT = DATA.turn_on_diff;
     // With vacuum skipping only the cells that are read are filled,
     // and the frozen cells change between the stages: no reuse then
     const std::vector<unsigned char> *needMuBOverT =
@@ -241,7 +240,7 @@ void Advance::AdvanceIt(
     // one pass over the faces
     diss_helper.computeWDivergences(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, arenaFieldsPrev,
-        DATA.viscosity_flag == 1, wFluxDiv_, wSource_);
+        DATA.viscosity_flag, wFluxDiv_, wSource_);
 
 #pragma omp parallel for collapse(3) schedule(dynamic, 64)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -265,14 +264,14 @@ void Advance::AdvanceIt(
                     pressureCurr_, qiFinal, pressurePrev);
 
                 if (frozenCell) {
-                    if (DATA.viscosity_flag == 1)
+                    if (DATA.viscosity_flag)
                         frozenViscousUpdate(
                             tau, rk_flag, arenaFieldsPrev, arenaFieldsCurr,
                             arenaFieldsNext, fieldIdx);
                     continue;
                 }
 
-                if (DATA.viscosity_flag == 1) {
+                if (DATA.viscosity_flag) {
                     // arenaFieldsCurr is at tau_rk: tau_n in the first RK
                     // stage, tau_{n+1} (the predictor) in the second. The
                     // derivatives need its tau (u^tau / tau in theta, the
@@ -283,7 +282,7 @@ void Advance::AdvanceIt(
                     // D^tau(mu_B/T) only enters the baryon diffusion
                     u_derivative_helper.MakedU(
                         tau_rk, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix,
-                        iy, ieta, &pressureCurr_, DATA.turn_on_diff == 1,
+                        iy, ieta, &pressureCurr_, DATA.turn_on_diff,
                         withMuBOverT ? &muBOverTCurr_ : nullptr,
                         withMuBOverT ? &muBOverTPrev_ : nullptr);
                     double theta_local =
@@ -480,7 +479,7 @@ double Advance::viscousTimeComponent(
     const Fields &arena, const int fieldIdx, const int alpha) const {
     if (alpha == 4) return arena.Wmunu_[10][fieldIdx];  // q^tau
     double v = arena.Wmunu_[alpha][fieldIdx];           // W^{alpha tau}
-    if (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1) {
+    if (DATA.turn_on_bulk || DATA.turn_on_bulk_chem) {
         const double g = (alpha == 0 ? -1. : 0.);
         const double Pi = arena.piBulk_[fieldIdx] + arena.piBulkChem_[fieldIdx];
         v += Pi * (g + arena.u_[alpha][fieldIdx] * arena.u_[0][fieldIdx]);
@@ -560,14 +559,14 @@ TJbVec Advance::cellSource(
         }
     }
 
-    if (DATA.turn_on_rhob == 1) {
+    if (DATA.turn_on_rhob) {
         qi_source[4] =
             (tau_rk
              * hydro_source_terms_ptr->get_hydro_rhob_source(
                  tau_rk, x_local, y_local, eta_s_local, u_local));
     }
 
-    if (DATA.turn_on_QS == 1) {
+    if (DATA.turn_on_QS) {
         qi_source[5] =
             (tau_rk
              * hydro_source_terms_ptr->get_hydro_rhoQ_source(
@@ -662,7 +661,7 @@ void Advance::FirstRKStepT(
         // non-zero remove/modify if rho_b!=0
         // - this is only to remove the viscous correction that
         // can make rho_b negative which we do not want.
-        // if (DATA.turn_on_rhob == 0) {
+        // if (!DATA.turn_on_rhob) {
         //    if (alpha == 4 && std::abs(qi[alpha]) > 1e-12)
         //        qi[alpha] = 0.;
         //}
@@ -713,7 +712,7 @@ void Advance::FirstRKStepW(
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
-    if (DATA.turn_on_shear == 1) {
+    if (DATA.turn_on_shear) {
         std::array<double, 5> sourceTerms = {0.};
         diss_helper.Make_uWSource(
             tau_now, grid_c, theta_local, a_local, sigma_local, omega_local,
@@ -735,7 +734,7 @@ void Advance::FirstRKStepW(
         }
     }
 
-    if (DATA.turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk) {
         double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
         tempf =
             ((1. - rk_flag) * (grid_c.pi_b * grid_c.u[0])
@@ -755,7 +754,7 @@ void Advance::FirstRKStepW(
     // ---------------------------------------------------------------------
     // NEW: chemical-equilibration bulk pressure evolution (pi_b_chem)
     // ---------------------------------------------------------------------
-    if (DATA.turn_on_bulk_chem == 1) {
+    if (DATA.turn_on_bulk_chem) {
         double piBulkChemPrev_local = arenaFieldsPrev.piBulkChem_[fieldIdx];
 
         tempf =
@@ -775,7 +774,7 @@ void Advance::FirstRKStepW(
     // ---------------------------------------------------------------------
 
     // CShen: add source term for baryon diffusion
-    if (DATA.turn_on_diff == 1) {
+    if (DATA.turn_on_diff) {
         std::array<double, 3> sourceTerms = {0.};
         diss_helper.Make_uqSource(
             tau_now, grid_c, theta_local, a_local, sigma_local, omega_local,
@@ -838,13 +837,13 @@ void Advance::FirstRKStepW(
     // reduce Wmunu using the QuestRevert algorithm
     if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
         QuestRevert(grid_f, ieta, ix, iy);
-        if (DATA.turn_on_diff == 1) {
+        if (DATA.turn_on_diff) {
             QuestRevert_qmu(grid_f, ieta, ix, iy);
         }
         if (DATA.FlagResumTransportCoeff) {
             QuestRevertResummedTransCoeff(grid_f);
         }
-        if (DATA.FlagCausalityMethod == 1) {
+        if (DATA.FlagCausalityMethod) {
             solveEigenvaluesWmunu(grid_f);
             nCausalityConstraints(grid_f);
         }

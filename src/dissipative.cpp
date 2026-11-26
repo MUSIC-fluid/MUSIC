@@ -54,8 +54,7 @@ void Diss::MakeWSource(
         double Pi_alpha0 = 0.0;
         // the total bulk pressure Pi = Pi_bulk + Pi_chem enters T^{mu nu}
         // whenever either part is evolved
-        if (alpha < 4
-            && (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)) {
+        if (alpha < 4 && (DATA.turn_on_bulk || DATA.turn_on_bulk_chem)) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
             double PiCurr =
                 arenaCurr.piBulk_[fieldIdx] + arenaCurr.piBulkChem_[fieldIdx];
@@ -113,7 +112,7 @@ void Diss::MakeWSource(
 
                 double Pi_m = 0;
                 double Pi_p = 0;
-                if ((DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)
+                if ((DATA.turn_on_bulk || DATA.turn_on_bulk_chem)
                     && alpha < 4) {
                     double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
                     double PiIp1 =
@@ -188,8 +187,7 @@ void Diss::computeWSourceDivergence(
     // the same operations as MakeWSource, in the same order
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
-    const bool withBulk =
-        (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+    const bool withBulk = (DATA.turn_on_bulk || DATA.turn_on_bulk_chem);
     const int nx = arenaCurr.nX();
     const int ny = arenaCurr.nY();
     const int neta = arenaCurr.nEta();
@@ -365,8 +363,7 @@ void Diss::computeWDivergences(
         0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
     const double delta_tau = DATA.delta_tau;
-    const bool withBulk =
-        (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+    const bool withBulk = (DATA.turn_on_bulk || DATA.turn_on_bulk_chem);
     if (withFlux) wFluxDiv.resize(static_cast<size_t>(kWComponents) * nStorage);
     wSource.resize(kWSourceComponents * nStorage);
     wSourceCoshDeta_ =
@@ -650,7 +647,7 @@ void Diss::Make_uWSource(
 
     bool include_WWterm = false;
     bool include_Wsigma_term = false;
-    if (DATA.include_second_order_terms == 1) {
+    if (DATA.include_second_order_terms) {
         include_WWterm = true;
         include_Wsigma_term = true;
     }
@@ -750,7 +747,7 @@ void Diss::Make_uWSource(
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
         double Coupling_to_Bulk = 0.0;
-        if (DATA.include_second_order_terms == 1) {
+        if (DATA.include_second_order_terms) {
             double Bulk_Sigma = grid_pt.pi_b * sigma[mu][nu];
             double Bulk_W = grid_pt.pi_b * Wmunu[mu][nu];
 
@@ -866,13 +863,13 @@ void Diss::Make_uWSource(
 
 int Diss::nWComponents() const {
     int loopIdx = 5;
-    if (DATA.turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk) {
         loopIdx = 6;
     }
-    if (DATA.turn_on_bulk_chem == 1) {
+    if (DATA.turn_on_bulk_chem) {
         loopIdx = 7;
     }
-    if (DATA.turn_on_diff == 1) {
+    if (DATA.turn_on_diff) {
         loopIdx = 10;
     }
     return (loopIdx);
@@ -1051,12 +1048,12 @@ void Diss::Make_uWRHS(
                 + (theta_local * Wmunu_local[mu][nu]))
                    * (DATA.delta_tau));
     }
-    if (DATA.turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk) {
         w_rhs[5] -= (grid_pt.pi_b) * (grid_pt.u[0]) / tau * DATA.delta_tau;
         w_rhs[5] += (grid_pt.pi_b) * theta_local * DATA.delta_tau;
     }
 
-    if (DATA.turn_on_bulk_chem == 1) {
+    if (DATA.turn_on_bulk_chem) {
         w_rhs[6] -= (grid_pt.pi_b_chem) * (grid_pt.u[0]) / tau * DATA.delta_tau;
         w_rhs[6] += (grid_pt.pi_b_chem) * theta_local * DATA.delta_tau;
     }
@@ -1076,7 +1073,7 @@ double Diss::Make_uPiSource(
     // switch to include non-linear coupling terms in the bulk pi evolution
     bool include_BBterm = false;
     bool include_coupling_to_shear = false;
-    if (DATA.include_second_order_terms == 1) {
+    if (DATA.include_second_order_terms) {
         include_BBterm = true;
         include_coupling_to_shear = true;
     }

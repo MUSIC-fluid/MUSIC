@@ -12,6 +12,18 @@ namespace ReadInParameters {
 
 pretty_ostream music_message("📋 ReadInParameters");
 
+//! an on/off parameter: 0 or 1, anything else is an error
+bool getFlag(
+    const std::string &input_file, const std::string &name, int defaultValue) {
+    const int value = getParameter(input_file, name, defaultValue);
+    if (value != 0 && value != 1) {
+        music_message << name << " = " << value << " must be 0 or 1";
+        music_message.flush("error");
+        exit(1);
+    }
+    return (value == 1);
+}
+
 InitData read_in_parameters(std::string input_file) {
     InitData parameter_list;
 
@@ -60,10 +72,10 @@ InitData read_in_parameters(std::string input_file) {
     }
 
     parameter_list.string_tilt_update =
-        (getParameter(input_file, "string_tilt_update", 0));
+        getFlag(input_file, "string_tilt_update", 0);
 
     parameter_list.output_initial_density_profiles =
-        (getParameter(input_file, "output_initial_density_profiles", 0));
+        getFlag(input_file, "output_initial_density_profiles", 0);
 
     //////////////////////////////////////////////////////////////////////////
     // parameters for 3D-Glauber initial condition
@@ -103,7 +115,6 @@ InitData read_in_parameters(std::string input_file) {
     // beastMode, below (after beastMode may have been reset)
     parameter_list.vacuumSkipEnergy =
         getParameter(input_file, "vacuumSkipEnergy", -1.);
-    parameter_list.gridPaddingCells = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // parameters for parameteric initial conditions
@@ -171,7 +182,7 @@ InitData read_in_parameters(std::string input_file) {
 
     // initialize_with_entropy: 0: with energy density, 1: with entropy density
     parameter_list.initializeEntropy =
-        (getParameter(input_file, "initialize_with_entropy", 0));
+        getFlag(input_file, "initialize_with_entropy", 0);
 
     //////////////////////////////////////////////////////////////////////////
     // Parameters for IP-Glasma initial conditions
@@ -267,30 +278,28 @@ InitData read_in_parameters(std::string input_file) {
 
     // switch for baryon current propagation
     parameter_list.turn_on_rhob =
-        (getParameter(input_file, "Include_Rhob_Yes_1_No_0", 0));
+        getFlag(input_file, "Include_Rhob_Yes_1_No_0", 0);
 
     // switch for electric charge and strangeness current propagation
-    parameter_list.turn_on_QS =
-        (getParameter(input_file, "Include_QS_Yes_1_No_0", 0));
-    if (parameter_list.turn_on_QS == 1) {
+    parameter_list.turn_on_QS = getFlag(input_file, "Include_QS_Yes_1_No_0", 0);
+    if (parameter_list.turn_on_QS) {
         parameter_list.alpha_max = 7;
-    } else if (parameter_list.turn_on_rhob == 1) {
+    } else if (parameter_list.turn_on_rhob) {
         parameter_list.alpha_max = 5;
     } else {
         parameter_list.alpha_max = 4;
     }
 
     // rho_Q = 0.4 rho_B for the 3D-Glauber string sources
-    parameter_list.use_BQ_ratios =
-        (getParameter(input_file, "use_BQ_ratios", 0));
 
     // rho_Q and rho_S as fixed ratios to rho_B for the Gubser initial
     // conditions
     parameter_list.use_rhoQS_to_rhoB_ratios =
-        (getParameter(input_file, "use_rhoQS_to_rhoB_ratios", 0));
+        (getFlag(input_file, "use_rhoQS_to_rhoB_ratios", 0)
+         || getFlag(input_file, "use_BQ_ratios", 0));
     parameter_list.ratio_q = 0.4;
     parameter_list.ratio_s = 0.;
-    if (parameter_list.use_rhoQS_to_rhoB_ratios == 1) {
+    if (parameter_list.use_rhoQS_to_rhoB_ratios) {
         parameter_list.ratio_q = getParameter(input_file, "ratio_q", 0.4);
         parameter_list.ratio_s = getParameter(input_file, "ratio_s", 0.);
     }
@@ -312,7 +321,7 @@ InitData read_in_parameters(std::string input_file) {
     // 0: off, 1: the device kernels on the CPU, 2: Metal, 3: CUDA
     parameter_list.gpu_backend = getParameter(input_file, "gpu_backend", 0);
     // gpu_float: 1 runs the device in float (Metal: always)
-    parameter_list.gpu_float = getParameter(input_file, "gpu_float", 0);
+    parameter_list.gpu_float = getFlag(input_file, "gpu_float", 0);
     // gpu_store_q: 1 carries tau T^{tau mu} on the device (default: in float)
     parameter_list.gpu_store_q = getParameter(input_file, "gpu_store_q", -1);
 
@@ -340,16 +349,16 @@ InitData read_in_parameters(std::string input_file) {
 
     // Viscosity_Flag_Yes_1_No_0:   set to 0 for ideal hydro
     parameter_list.viscosity_flag =
-        (getParameter(input_file, "Viscosity_Flag_Yes_1_No_0", 1));
+        getFlag(input_file, "Viscosity_Flag_Yes_1_No_0", 1);
     // Include_Shear_Visc_Yes_1_No_0
     parameter_list.turn_on_shear =
-        (getParameter(input_file, "Include_Shear_Visc_Yes_1_No_0", 0));
+        getFlag(input_file, "Include_Shear_Visc_Yes_1_No_0", 0);
     // Include_Bulk_Visc_Yes_1_No_0
     parameter_list.turn_on_bulk =
-        (getParameter(input_file, "Include_Bulk_Visc_Yes_1_No_0", 0));
+        getFlag(input_file, "Include_Bulk_Visc_Yes_1_No_0", 0);
     // Include secord order terms
     parameter_list.include_second_order_terms =
-        (getParameter(input_file, "Include_second_order_terms", 0));
+        getFlag(input_file, "Include_second_order_terms", 0);
     int tempturn_on_vorticity_terms =
         (getParameter(input_file, "Include_vorticity_terms", 0));
     if (tempturn_on_vorticity_terms == 0) {
@@ -358,7 +367,7 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.include_vorticity_terms = true;
     }
     parameter_list.turn_on_diff =
-        (getParameter(input_file, "turn_on_baryon_diffusion", 0));
+        getFlag(input_file, "turn_on_baryon_diffusion", 0);
 
     // the strength for the viscous regulation
     parameter_list.quest_revert_strength =
@@ -367,7 +376,7 @@ InitData read_in_parameters(std::string input_file) {
     // partial_tau u^i in dilute cells from the ideal equations of motion
     // (1, default) or everywhere from a backward time difference (0)
     parameter_list.Du_from_ideal_EoM =
-        (getParameter(input_file, "Du_from_ideal_EoM", 1));
+        getFlag(input_file, "Du_from_ideal_EoM", 1);
     parameter_list.Du_from_ideal_EoM_e_dilute =
         (getParameter(input_file, "Du_from_ideal_EoM_e_dilute", 0.003));
 
@@ -377,15 +386,12 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.FlagResumTransportCoeff = false;
     }
-    if (getParameter(input_file, "turn_on_bulk_chem", 0) == 1) {
-        parameter_list.turn_on_bulk_chem = 1;
-    } else {
-        parameter_list.turn_on_bulk_chem = 0;
-    }
+    parameter_list.turn_on_bulk_chem =
+        getFlag(input_file, "turn_on_bulk_chem", 0);
     parameter_list.resumTransCoeffAlpha =
         (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
     parameter_list.FlagCausalityMethod =
-        (getParameter(input_file, "FlagResetCausality", 0));
+        getFlag(input_file, "FlagResetCausality", 0);
 
     // Shear_to_S_ratio:  constant eta/s
     parameter_list.shear_to_s =
@@ -486,7 +492,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.chem_rate_C = getParameter(input_file, "chem_rate_C", 1.0);
 
     parameter_list.store_hydro_info_in_memory =
-        (getParameter(input_file, "store_hydro_info_in_memory", 0));
+        getFlag(input_file, "store_hydro_info_in_memory", 0);
     // output_evolution_data:
     // 2: output bulk information in binary format
     parameter_list.outputEvolutionData =
@@ -496,7 +502,7 @@ InitData read_in_parameters(std::string input_file) {
     // header and the in-memory hydro grid are only set once at tau0
     if (parameter_list.beastMode >= 2
         && (parameter_list.outputEvolutionData != 0
-            || parameter_list.store_hydro_info_in_memory != 0)) {
+            || parameter_list.store_hydro_info_in_memory)) {
         music_message << "output_evolution_data and "
                       << "store_hydro_info_in_memory are incompatible with "
                       << "beastMode=" << parameter_list.beastMode
@@ -520,20 +526,20 @@ InitData read_in_parameters(std::string input_file) {
 
     // only works for output_evolution_data == 1
     parameter_list.outputBinaryEvolution =
-        (getParameter(input_file, "outputBinaryEvolution", 0));
+        getFlag(input_file, "outputBinaryEvolution", 0);
     parameter_list.output_hydro_params_header =
         (getParameter(input_file, "output_hydro_params_header", 0));
 
     parameter_list.output_movie_flag =
-        (getParameter(input_file, "output_movie_flag", 0));
+        getFlag(input_file, "output_movie_flag", 0);
     parameter_list.output_outofequilibriumsize =
-        (getParameter(input_file, "output_outofequilibriumsize", 0));
+        getFlag(input_file, "output_outofequilibriumsize", 0);
     parameter_list.output_vorticity =
-        (getParameter(input_file, "output_vorticity", 0));
+        getFlag(input_file, "output_vorticity", 0);
     parameter_list.output_OAM_density_Evolution =
         (getParameter(input_file, "output_OAM_density_Evolution", 0));
     parameter_list.output_hydro_debug_info =
-        (getParameter(input_file, "output_hydro_debug_info", 0));
+        getFlag(input_file, "output_hydro_debug_info", 0);
 
     // The evolution is outputted every
     // "output_evolution_every_N_timesteps" timesteps
@@ -561,9 +567,9 @@ InitData read_in_parameters(std::string input_file) {
     // Do_FreezeOut_Yes_1_No_0
     // set to 0 to bypass freeze out surface finder
     parameter_list.doFreezeOut =
-        (getParameter(input_file, "Do_FreezeOut_Yes_1_No_0", 1));
+        getFlag(input_file, "Do_FreezeOut_Yes_1_No_0", 1);
     parameter_list.doFreezeOut_lowtemp =
-        (getParameter(input_file, "Do_FreezeOut_lowtemp", 1));
+        getFlag(input_file, "Do_FreezeOut_lowtemp", 1);
     // freeze_out_method:
     // 2: Schenke's more complex method
     // 4: Cornelius
@@ -574,14 +580,14 @@ InitData read_in_parameters(std::string input_file) {
     // 0: freeze out at constant temperature T_freeze
     // 1: freeze out at constant energy density epsilon_freeze
     // if set in input input_file, overide above defaults
-    parameter_list.useEpsFO =
-        (getParameter(input_file, "use_eps_for_freeze_out", 1));
+    parameter_list.useEpsFO = getFlag(input_file, "use_eps_for_freeze_out", 1);
     parameter_list.freeze_eps_flag =
         (getParameter(input_file, "freeze_eps_flag", 0));
 
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
-    if (parameter_list.useEpsFO == 0) {
+    double epsilonFreeze = 0.;
+    if (!parameter_list.useEpsFO) {
         parameter_list.TFO = getParameter(input_file, "T_freeze", 0.12);
         // only one freeze-out is allowed
         parameter_list.N_freeze_out = 1;
@@ -589,14 +595,14 @@ InitData read_in_parameters(std::string input_file) {
         // epsilon_freeze: freeze-out energy density in GeV/fm^3
         // only used with use_eps_for_freeze_out = 1
         // allow multiple parameter names for backward compitibility
-        parameter_list.epsilonFreeze =
+        epsilonFreeze =
             (getParameter(input_file, "epsilon_freeze", 0.18));  // GeV/fm^3
-        parameter_list.epsilonFreeze = (getParameter(
+        epsilonFreeze = (getParameter(
             input_file, "eps_freeze_max",
-            parameter_list.epsilonFreeze));  // GeV/fm^3
-        parameter_list.epsilonFreeze = (getParameter(
+            epsilonFreeze));  // GeV/fm^3
+        epsilonFreeze = (getParameter(
             input_file, "eps_switch",
-            parameter_list.epsilonFreeze));  // GeV/fm^3
+            epsilonFreeze));  // GeV/fm^3
         // ensure "eps_switch" is the last to be assigned to epsilonFreeze
         parameter_list.N_freeze_out =
             (getParameter(input_file, "N_freeze_out", 1));
@@ -609,8 +615,8 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.eps_freeze_min =
             (getParameter(input_file, "eps_freeze_min", 0.18));
     } else {
-        parameter_list.eps_freeze_min = parameter_list.epsilonFreeze;
-        parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
+        parameter_list.eps_freeze_min = epsilonFreeze;
+        parameter_list.eps_freeze_max = epsilonFreeze;
     }
 
     //! Maximum starting time for freeze-out surface
@@ -674,7 +680,7 @@ InitData read_in_parameters(std::string input_file) {
     // pseudofreeze
     // Calculate spectra at fixed,
     // equally-spaced grid in pseudorapidity, pt, and phi
-    parameter_list.pseudofreeze = getParameter(input_file, "pseudofreeze", 1);
+    parameter_list.pseudofreeze = getFlag(input_file, "pseudofreeze", 1);
 
     // Include_deltaf:
     // Looks like 0 sets delta_f=0, 1 uses standard quadratic ansatz,
@@ -682,11 +688,11 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.include_deltaf =
         (getParameter(input_file, "Include_deltaf", 1));
     parameter_list.include_deltaf_bulk =
-        (getParameter(input_file, "Include_deltaf_bulk", 0));
+        getFlag(input_file, "Include_deltaf_bulk", 0);
     parameter_list.include_deltaf_qmu =
-        (getParameter(input_file, "Include_deltaf_qmu", 0));
+        getFlag(input_file, "Include_deltaf_qmu", 0);
     parameter_list.deltaf_14moments =
-        (getParameter(input_file, "deltaf_14moments", 0));
+        getFlag(input_file, "deltaf_14moments", 0);
 
     //////////////////////////////////////////////////////////////////////////
     // spectra vn analysis for mode 13 and 14
@@ -725,26 +731,26 @@ void set_parameter(
         parameter_list.outputEvolutionData = static_cast<int>(value);
 
     if (parameter_name == "output_movie_flag")
-        parameter_list.output_movie_flag = static_cast<int>(value);
+        parameter_list.output_movie_flag = (value != 0.);
 
     if (parameter_name == "store_hydro_info_in_memory")
-        parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
+        parameter_list.store_hydro_info_in_memory = (value != 0.);
 
     if (parameter_name == "Viscosity_Flag_Yes_1_No_0")
-        parameter_list.viscosity_flag = static_cast<int>(value);
+        parameter_list.viscosity_flag = (value != 0.);
 
     if (parameter_name == "Include_Shear_Visc_Yes_1_No_0")
-        parameter_list.turn_on_shear = static_cast<int>(value);
+        parameter_list.turn_on_shear = (value != 0.);
 
     if (parameter_name == "Shear_to_S_ratio") parameter_list.shear_to_s = value;
 
     if (parameter_name == "T_freeze") parameter_list.TFO = value;
 
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
-        parameter_list.turn_on_bulk = static_cast<int>(value);
+        parameter_list.turn_on_bulk = (value != 0.);
 
     if (parameter_name == "Include_second_order_terms")
-        parameter_list.include_second_order_terms = static_cast<int>(value);
+        parameter_list.include_second_order_terms = (value != 0.);
 
     if (parameter_name == "T_dependent_Shear_to_S_ratio")
         parameter_list.T_dependent_shear_to_s = static_cast<int>(value);
@@ -823,7 +829,7 @@ void check_parameter_denominators(const InitData &p) {
         // y_beam = acosh(ecm / (2 m_N)) divides tau_overlap and the
         // eta envelopes
         require(p.beam_rapidity > 0., "ecm must be > 2 m_N");
-        if (p.turn_on_rhob == 1)
+        if (p.turn_on_rhob)
             require(p.eta_rhob_width_1 > 0. && p.eta_rhob_width_2 > 0.,
                     "eta_rhob_width_1 and eta_rhob_width_2 must be > 0");
     }
@@ -851,13 +857,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.initializeEntropy > 1
-        || parameter_list.initializeEntropy < 0) {
-        music_message.error("Must initialize with entropy or energy");
-        exit(1);
-    }
-
-    if (parameter_list.useEpsFO == 0) {
+    if (!parameter_list.useEpsFO) {
         if (parameter_list.TFO < 0.0 || parameter_list.TFO > 0.2) {
             music_message << "T_freeze = " << parameter_list.TFO
                           << " is not physical!";
@@ -865,26 +865,19 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
             exit(1);
         }
     } else {
-        if (parameter_list.epsilonFreeze <= 0) {
+        if (parameter_list.eps_freeze_min <= 0.
+            || parameter_list.eps_freeze_max <= 0.) {
             music_message.error(
                 "Freeze out energy density must be greater than zero");
             exit(1);
         }
     }
 
-    if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
-        music_message << "did not set either freeze out energy density "
-                      << "or temperature, or invalid option for "
-                      << "use_eps_for_freeze_out:" << parameter_list.useEpsFO;
-        music_message.flush("error");
-        exit(1);
-    }
-
-    if (parameter_list.useEpsFO == 0 && parameter_list.turn_on_rhob == 1) {
+    if (!parameter_list.useEpsFO && parameter_list.turn_on_rhob) {
         music_message << "freeze-out surface set by temperature is not "
                       << "support yet. reset use_eps_for_freeze_out to 1.";
         music_message.flush("warning");
-        parameter_list.useEpsFO = 1;
+        parameter_list.useEpsFO = true;
     }
 
     if ((parameter_list.whichEOS > 20 && parameter_list.whichEOS != 91
@@ -1057,7 +1050,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.turn_on_shear == 0 && parameter_list.shear_to_s > 0) {
+    if (!parameter_list.turn_on_shear && parameter_list.shear_to_s > 0) {
         music_message << "non-zero eta/s = " << parameter_list.shear_to_s
                       << " is set with "
                       << "Include_Shear_Visc = " << parameter_list.turn_on_shear
@@ -1065,8 +1058,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("warning");
     }
 
-    if (parameter_list.turn_on_shear == 0
-        && parameter_list.include_deltaf == 1) {
+    if (!parameter_list.turn_on_shear && parameter_list.include_deltaf == 1) {
         music_message << "hydro with zero shear viscosity does not need "
                       << "shear delta f in Cooper-Frye! ";
         music_message << "input Include_deltaf = "
@@ -1076,15 +1068,14 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.include_deltaf = 0;
     }
 
-    if (parameter_list.turn_on_bulk == 0
-        && parameter_list.include_deltaf_bulk == 1) {
+    if (!parameter_list.turn_on_bulk && parameter_list.include_deltaf_bulk) {
         music_message << "hydro with zero bulk viscosity does not need "
                       << "bulk delta f in Cooper-Frye!";
         music_message << "input Include_deltaf_bulk = "
                       << parameter_list.include_deltaf_bulk
                       << ". Now rewrite it to 0!";
         music_message.flush("warning");
-        parameter_list.include_deltaf_bulk = 0;
+        parameter_list.include_deltaf_bulk = false;
     }
 
     if (parameter_list.output_evolution_every_N_timesteps <= 0) {
@@ -1121,14 +1112,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.string_tilt_update < 0
-        || parameter_list.string_tilt_update > 1) {
-        music_message << "string_tilt_update must be 0 or 1";
-        music_message.flush("error");
-        exit(1);
-    }
-
-    if (parameter_list.string_tilt_update == 1
+    if (parameter_list.string_tilt_update
         && parameter_list.stringTransverseShiftFrac > 0.0) {
         music_message << "while string_tilt_update is turned on, "
                          "StringTransverseShiftFrac cannot be  > 0 ";

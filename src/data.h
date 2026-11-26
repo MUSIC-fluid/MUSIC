@@ -31,8 +31,8 @@ typedef struct init_data {
                //!< 4: do resonance decays only
 
     std::string initName;    //!< filename for initial condition T^{\mu\nu}
-    int string_tilt_update;  //! 0 => default StringTransverseShift
-                             //! 1 => strings are tilited
+    bool string_tilt_update;  //! 0 => default StringTransverseShift
+                              //! 1 => strings are tilited
 
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
@@ -61,8 +61,8 @@ typedef struct init_data {
     //! Not while sources still deposit energy. See doc/vacuum_skip.md
     double vacuumSkipEnergy;
     //! extra grid cells added on each side when re-running hydro
-    //! (used by Initial_profile 11/111; in number of cells, not fm)
-    int gridPaddingCells;
+    //! (Initial_profile 11/111/112/113; in number of cells, not fm)
+    int reRunPaddingCells() const { return (10 * reRunCount); }
 
     //! random seed
     int seed;
@@ -90,7 +90,7 @@ typedef struct init_data {
                         // profile
 
     int Initial_profile;    //! type of initial condition
-    int initializeEntropy;  //! flag to initial entropy or energy density
+    bool initializeEntropy;  //! flag to initial entropy or energy density
 
     int string_dump_mode;
     double string_quench_factor;
@@ -143,7 +143,7 @@ typedef struct init_data {
     //! kernels on the CPU, 2 Metal, 3 CUDA
     int gpu_backend = 0;
     //! 1: the device works in float (always so with Metal)
-    int gpu_float = 0;
+    bool gpu_float = false;
     //! 1: the device carries tau T^{tau mu}; -1 (default): 1 in float
     int gpu_store_q = -1;
 
@@ -157,7 +157,7 @@ typedef struct init_data {
     bool boost_invariant;
 
     //! flag to output initial density profile
-    int output_initial_density_profiles;
+    bool output_initial_density_profiles;
 
     //! skip step for freeze out surface finder
     int facTau;
@@ -169,32 +169,35 @@ typedef struct init_data {
     int fac_eta;
 
     int alpha_max;     //!< dimension of TJb
-    int turn_on_rhob;  //!< flag to include baryon current
+    bool turn_on_rhob;  //!< flag to include baryon current
 
-    int turn_on_QS;  //!< flag to include electric charge and strangeness
-                     //!< currents
-    int use_rhoQS_to_rhoB_ratios;  //!< use ratios to rhob for rhoQ and rhoS
-                                   //!< initial conditions for Gubser Flow.
+    bool turn_on_QS;  //!< flag to include electric charge and strangeness
+                      //!< currents
+    //! rhoQ = ratio_q rhoB and rhoS = ratio_s rhoB in the Gubser flow
+    //! initial state, and rhoQ = ratio_q rhoB for the string sources (input
+    //! use_rhoQS_to_rhoB_ratios or use_BQ_ratios)
+    bool use_rhoQS_to_rhoB_ratios;
     double ratio_q;  //!< ratio rhoq/rhob for electric charge initial conditions
                      //!< for Gubser Flow.
     double ratio_s;  //!< ratio rhos/rhob for strangeness initial conditions
                      //!< for Gubser Flow.
-    int use_BQ_ratios;  //!< Set the ratio rhoQ/rhoB = 0.4 at initial conditions
-                        //!< for 3DMCGlauber.
 
-    int viscosity_flag;     //!< flag to include viscosity in the simulation
-    int turn_on_shear;      //!< flag to include shear viscosity
-    int turn_on_bulk;       //!< flag to include bulk viscosity
-    int turn_on_bulk_chem;  //!< flag to include bulk viscosity from chemical
-                            //!< non-equilibrium
-    int turn_on_diff;       //!< flag to include net baryon diffusion
+    //! flag to include viscosity in the simulation; when it is off,
+    //! applyViscosityFlag clears turn_on_shear, turn_on_bulk,
+    //! turn_on_bulk_chem and turn_on_diff at the start of the run
+    bool viscosity_flag;
+    bool turn_on_shear;      //!< flag to include shear viscosity
+    bool turn_on_bulk;       //!< flag to include bulk viscosity
+    bool turn_on_bulk_chem;  //!< flag to include bulk viscosity from chemical
+                             //!< non-equilibrium
+    bool turn_on_diff;       //!< flag to include net baryon diffusion
     double shear_to_s;      //!< value of specific shear viscosity
 
     double quest_revert_strength;
     //! 1: in dilute cells partial_tau u^i in sigma^{mu nu}, theta and Du^mu
     //! comes from the ideal equations of motion instead of a backward time
     //! difference
-    int Du_from_ideal_EoM;
+    bool Du_from_ideal_EoM;
     //! [GeV/fm^3] (default 0.003) the ideal equations of motion are used below
     //! this energy density and blended into the backward difference up to 5
     //! times it. Below ~0.001 a lumpy event is unstable with the smoothness
@@ -202,7 +205,7 @@ typedef struct init_data {
     double Du_from_ideal_EoM_e_dilute;
     bool FlagResumTransportCoeff;
     double resumTransCoeffAlpha;
-    int FlagCausalityMethod;
+    bool FlagCausalityMethod;
 
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
@@ -262,13 +265,13 @@ typedef struct init_data {
     int bulk_relaxation_type;
 
     //! flag to include second order non-linear coupling terms
-    int include_second_order_terms;
+    bool include_second_order_terms;
 
     //! flag to include vorticity coupling terms in shear and diffusion
     bool include_vorticity_terms;
 
     //! flag to output vorticity evolution
-    int output_vorticity;
+    bool output_vorticity;
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;
@@ -281,20 +284,20 @@ typedef struct init_data {
     int outputEvolutionData;
 
     //! flag to store hydro evolution in memory for jetscape
-    int store_hydro_info_in_memory;
+    bool store_hydro_info_in_memory;
 
     //! decide whether to output files for movie
-    int output_movie_flag;
+    bool output_movie_flag;
 
     //! decide whether to output files for R_pi and R_Pi
-    int output_outofequilibriumsize;
+    bool output_outofequilibriumsize;
 
     //! decide whether to output "evolution_xyeta.dat" and
     //! "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1)
     //! or in text format (0)
-    int outputBinaryEvolution;
+    bool outputBinaryEvolution;
 
-    int output_hydro_debug_info;
+    bool output_hydro_debug_info;
     int output_evolution_every_N_timesteps;
     int output_evolution_every_N_x;
     int output_evolution_every_N_y;
@@ -307,10 +310,10 @@ typedef struct init_data {
     double output_evolution_e_cut;
     bool output_evolution_ideal_only;
 
-    int doFreezeOut;  //!< flag to output freeze-out surface
+    bool doFreezeOut;  //!< flag to output freeze-out surface
 
     //! flag to include low temperature cell at the initial time
-    int doFreezeOut_lowtemp;
+    bool doFreezeOut_lowtemp;
 
     //! Maximum starting time for freeze-out surface
     double freezeOutTauStartMax;
@@ -319,14 +322,16 @@ typedef struct init_data {
 
     double TFO;  //!< freeze-out temperature. Used if useEpsFO=0
 
-    int useEpsFO;  //!< if 1, use energy density value
-                   //!<       to define freeze out condition
-                   //!< if 0 use temperature in TFO
+    bool useEpsFO;  //!< if 1, use energy density value
+                    //!<       to define freeze out condition
+                    //!< if 0 use temperature in TFO
 
-    double epsilonFreeze;  //!< freeze-out energy density in GeV/fm^3
     double epsFO_low;  //!< the lowest freeze-out energy density for the cold
                        //!< corona in GeV/fm^3
     int N_freeze_out;
+    //! the freeze-out energy densities in GeV/fm^3, from eps_freeze_min to
+    //! eps_freeze_max; both are eps_switch (or epsilon_freeze) for
+    //! N_freeze_out = 1
     double eps_freeze_min;
     double eps_freeze_max;
     int freeze_eps_flag;
@@ -334,7 +339,7 @@ typedef struct init_data {
     bool freeze_surface_in_binary;
 
     // for calculation of spectra
-    int pseudofreeze;  //! flag to compute spectra in pseudorapdity
+    bool pseudofreeze;  //! flag to compute spectra in pseudorapdity
     double max_pseudorapidity;
     int pseudo_steps;
     int phi_steps;
@@ -350,9 +355,9 @@ typedef struct init_data {
     int particleSpectrumNumber;
 
     int include_deltaf;       //!< flag to include shear delta f
-    int include_deltaf_qmu;   //!< flag to include diffusion delta f
-    int include_deltaf_bulk;  //!< flag to include bulk delta f
-    int deltaf_14moments;     //!< use delta f from 14 moment approxmation
+    bool include_deltaf_qmu;   //!< flag to include diffusion delta f
+    bool include_deltaf_bulk;  //!< flag to include bulk delta f
+    bool deltaf_14moments;     //!< use delta f from 14 moment approxmation
 
     // parameters for mode 13 and mode 14
     //! rapidity range for dN/dy as a function of y
@@ -371,6 +376,14 @@ typedef struct init_data {
     double dNdyptdpt_eta_min;
     double dNdyptdpt_eta_max;
 
+    //! ideal hydro (viscosity_flag off) has no viscous components
+    void applyViscosityFlag() {
+        if (viscosity_flag) return;
+        turn_on_shear = false;
+        turn_on_bulk = false;
+        turn_on_bulk_chem = false;
+        turn_on_diff = false;
+    }
 } InitData;
 
 #endif  // SRC_DATA_H_

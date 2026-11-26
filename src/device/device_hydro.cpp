@@ -455,8 +455,8 @@ DeviceHydro::DeviceHydro(
         music_message.flush("warning");
         return;
     }
-    viscous_ = (DATA.viscosity_flag == 1);
-    float_ = (which == 2 || DATA.gpu_float == 1);
+    viscous_ = DATA.viscosity_flag;
+    float_ = (which == 2 || DATA.gpu_float);
     storeQ_ = (DATA.gpu_store_q < 0 ? float_ : DATA.gpu_store_q == 1);
     if (float_) {
         // MUSIC's beastMode-0 tolerances (1e-16, 1e-14) are below the float
@@ -545,10 +545,7 @@ std::string DeviceHydro::unsupportedReason() const {
     if (!(id == 0 || id == 9 || id == 91 || (id >= 10 && id <= 14)
           || id == 20))
         return ("EoS " + std::to_string(id) + " is not on the device yet");
-    if (DATA.viscosity_flag == 0) return ("");
-    if (DATA.viscosity_flag != 1)
-        return ("viscosity_flag " + std::to_string(DATA.viscosity_flag)
-                + " is not on the device");
+    if (!DATA.viscosity_flag) return ("");
     if (DATA.T_dependent_shear_to_s == 23 || DATA.T_dependent_bulk_to_s == 23)
         return ("transport coefficients from files are not on the device");
     return ("");
@@ -886,7 +883,7 @@ void DeviceHydro::fillViscParams(StepParams<Real> &P) const {
     P.vorticity = (DATA.include_vorticity_terms ? 1 : 0);
     P.duIdeal = DATA.Du_from_ideal_EoM;
     P.resum = (DATA.FlagResumTransportCoeff ? 1 : 0);
-    P.causality = (DATA.FlagCausalityMethod == 1 ? 1 : 0);
+    P.causality = (DATA.FlagCausalityMethod ? 1 : 0);
     P.bulkChem = DATA.turn_on_bulk_chem;
     P.diff = DATA.turn_on_diff;
     P.profile1 = (DATA.Initial_profile == 1 ? 1 : 0);
@@ -900,9 +897,9 @@ void DeviceHydro::fillViscParams(StepParams<Real> &P) const {
     // Diss::nWComponents (no chemical bulk, no diffusion)
     // Diss::nWComponents
     P.nWComp = 5;
-    if (DATA.turn_on_bulk == 1) P.nWComp = 6;
-    if (DATA.turn_on_bulk_chem == 1) P.nWComp = 7;
-    if (DATA.turn_on_diff == 1) P.nWComp = 10;
+    if (DATA.turn_on_bulk) P.nWComp = 6;
+    if (DATA.turn_on_bulk_chem) P.nWComp = 7;
+    if (DATA.turn_on_diff) P.nWComp = 10;
     for (int a = 0; a < 4; a++)
         for (int b = 0; b < 4; b++) P.g[a][b] = Real(DATA.gmunu[a][b]);
     P.duIdealEDilute = Real(DATA.Du_from_ideal_EoM_e_dilute);
@@ -1054,13 +1051,13 @@ bool DeviceHydro::computeSource(const Real *s, double tauRk) {
                     qi_source[ii] = tauRk * j_mu[ii];
                     if (std::isnan(qi_source[ii])) isNan = true;
                 }
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     qi_source[4] =
                         (tauRk
                          * src.get_hydro_rhob_source(
                              tauRk, x_local, y_local, eta_s_local, u_local));
                 }
-                if (DATA.turn_on_QS == 1) {
+                if (DATA.turn_on_QS) {
                     qi_source[5] =
                         (tauRk
                          * src.get_hydro_rhoQ_source(
@@ -1485,9 +1482,10 @@ void DeviceHydro::packStrings(
     }
     buf[kStrPreEqFlow] = S.get_preEqFlowFactor();
     buf[kStrQuench] = S.get_parton_quench_factor();
-    buf[kStrUseBQ] = (DATA.use_BQ_ratios ? 1. : 0.);
-    buf[kStrRhob] = (DATA.turn_on_rhob == 1 ? 1. : 0.);
-    buf[kStrQS] = (DATA.turn_on_QS == 1 ? 1. : 0.);
+    buf[kStrUseBQ] = (DATA.use_rhoQS_to_rhoB_ratios ? 1. : 0.);
+    buf[kStrRatioQ] = DATA.ratio_q;
+    buf[kStrRhob] = (DATA.turn_on_rhob ? 1. : 0.);
+    buf[kStrQS] = (DATA.turn_on_QS ? 1. : 0.);
     buf[kStrDtau] = DATA.delta_tau;
     buf[kStrXSize] = DATA.x_size;
     buf[kStrYSize] = DATA.y_size;

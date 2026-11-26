@@ -34,7 +34,7 @@ enum StrHead {
     kStrNElectric,  // QCD_strings_electric_list_current_tau.size()
     kStrPreEqFlow,  // preEqFlowFactor_
     kStrQuench,     // parton_quench_factor
-    kStrUseBQ,      // DATA.use_BQ_ratios
+    kStrUseBQ,      // DATA.use_rhoQS_to_rhoB_ratios
     kStrRhob,       // DATA.turn_on_rhob
     kStrQS,         // DATA.turn_on_QS
     kStrDtau,       // DATA.delta_tau
@@ -46,6 +46,7 @@ enum StrHead {
     kStrDeta,
     kStrHbarc,   // Util::hbarc
     kStrTauCap,  // DATA.stringSourceTauMax
+    kStrRatioQ,  // DATA.ratio_q (with kStrUseBQ)
     kStrHead
 };
 
@@ -401,7 +402,7 @@ MD_FN Real stringRhoQSource(
     Real res = Real(0.);
     if (S[kStrUseBQ] != Real(0)) {
         Real nb = stringRhobSource(S, tau, x, y, eta_s, u_mu);
-        res = Real(0.4) * nb;
+        res = S[kStrRatioQ] * nb;
         return (res);
     }
     if (S[kStrNElectric] == Real(0)) return (res);

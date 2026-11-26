@@ -24,12 +24,12 @@ using Util::small_eps;
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in)
     : DATA(DATA_in), eos(eos_in), u_derivative_helper(DATA_in, eos_in) {
     // read in tables for delta f coefficients
-    if (DATA.turn_on_diff == 1) {
-        if (DATA.deltaf_14moments == 1) {
+    if (DATA.turn_on_diff) {
+        if (DATA.deltaf_14moments) {
             load_deltaf_qmu_coeff_table_14mom(
                 "tables/deltaf_coefficients_14moments.dat");
         } else {
-            if (DATA.include_deltaf_qmu == 1)
+            if (DATA.include_deltaf_qmu)
                 load_deltaf_qmu_coeff_table(
                     "tables/Coefficients_RTA_diffusion.dat");
         }
@@ -38,8 +38,8 @@ Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in)
 }
 
 Cell_info::~Cell_info() {
-    if (DATA.turn_on_diff == 1) {
-        if (DATA.deltaf_14moments == 1) {
+    if (DATA.turn_on_diff) {
+        if (DATA.deltaf_14moments) {
             for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
                 delete[] deltaf_coeff_tb_14mom_DPi[i];
                 delete[] deltaf_coeff_tb_14mom_BPi[i];
@@ -55,7 +55,7 @@ Cell_info::~Cell_info() {
             delete[] deltaf_coeff_tb_14mom_BV;
             delete[] deltaf_coeff_tb_14mom_Bpi_shear;
         } else {
-            if (DATA.include_deltaf_qmu == 1) {
+            if (DATA.include_deltaf_qmu) {
                 for (int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
                     delete[] deltaf_qmu_coeff_tb[i];
                 delete[] deltaf_qmu_coeff_tb;
@@ -96,13 +96,13 @@ void Cell_info::Output_hydro_information_header() {
             << DATA.output_evolution_every_N_timesteps * DATA.delta_tau << ";"
             << endl;
 
-    outfile << "const bool MUSIC_with_shear_viscosity = "
-            << ((DATA.viscosity_flag) && (DATA.turn_on_shear)) << ";\n";
-    outfile << "const bool MUSIC_with_bulk_viscosity = "
-            << ((DATA.viscosity_flag) && (DATA.turn_on_bulk)) << ";\n";
+    outfile << "const bool MUSIC_with_shear_viscosity = " << DATA.turn_on_shear
+            << ";\n";
+    outfile << "const bool MUSIC_with_bulk_viscosity = " << DATA.turn_on_bulk
+            << ";\n";
     outfile << "const bool MUSIC_with_rhob = " << (DATA.turn_on_rhob) << ";\n";
-    outfile << "const bool MUSIC_with_diffusion = "
-            << ((DATA.viscosity_flag) && (DATA.turn_on_diff)) << ";\n";
+    outfile << "const bool MUSIC_with_diffusion = " << DATA.turn_on_diff
+            << ";\n";
     outfile << "const bool MUSIC_outputBinaryEvolution="
             << DATA.outputBinaryEvolution << ";" << endl;
 
@@ -133,15 +133,15 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
         out_open_mode += "b";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
-    if (DATA.turn_on_shear == 1) {
+    if (DATA.turn_on_shear) {
         out_file_W_xyeta =
             fopen(out_name_W_xyeta.c_str(), out_open_mode.c_str());
     }
-    if (DATA.turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk) {
         out_file_bulkpi_xyeta =
             fopen(out_name_bulkpi_xyeta.c_str(), out_open_mode.c_str());
     }
-    if (DATA.turn_on_diff == 1) {
+    if (DATA.turn_on_diff) {
         out_file_q_xyeta =
             fopen(out_name_q_xyeta.c_str(), out_open_mode.c_str());
     }
@@ -188,7 +188,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double Wyy = 0.0;
                 double Wyeta = 0.0;
                 double Wetaeta = 0.0;
-                if (DATA.turn_on_shear == 1) {
+                if (DATA.turn_on_shear) {
                     Wtautau = arena.Wmunu_[0][fieldIdx] / enthalpyDiv;
                     Wtaux = arena.Wmunu_[1][fieldIdx] / enthalpyDiv;
                     Wtauy = arena.Wmunu_[2][fieldIdx] / enthalpyDiv;
@@ -204,7 +204,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double bulk_Pi = 0.0;
                 double bulk_Pi_kinetic = 0.0;
                 double bulk_Pi_chem = 0.0;
-                if (DATA.turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk) {
                     // Output separate components for analysis
                     bulk_Pi_kinetic = arena.piBulk_[fieldIdx];   // [1/fm^4]
                     bulk_Pi_chem = arena.piBulkChem_[fieldIdx];  // [1/fm^4]
@@ -217,7 +217,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double qx = 0.0;
                 double qy = 0.0;
                 double qeta = 0.0;
-                if (DATA.turn_on_diff == 1) {
+                if (DATA.turn_on_diff) {
                     common_term_q = thermalVec[1] * thermalVec[6] / enthalpyDiv;
                     double kappa_hat =
                         get_deltaf_qmu_coeff(thermalVec[6], thermalVec[7]);
@@ -228,12 +228,12 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 }
 
                 // exclude the actual coordinates from the output to save space:
-                if (DATA.outputBinaryEvolution == 0) {
+                if (!DATA.outputBinaryEvolution) {
                     fprintf(
                         out_file_xyeta, "%e %e %e %e %e\n",
                         thermalVec[6] * hbarc, thermalVec[7] * hbarc, vx, vy,
                         vz);
-                    if (DATA.viscosity_flag == 1) {
+                    if (DATA.viscosity_flag) {
                         if (DATA.turn_on_shear) {
                             fprintf(
                                 out_file_W_xyeta,
@@ -255,8 +255,8 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                         static_cast<float>(vx), static_cast<float>(vy),
                         static_cast<float>(vz)};
                     fwrite(array, sizeof(float), 5, out_file_xyeta);
-                    if (DATA.viscosity_flag == 1) {
-                        if (DATA.turn_on_shear == 1) {
+                    if (DATA.viscosity_flag) {
+                        if (DATA.turn_on_shear) {
                             float array2[] = {static_cast<float>(Wtautau),
                                               static_cast<float>(Wtaux),
                                               static_cast<float>(Wtauy),
@@ -269,7 +269,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                                               static_cast<float>(Wetaeta)};
                             fwrite(array2, sizeof(float), 10, out_file_W_xyeta);
                         }
-                        if (DATA.turn_on_bulk == 1) {
+                        if (DATA.turn_on_bulk) {
                             float array1[] = {
                                 static_cast<float>(tau),
                                 static_cast<float>(bulk_Pi_kinetic),
@@ -282,7 +282,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                                 array1, sizeof(float), 7,
                                 out_file_bulkpi_xyeta);
                         }
-                        if (DATA.turn_on_diff == 1) {
+                        if (DATA.turn_on_diff) {
                             float array3[] = {
                                 static_cast<float>(common_term_q),
                                 static_cast<float>(qtau),
@@ -296,13 +296,13 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
         }
     }
     fclose(out_file_xyeta);
-    if (DATA.turn_on_shear == 1) {
+    if (DATA.turn_on_shear) {
         fclose(out_file_W_xyeta);
     }
-    if (DATA.turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk) {
         fclose(out_file_bulkpi_xyeta);
     }
-    if (DATA.turn_on_diff == 1) {
+    if (DATA.turn_on_diff) {
         fclose(out_file_q_xyeta);
     }
 }
@@ -321,7 +321,7 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
     }
 
     // If we output in binary, set the mode accordingly
-    if (DATA.outputBinaryEvolution == 0) {
+    if (!DATA.outputBinaryEvolution) {
         out_open_mode += "b";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
@@ -342,7 +342,7 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
                 calculate_inverse_Reynolds_numbers(
                     arena, fieldIdx, arena.e_[fieldIdx] + P_local, R_pi, R_Pi);
 
-                if (DATA.outputBinaryEvolution == 0) {
+                if (!DATA.outputBinaryEvolution) {
                     fprintf(
                         out_file_xyeta, "%e %e %e\n", arena.e_[fieldIdx], R_pi,
                         R_Pi);
@@ -560,7 +560,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 double Wxz = 0.0;
                 double Wyy = 0.0;
                 double Wyz = 0.0;
-                if (DATA.turn_on_shear == 1) {
+                if (DATA.turn_on_shear) {
                     Wxx = piLRF[0] / div_factor;
                     Wxy = piLRF[1] / div_factor;
                     Wxz = piLRF[2] / div_factor;
@@ -569,7 +569,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 }
 
                 double pi_b = 0.0;
-                if (DATA.turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk) {
                     pi_b = arena.piBulk_[fieldIdx] / div_factor;
                 }
 
@@ -578,7 +578,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 double qx = 0.0;
                 double qy = 0.0;
                 double qz = 0.0;
-                if (DATA.turn_on_diff == 1) {
+                if (DATA.turn_on_diff) {
                     // common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local, muB_local);
                     qx = piLRF[5] / kappa_hat;
@@ -601,7 +601,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
 
                 fwrite(ideal, sizeof(float), 11, out_file_xyeta);
 
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     float mu_B[] = {
                         static_cast<float>(rhob_local),
                         static_cast<float>(muB_local * hbarc)};
@@ -609,7 +609,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 }
 
                 if (!DATA.output_evolution_ideal_only) {
-                    if (DATA.turn_on_shear == 1) {
+                    if (DATA.turn_on_shear) {
                         float shear_pi[] = {
                             static_cast<float>(Wxx), static_cast<float>(Wxy),
                             static_cast<float>(Wxz), static_cast<float>(Wyy),
@@ -617,12 +617,12 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                         fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
                     }
 
-                    if (DATA.turn_on_bulk == 1) {
+                    if (DATA.turn_on_bulk) {
                         float bulk_pi[] = {static_cast<float>(pi_b)};
                         fwrite(bulk_pi, sizeof(float), 1, out_file_xyeta);
                     }
 
-                    if (DATA.turn_on_diff == 1) {
+                    if (DATA.turn_on_diff) {
                         float diffusion[] = {
                             static_cast<float>(qx), static_cast<float>(qy),
                             static_cast<float>(qz)};
@@ -631,7 +631,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 }
                 // rho_Q, mu_Q, rho_S, mu_S (4 floats, as counted in
                 // nVar_per_cell; mu_Q = mu_S = 0 for EoS without them)
-                if (DATA.turn_on_QS == 1) {
+                if (DATA.turn_on_QS) {
                     float mu_QS[] = {
                         static_cast<float>(rhoq_local),
                         static_cast<float>(muQ_local * hbarc),
@@ -815,7 +815,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 double muB_local = 0.0;
                 double muQ_local = 0.0;
                 double muS_local = 0.0;
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     muB_local = eos.get_muB(
                         e_local, rhob_local, rhoq_local, rhos_local);
                     if (DATA.turn_on_QS && DATA.whichEOS == 20) {
@@ -834,7 +834,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 double Wxeta = 0.0;
                 double Wyy = 0.0;
                 double Wyeta = 0.0;
-                if (DATA.turn_on_shear == 1) {
+                if (DATA.turn_on_shear) {
                     Wxx = arena.Wmunu_[4][fieldIdx] / div_factor;
                     Wxy = arena.Wmunu_[5][fieldIdx] / div_factor;
                     Wxeta = arena.Wmunu_[6][fieldIdx] / div_factor;
@@ -843,7 +843,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 }
 
                 double pi_b = 0.0;
-                if (DATA.turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk) {
                     pi_b = arena.piBulk_[fieldIdx];  // 1/fm^4
                 }
 
@@ -852,7 +852,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 double qx = 0.0;
                 double qy = 0.0;
                 double qeta = 0.0;
-                if (DATA.turn_on_diff == 1) {
+                if (DATA.turn_on_diff) {
                     common_term_q = rhob_local * T_local / div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local, muB_local);
                     qx = arena.Wmunu_[11][fieldIdx] / kappa_hat;
@@ -870,12 +870,12 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
 
                 fwrite(ideal, sizeof(float), 6, out_file_xyeta);
 
-                if (DATA.turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob) {
                     float mu[] = {static_cast<float>(muB_local * hbarc)};
                     fwrite(mu, sizeof(float), 1, out_file_xyeta);
                 }
 
-                if (DATA.turn_on_shear == 1) {
+                if (DATA.turn_on_shear) {
                     float shear_pi[] = {
                         static_cast<float>(Wxx), static_cast<float>(Wxy),
                         static_cast<float>(Wxeta), static_cast<float>(Wyy),
@@ -883,12 +883,12 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                     fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
                 }
 
-                if (DATA.turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk) {
                     float bulk_pi[] = {static_cast<float>(pi_b)};
                     fwrite(bulk_pi, sizeof(float), 1, out_file_xyeta);
                 }
 
-                if (DATA.turn_on_diff == 1) {
+                if (DATA.turn_on_diff) {
                     float diffusion[] = {
                         static_cast<float>(common_term_q),
                         static_cast<float>(qx), static_cast<float>(qy),
@@ -898,7 +898,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
 
                 // rho_Q, mu_Q, rho_S, mu_S (mu_Q = mu_S = 0 for EoS without
                 // them)
-                if (DATA.turn_on_QS == 1) {
+                if (DATA.turn_on_QS) {
                     float mu_QS[] = {
                         static_cast<float>(rhoq_local),
                         static_cast<float>(muQ_local * hbarc),
