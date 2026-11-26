@@ -28,7 +28,8 @@
 using std::vector;
 
 MUSIC::MUSIC(std::string input_file)
-    : DATA(ReadInParameters::read_in_parameters(input_file)),
+    : input_file_(input_file),
+      DATA(ReadInParameters::read_in_parameters(input_file)),
       eos(DATA.whichEOS) {
     DATA.reRunHydro = false;
     DATA.reRunCount = 0;
@@ -77,6 +78,10 @@ void MUSIC::generate_hydro_source_terms() {
     }
 }
 
+void MUSIC::write_parameter_file() const {
+    ReadInParameters::writeParameterFile(DATA, input_file_);
+}
+
 void MUSIC::clean_all_the_surface_files() {
     system_status_ = system("rm surface*.dat 2> /dev/null");
 }
@@ -96,6 +101,7 @@ void MUSIC::initialize_hydro() {
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
+    write_parameter_file();
 }
 
 //! this is a shell function to run hydro
@@ -177,6 +183,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         pi_33_in, Bulk_pi_in);
     initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
+    write_parameter_file();
 }
 
 void MUSIC::get_hydro_info(

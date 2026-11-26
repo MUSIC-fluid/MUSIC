@@ -28,6 +28,9 @@ class MUSIC {
 
     int system_status_;
 
+    //! the input file, for the parameter file
+    std::string input_file_;
+
     InitData DATA;
 
     EOS eos;
@@ -54,6 +57,11 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
+
+    //! write all the parameters of the run to music_parameters.dat
+    //! (ReadInParameters::writeParameterFile); initialize_hydro does it
+    //! once the initial state has set up the grid
+    void write_parameter_file() const;
 
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);

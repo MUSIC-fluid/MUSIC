@@ -7,12 +7,80 @@
 #include <execinfo.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <string>
 
 using std::string;
 
 namespace Util {
+
+namespace {
+std::mutex lookupMutex;
+std::vector<ParameterLookup> lookups;
+
+//! the entry of name (case-insensitive), created at the end if new
+ParameterLookup &lookupEntry(const string &name) {
+    const string key = convert_to_lowercase(name);
+    for (auto &l : lookups)
+        if (convert_to_lowercase(l.name) == key) return (l);
+    lookups.emplace_back();
+    lookups.back().name = name;
+    return (lookups.back());
+}
+
+//! a lookup in the input file: the value found, or "empty"
+void recordFound(const string &name, const string &value) {
+    std::lock_guard<std::mutex> lock(lookupMutex);
+    ParameterLookup &l = lookupEntry(name);
+    if (l.source == ParameterLookup::kSetParameter) return;
+    if (value != "empty") {
+        l.value = value;
+        l.source = ParameterLookup::kInput;
+    } else if (l.value.empty()) {
+        l.source = ParameterLookup::kDefault;
+    }
+}
+
+//! getParameter fell back to its default
+void recordDefault(const string &name, const string &value) {
+    std::lock_guard<std::mutex> lock(lookupMutex);
+    ParameterLookup &l = lookupEntry(name);
+    if (l.source != ParameterLookup::kDefault) return;
+    if (l.defaultKnown && l.value != value) l.ambiguousDefault = true;
+    l.value = value;
+    l.defaultKnown = true;
+}
+}  // namespace
+
+const std::vector<ParameterLookup> &parameterLookups() { return (lookups); }
+
+void clearParameterLookups() {
+    std::lock_guard<std::mutex> lock(lookupMutex);
+    lookups.clear();
+}
+
+void recordParameterOverride(const std::string &name, double value) {
+    std::lock_guard<std::mutex> lock(lookupMutex);
+    ParameterLookup &l = lookupEntry(name);
+    l.value = shortestDouble(value);
+    l.source = ParameterLookup::kSetParameter;
+}
+
+std::string shortestDouble(double value) {
+    for (int precision = 6; precision < 17; precision++) {
+        std::ostringstream out;
+        out.precision(precision);
+        out << value;
+        if (std::strtod(out.str().c_str(), nullptr) == value)
+            return (out.str());
+    }
+    std::ostringstream out;
+    out.precision(17);
+    out << value;
+    return (out.str());
+}
 
 double theta(const double x) {
     if (x < 0.) {
@@ -61,7 +129,10 @@ int IsFile(string file_name) {
 int getParameter(string paramFileName, string paramName, int defaultValue) {
     int paramVal = defaultValue;
     string tempinput = Util::StringFind4(paramFileName, paramName);
-    if (tempinput != "empty") std::istringstream(tempinput) >> paramVal;
+    if (tempinput != "empty")
+        std::istringstream(tempinput) >> paramVal;
+    else
+        recordDefault(paramName, std::to_string(defaultValue));
     return (paramVal);
 }
 
@@ -69,7 +140,10 @@ double getParameter(
     string paramFileName, string paramName, double defaultValue) {
     double paramVal = defaultValue;
     string tempinput = Util::StringFind4(paramFileName, paramName);
-    if (tempinput != "empty") std::istringstream(tempinput) >> paramVal;
+    if (tempinput != "empty")
+        std::istringstream(tempinput) >> paramVal;
+    else
+        recordDefault(paramName, shortestDouble(defaultValue));
     return (paramVal);
 }
 
@@ -122,6 +196,7 @@ string StringFind4(string file_name, string str_in) {
                 // find the desired parameter
                 ind++;
                 input.close();
+                recordFound(str_in, para_val);
                 return (para_val);
             } /* if right, return */
         }
@@ -131,6 +206,7 @@ string StringFind4(string file_name, string str_in) {
 
     // the desired parameter is not in the parameter file, then return "empty"
     if (ind == 0) {
+        recordFound(str_in, "empty");
         return ("empty");
     }
     // should not cross here !!!

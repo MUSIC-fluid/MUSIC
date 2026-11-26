@@ -527,6 +527,73 @@ def test_vacuum_skip(r):
             GPU_LIMITS[backend])
 
 
+def _read_parameter_file(workdir):
+    """the [input] entries (name, value) and the [unused] and [run] parts
+    of music_parameters.dat"""
+    inputs, unused, run = [], [], {}
+    part = "input"
+    with open(os.path.join(workdir, "music_parameters.dat")) as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith("# [unused]"):
+                part = "unused"
+            elif line.startswith("# [run]"):
+                part = "run"
+            elif line == "EndOfData" or line.startswith("#") and part != "unused":
+                continue
+            elif part == "input":
+                fields = line.split("#")[0].split()
+                inputs.append((fields[0], fields[1]))
+            elif part == "unused" and line.startswith("# ") and line[2:]:
+                unused.append(line[2:])
+            elif part == "run":
+                name, _, value = line.partition(" ")
+                run[name] = value
+    return inputs, unused, run
+
+
+def test_parameter_file(r):
+    # every run writes music_parameters.dat: its [input] part is an input
+    # file for the same run (with the defaults filled in), [unused] lists
+    # the input entries MUSIC does not read, [run] all of InitData
+    wd = r.workdir("parameter_file")
+    write_TATB(wd, 27, 8.0, NA=15., NB=10., b=1.0)
+    params = tatb_params(27, 8.0, 17, 4.0, 1.0)
+    params.update({
+        "Viscosity_Flag_Yes_1_No_0": 1,
+        "Include_Shear_Visc_Yes_1_No_0": 1,
+        "Shear_to_S_ratio": 0.12,
+        "Shear_to_S_ratoi": 0.2,  # misspelled: not read
+    })
+    r.run(wd, params)
+    inputs, unused, run = _read_parameter_file(wd)
+    names = [n.lower() for n, _ in inputs]
+    check(unused == ["shear_to_s_ratoi"],
+          "unused entries {} (expected the misspelled one)".format(unused))
+    for key in params:
+        if key != "Shear_to_S_ratoi":
+            check(key.lower() in names, key + " missing from [input]")
+    check("vacuumSkipEnergy".lower() in names, "no default in [input]")
+    check(abs(float(run["shear_to_s"]) - 0.12) < 1e-15, "shear_to_s in [run]")
+    check(float(run["TFO"]) == 0., "an unread parameter is not 0 in [run]")
+    print("    {} parameters in [input], {} in [run]".format(
+        len(inputs), len(run)))
+
+    # the replay from [input] gives the same evolution and [run]
+    wd2 = r.workdir("parameter_file_replay")
+    for name in ("TA.dat", "TB.dat"):
+        shutil.copy(os.path.join(wd, name), wd2)
+    r.run(wd2, dict(inputs))
+    for name in ("global_conservation_laws.dat",):
+        with open(os.path.join(wd, name), "rb") as f1, \
+                open(os.path.join(wd2, name), "rb") as f2:
+            check(f1.read() == f2.read(), name + " differs in the replay")
+    _, unused2, run2 = _read_parameter_file(wd2)
+    check(not unused2, "the replay has unused entries {}".format(unused2))
+    changed = [k for k in run if run[k] != run2.get(k)]
+    check(not changed, "[run] differs in the replay: {}".format(changed))
+
+
 def _write_lumpy_TATB(wd, n, size):
     # 40 nucleons of width 0.5 fm per nucleus
     x = np.linspace(-size / 2., size / 2., n)
@@ -1730,6 +1797,7 @@ TESTS = [
     ("lumpy_viscous_Du", test_lumpy_viscous_Du),
     ("lumpy_diffusion", test_lumpy_diffusion),
     ("vacuum_skip", test_vacuum_skip),
+    ("parameter_file", test_parameter_file),
     ("freezeout_balance", test_freezeout_balance),
     ("beastmode3", test_beastmode3),
     ("rerun", test_rerun),

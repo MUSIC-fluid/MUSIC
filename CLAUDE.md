@@ -24,6 +24,7 @@ OMP_NUM_THREADS=4 ./MUSIChydro music_input   # input: "name value" lines ending 
 
 * MUSIC reads the EoS tables from `./EOS` relative to the working directory.
 * At start-up it deletes old `*.dat` outputs in that directory.
+* Every run writes `music_parameters.dat`. Its `[input]` part, with the defaults filled in, is an input file for the same run. `[unused]` lists the input entries that MUSIC does not read, and `[run]` lists every `InitData` field. `ReadInParameters::writeParameterFile` spells the fields out, and `unittest_bugfix` checks that the list is complete.
 * The parameters and their defaults are in `src/read_in_parameters.cpp`, with descriptions in `utilities/music_parameters_dict.py`. Examples are in `example_inputfiles/`.
 
 ## Tests

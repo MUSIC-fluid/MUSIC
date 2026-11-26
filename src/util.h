@@ -14,6 +14,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "data_struct.h"
 
@@ -45,6 +46,25 @@ int getParameter(
 double getParameter(
     std::string paramFileName, std::string paramName, double defaultValue);
 std::string StringFind4(std::string file_name, std::string str_in);
+
+//! one parameter looked up with StringFind4 (and getParameter), for the
+//! parameter file of the run (ReadInParameters::writeParameterFile)
+struct ParameterLookup {
+    std::string name;   //!< as asked for
+    std::string value;  //!< from the input, the default, or set_parameter
+    enum Source { kInput, kDefault, kSetParameter } source = kInput;
+    //! the default differs between lookups of a parameter not in the input
+    bool ambiguousDefault = false;
+    bool defaultKnown = false;  //!< getParameter knows the default value
+};
+//! the parameters looked up since the last clear, in the order of their
+//! first lookup
+const std::vector<ParameterLookup> &parameterLookups();
+void clearParameterLookups();
+//! record a value set with set_parameter after the input was read
+void recordParameterOverride(const std::string &name, double value);
+//! the shortest decimal form of value that reads back to the same double
+std::string shortestDouble(double value);
 std::string convert_to_lowercase(std::string str_in);
 
 double lin_int(double x1, double x2, double f1, double f2, double x);

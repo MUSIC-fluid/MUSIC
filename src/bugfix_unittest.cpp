@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <regex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -201,6 +202,46 @@ TEST_CASE("HydroinfoMUSIC: tau after the last slice is out of range") {
 // ---------------------------------------------------------------------------
 // item 3: cleanup of old *.dat outputs before a run
 // ---------------------------------------------------------------------------
+
+TEST_CASE("the parameter file lists every InitData field") {
+    // writeParameterFile spells out the fields of InitData one by one: a
+    // field added to src/data.h must be added there too (run from the
+    // repository root)
+    std::ifstream header("src/data.h");
+    REQUIRE(header.good());
+    std::stringstream text;
+    text << header.rdbuf();
+    const std::string source = text.str();
+    const std::regex field(
+        R"(\n    (?:bool|int|double|std::string|std::array<int, 3>)\s+(\w+)\s*(?:=[^;\n]*|\{\})?;)");
+    std::set<std::string> fields;
+    for (std::sregex_iterator it(source.begin(), source.end(), field), end;
+         it != end; ++it)
+        fields.insert((*it)[1]);
+    CHECK(fields.size() > 150);
+
+    const std::string dir = makeTempDir();
+    InitData DATA = InitData();
+    DATA.eps_freeze_max = 0.18;
+    inDirectory(dir, [&] {
+        ReadInParameters::writeParameterFile(DATA, "no_input_file");
+    });
+    std::ifstream out(dir + "/music_parameters.dat");
+    REQUIRE(out.good());
+    std::set<std::string> written;
+    bool inRun = false;
+    std::string line;
+    while (std::getline(out, line)) {
+        if (line.rfind("# [run]", 0) == 0) inRun = true;
+        if (!inRun || line.empty() || line[0] == '#') continue;
+        written.insert(line.substr(0, line.find(' ')));
+    }
+    for (const auto &name : fields) {
+        INFO("InitData field " << name);
+        CHECK(written.count(name) == 1);
+    }
+    CHECK(written.size() == fields.size());
+}
 
 TEST_CASE("removeOldOutputDatFiles keeps the input files") {
     const std::string dir = makeTempDir();

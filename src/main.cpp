@@ -35,6 +35,9 @@ int main(int argc, char *argv[]) {
 
         MUSICRunControl::removeOldOutputDatFiles(music_hydro.getParameters());
         int running_mode = music_hydro.get_running_mode();
+        // the hydro modes write it once the initial state is set up
+        if (running_mode != 1 && running_mode != 2)
+            music_hydro.write_parameter_file();
         int evoStatus = 0;
         if (running_mode == 1 || running_mode == 2) {
             music_hydro.initialize_hydro();

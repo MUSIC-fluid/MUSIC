@@ -1,7 +1,11 @@
 #include "read_in_parameters.h"
 
+#include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+#include <vector>
 
 #include "util.h"
 
@@ -25,7 +29,10 @@ bool getFlag(
 }
 
 InitData read_in_parameters(std::string input_file) {
-    InitData parameter_list;
+    Util::clearParameterLookups();
+    // value-initialized: the parameters that are not read (e.g. T_freeze
+    // when freezing out at a constant energy density) are 0, not garbage
+    InitData parameter_list = InitData();
 
     // this function reads in parameters
     string tempinput;
@@ -722,6 +729,7 @@ InitData read_in_parameters(std::string input_file) {
 
 void set_parameter(
     InitData &parameter_list, std::string parameter_name, double value) {
+    Util::recordParameterOverride(parameter_name, value);
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
@@ -1152,6 +1160,342 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
                   << emoji::thumbup() << emoji::beer() << emoji::beer()
                   << emoji::beerclinking() << emoji::beerclinking();
     music_message.flush("info");
+}
+
+std::string parameterFileName() { return ("music_parameters.dat"); }
+
+//! the entries of the input file before EndOfData (lower case)
+static std::vector<std::string> inputFileEntries(
+    const std::string &input_file) {
+    std::vector<std::string> names;
+    std::ifstream input(input_file.c_str());
+    std::string line;
+    while (std::getline(input, line)) {
+        std::stringstream entry(line.substr(0, line.find('#')));
+        std::string name;
+        if (!(entry >> name)) continue;
+        name = Util::convert_to_lowercase(name);
+        if (name == "endofdata") break;
+        names.push_back(name);
+    }
+    return (names);
+}
+
+void writeParameterFile(
+    const InitData &DATA, const std::string &input_file,
+    const std::string &filename) {
+    std::ofstream out(filename.c_str());
+    if (!out) {
+        music_message << "can not write the parameter file " << filename;
+        music_message.flush("warning");
+        return;
+    }
+    out << "# MUSIC parameters of this run";
+#ifdef GIT_COMMIT_HASH
+    out << " (built from commit " << GIT_COMMIT_HASH << ")";
+#endif
+    out << "\n# input file: " << input_file << "\n#\n"
+        << "# [input] every parameter MUSIC looked up, in the order read, "
+           "with\n"
+        << "# the defaults filled in: this part is an input file for the same\n"
+        << "# run. The values set later through set_parameter are marked.\n";
+    std::vector<std::string> used;
+    for (const auto &l : Util::parameterLookups()) {
+        used.push_back(Util::convert_to_lowercase(l.name));
+        if (l.source == Util::ParameterLookup::kInput) {
+            out << l.name << " " << l.value << "\n";
+        } else if (l.source == Util::ParameterLookup::kSetParameter) {
+            out << l.name << " " << l.value << "  # set_parameter\n";
+        } else if (!l.defaultKnown) {
+            out << "# " << l.name << ": not in the input, see [run]\n";
+        } else if (l.ambiguousDefault) {
+            out << "# " << l.name << " " << l.value
+                << "  # default, which depends on other parameters\n";
+        } else {
+            out << l.name << " " << l.value << "  # default\n";
+        }
+    }
+    out << "EndOfData\n#\n"
+        << "# [unused] entries of the input file that MUSIC does not read\n";
+    for (const auto &name : inputFileEntries(input_file)) {
+        if (std::find(used.begin(), used.end(), name) == used.end())
+            out << "# " << name << "\n";
+    }
+    out << "#\n# [run] the values the run uses, after the defaults, the "
+           "checks\n"
+        << "# and the set-up of the initial state (InitData). beastMode >= 2\n"
+        << "# changes delta_tau (and 3 the transverse grid) during the run.\n";
+    const auto field = [&out](const char *name, const std::string &value) {
+        out << name << " " << value << "\n";
+    };
+    field("echo_level", std::to_string(DATA.echo_level));
+    field("reRunHydro", std::to_string(DATA.reRunHydro));
+    field("reRunCount", std::to_string(DATA.reRunCount));
+    field("beastMode", std::to_string(DATA.beastMode));
+    field(
+        "dynamicGridDetermination",
+        std::to_string(DATA.dynamicGridDetermination));
+    field("mode", std::to_string(DATA.mode));
+    field("initName", DATA.initName);
+    field("string_tilt_update", std::to_string(DATA.string_tilt_update));
+    field("initName_TA", DATA.initName_TA);
+    field("initName_TB", DATA.initName_TB);
+    field("initName_participants", DATA.initName_participants);
+    field("nucleonWidth", Util::shortestDouble(DATA.nucleonWidth));
+    field("initName_AMPT", DATA.initName_AMPT);
+    field("gridPadding", Util::shortestDouble(DATA.gridPadding));
+    field(
+        "beastModeCoarsenTolerance",
+        Util::shortestDouble(DATA.beastModeCoarsenTolerance));
+    field(
+        "beastModeMaxCoarsenFactor",
+        std::to_string(DATA.beastModeMaxCoarsenFactor));
+    field("vacuumSkipEnergy", Util::shortestDouble(DATA.vacuumSkipEnergy));
+    field("seed", std::to_string(DATA.seed));
+    field("ecm", Util::shortestDouble(DATA.ecm));
+    field("beam_rapidity", Util::shortestDouble(DATA.beam_rapidity));
+    field(
+        "initial_eta_rhob_profile",
+        std::to_string(DATA.initial_eta_rhob_profile));
+    field("eta_fall_off", Util::shortestDouble(DATA.eta_fall_off));
+    field("eta_flat", Util::shortestDouble(DATA.eta_flat));
+    field("eta_m", Util::shortestDouble(DATA.eta_m));
+    field("tilted_fraction", Util::shortestDouble(DATA.tilted_fraction));
+    field("eta_rhob_0", Util::shortestDouble(DATA.eta_rhob_0));
+    field("eta_rhob_width", Util::shortestDouble(DATA.eta_rhob_width));
+    field(
+        "eta_rhob_plateau_height",
+        Util::shortestDouble(DATA.eta_rhob_plateau_height));
+    field("eta_rhob_width_1", Util::shortestDouble(DATA.eta_rhob_width_1));
+    field("eta_rhob_width_2", Util::shortestDouble(DATA.eta_rhob_width_2));
+    field("eta_rhob_asym", Util::shortestDouble(DATA.eta_rhob_asym));
+    field("yL_frac", Util::shortestDouble(DATA.yL_frac));
+    field("omega_rhob", Util::shortestDouble(DATA.omega_rhob));
+    field("Initial_profile", std::to_string(DATA.Initial_profile));
+    field("initializeEntropy", std::to_string(DATA.initializeEntropy));
+    field("string_dump_mode", std::to_string(DATA.string_dump_mode));
+    field(
+        "string_quench_factor",
+        Util::shortestDouble(DATA.string_quench_factor));
+    field(
+        "parton_quench_factor",
+        Util::shortestDouble(DATA.parton_quench_factor));
+    field("stringSourceSigmaX", Util::shortestDouble(DATA.stringSourceSigmaX));
+    field(
+        "stringSourceSigmaEta",
+        Util::shortestDouble(DATA.stringSourceSigmaEta));
+    field("stringSourceTauMax", Util::shortestDouble(DATA.stringSourceTauMax));
+    field(
+        "stringTransverseShiftFrac",
+        Util::shortestDouble(DATA.stringTransverseShiftFrac));
+    field("preEqFlowFactor", Util::shortestDouble(DATA.preEqFlowFactor));
+    field("nx", std::to_string(DATA.nx));
+    field("ny", std::to_string(DATA.ny));
+    field("neta", std::to_string(DATA.neta));
+    field("nt", std::to_string(DATA.nt));
+    out << "inputGridPoints " << DATA.inputGridPoints[0] << " "
+        << DATA.inputGridPoints[1] << " " << DATA.inputGridPoints[2] << "\n";
+    field("x_size", Util::shortestDouble(DATA.x_size));
+    field("y_size", Util::shortestDouble(DATA.y_size));
+    field("eta_size", Util::shortestDouble(DATA.eta_size));
+    field("eta_min", Util::shortestDouble(DATA.eta_min));
+    field("tau_size", Util::shortestDouble(DATA.tau_size));
+    field("tau0", Util::shortestDouble(DATA.tau0));
+    field("delta_x", Util::shortestDouble(DATA.delta_x));
+    field("delta_y", Util::shortestDouble(DATA.delta_y));
+    field("delta_eta", Util::shortestDouble(DATA.delta_eta));
+    field("delta_tau", Util::shortestDouble(DATA.delta_tau));
+    field("dtaudxRatio", Util::shortestDouble(DATA.dtaudxRatio));
+    field("resetDtau", std::to_string(DATA.resetDtau));
+    field("rk_order", std::to_string(DATA.rk_order));
+    field("minmod_theta", Util::shortestDouble(DATA.minmod_theta));
+    field("face_reconstruction", std::to_string(DATA.face_reconstruction));
+    field("gpu_backend", std::to_string(DATA.gpu_backend));
+    field("gpu_float", std::to_string(DATA.gpu_float));
+    field("gpu_store_q", std::to_string(DATA.gpu_store_q));
+    field("sFactor", Util::shortestDouble(DATA.sFactor));
+    field("preEqVisFactor", Util::shortestDouble(DATA.preEqVisFactor));
+    field("whichEOS", std::to_string(DATA.whichEOS));
+    field("boost_invariant", std::to_string(DATA.boost_invariant));
+    field(
+        "output_initial_density_profiles",
+        std::to_string(DATA.output_initial_density_profiles));
+    field("facTau", std::to_string(DATA.facTau));
+    field("fac_x", std::to_string(DATA.fac_x));
+    field("fac_y", std::to_string(DATA.fac_y));
+    field("fac_eta", std::to_string(DATA.fac_eta));
+    field("alpha_max", std::to_string(DATA.alpha_max));
+    field("turn_on_rhob", std::to_string(DATA.turn_on_rhob));
+    field("turn_on_QS", std::to_string(DATA.turn_on_QS));
+    field(
+        "use_rhoQS_to_rhoB_ratios",
+        std::to_string(DATA.use_rhoQS_to_rhoB_ratios));
+    field("ratio_q", Util::shortestDouble(DATA.ratio_q));
+    field("ratio_s", Util::shortestDouble(DATA.ratio_s));
+    field("viscosity_flag", std::to_string(DATA.viscosity_flag));
+    field("turn_on_shear", std::to_string(DATA.turn_on_shear));
+    field("turn_on_bulk", std::to_string(DATA.turn_on_bulk));
+    field("turn_on_bulk_chem", std::to_string(DATA.turn_on_bulk_chem));
+    field("turn_on_diff", std::to_string(DATA.turn_on_diff));
+    field("shear_to_s", Util::shortestDouble(DATA.shear_to_s));
+    field(
+        "quest_revert_strength",
+        Util::shortestDouble(DATA.quest_revert_strength));
+    field("Du_from_ideal_EoM", std::to_string(DATA.Du_from_ideal_EoM));
+    field(
+        "Du_from_ideal_EoM_e_dilute",
+        Util::shortestDouble(DATA.Du_from_ideal_EoM_e_dilute));
+    field(
+        "FlagResumTransportCoeff",
+        std::to_string(DATA.FlagResumTransportCoeff));
+    field(
+        "resumTransCoeffAlpha",
+        Util::shortestDouble(DATA.resumTransCoeffAlpha));
+    field("FlagCausalityMethod", std::to_string(DATA.FlagCausalityMethod));
+    field(
+        "T_dependent_shear_to_s", std::to_string(DATA.T_dependent_shear_to_s));
+    field(
+        "muB_dependent_shear_to_s",
+        std::to_string(DATA.muB_dependent_shear_to_s));
+    field("shear_muBf0p2", Util::shortestDouble(DATA.shear_muBf0p2));
+    field("shear_muBf0p4", Util::shortestDouble(DATA.shear_muBf0p4));
+    field("shear_muBDep_alpha", Util::shortestDouble(DATA.shear_muBDep_alpha));
+    field("shear_muBDep_slope", Util::shortestDouble(DATA.shear_muBDep_slope));
+    field("shear_muBDep_scale", Util::shortestDouble(DATA.shear_muBDep_scale));
+    field("shear_2_min", Util::shortestDouble(DATA.shear_2_min));
+    field("shear_2_slope", Util::shortestDouble(DATA.shear_2_slope));
+    field("shear_2_curv", Util::shortestDouble(DATA.shear_2_curv));
+    field(
+        "shear_3_T_kink_in_GeV",
+        Util::shortestDouble(DATA.shear_3_T_kink_in_GeV));
+    field(
+        "shear_3_low_T_slope_in_GeV",
+        Util::shortestDouble(DATA.shear_3_low_T_slope_in_GeV));
+    field(
+        "shear_3_high_T_slope_in_GeV",
+        Util::shortestDouble(DATA.shear_3_high_T_slope_in_GeV));
+    field("shear_3_at_kink", Util::shortestDouble(DATA.shear_3_at_kink));
+    field("T_dependent_bulk_to_s", std::to_string(DATA.T_dependent_bulk_to_s));
+    field(
+        "bulk_2_normalisation",
+        Util::shortestDouble(DATA.bulk_2_normalisation));
+    field(
+        "bulk_2_width_in_GeV", Util::shortestDouble(DATA.bulk_2_width_in_GeV));
+    field("bulk_2_peak_in_GeV", Util::shortestDouble(DATA.bulk_2_peak_in_GeV));
+    field("bulk_3_max", Util::shortestDouble(DATA.bulk_3_max));
+    field(
+        "bulk_3_width_in_GeV", Util::shortestDouble(DATA.bulk_3_width_in_GeV));
+    field(
+        "bulk_3_T_peak_in_GeV",
+        Util::shortestDouble(DATA.bulk_3_T_peak_in_GeV));
+    field(
+        "bulk_3_lambda_asymm", Util::shortestDouble(DATA.bulk_3_lambda_asymm));
+    field("bulk_10_max", Util::shortestDouble(DATA.bulk_10_max));
+    field("bulk_10_max_muB0p2", Util::shortestDouble(DATA.bulk_10_max_muB0p2));
+    field("bulk_10_max_muB0p4", Util::shortestDouble(DATA.bulk_10_max_muB0p4));
+    field("bulk_10_width_high", Util::shortestDouble(DATA.bulk_10_width_high));
+    field("bulk_10_width_low", Util::shortestDouble(DATA.bulk_10_width_low));
+    field("bulk_10_Tpeak", Util::shortestDouble(DATA.bulk_10_Tpeak));
+    field(
+        "bulk_10_Tpeak_muBcurv",
+        Util::shortestDouble(DATA.bulk_10_Tpeak_muBcurv));
+    field(
+        "shear_relax_time_factor",
+        Util::shortestDouble(DATA.shear_relax_time_factor));
+    field(
+        "bulk_relax_time_factor",
+        Util::shortestDouble(DATA.bulk_relax_time_factor));
+    field("bulk_relaxation_type", std::to_string(DATA.bulk_relaxation_type));
+    field(
+        "include_second_order_terms",
+        std::to_string(DATA.include_second_order_terms));
+    field(
+        "include_vorticity_terms",
+        std::to_string(DATA.include_vorticity_terms));
+    field("output_vorticity", std::to_string(DATA.output_vorticity));
+    field("kappa_coefficient", Util::shortestDouble(DATA.kappa_coefficient));
+    field("chem_rate_C", Util::shortestDouble(DATA.chem_rate_C));
+    field("outputEvolutionData", std::to_string(DATA.outputEvolutionData));
+    field(
+        "store_hydro_info_in_memory",
+        std::to_string(DATA.store_hydro_info_in_memory));
+    field("output_movie_flag", std::to_string(DATA.output_movie_flag));
+    field(
+        "output_outofequilibriumsize",
+        std::to_string(DATA.output_outofequilibriumsize));
+    field("outputBinaryEvolution", std::to_string(DATA.outputBinaryEvolution));
+    field(
+        "output_hydro_debug_info",
+        std::to_string(DATA.output_hydro_debug_info));
+    field(
+        "output_evolution_every_N_timesteps",
+        std::to_string(DATA.output_evolution_every_N_timesteps));
+    field(
+        "output_evolution_every_N_x",
+        std::to_string(DATA.output_evolution_every_N_x));
+    field(
+        "output_evolution_every_N_y",
+        std::to_string(DATA.output_evolution_every_N_y));
+    field(
+        "output_evolution_every_N_eta",
+        std::to_string(DATA.output_evolution_every_N_eta));
+    field(
+        "output_OAM_density_Evolution",
+        std::to_string(DATA.output_OAM_density_Evolution));
+    field(
+        "output_hydro_params_header",
+        std::to_string(DATA.output_hydro_params_header));
+    field(
+        "output_evolution_T_cut",
+        Util::shortestDouble(DATA.output_evolution_T_cut));
+    field(
+        "output_evolution_e_cut",
+        Util::shortestDouble(DATA.output_evolution_e_cut));
+    field(
+        "output_evolution_ideal_only",
+        std::to_string(DATA.output_evolution_ideal_only));
+    field("doFreezeOut", std::to_string(DATA.doFreezeOut));
+    field("doFreezeOut_lowtemp", std::to_string(DATA.doFreezeOut_lowtemp));
+    field(
+        "freezeOutTauStartMax",
+        Util::shortestDouble(DATA.freezeOutTauStartMax));
+    field("freezeOutMethod", std::to_string(DATA.freezeOutMethod));
+    field("TFO", Util::shortestDouble(DATA.TFO));
+    field("useEpsFO", std::to_string(DATA.useEpsFO));
+    field("epsFO_low", Util::shortestDouble(DATA.epsFO_low));
+    field("N_freeze_out", std::to_string(DATA.N_freeze_out));
+    field("eps_freeze_min", Util::shortestDouble(DATA.eps_freeze_min));
+    field("eps_freeze_max", Util::shortestDouble(DATA.eps_freeze_max));
+    field("freeze_eps_flag", std::to_string(DATA.freeze_eps_flag));
+    field("freeze_list_filename", DATA.freeze_list_filename);
+    field(
+        "freeze_surface_in_binary",
+        std::to_string(DATA.freeze_surface_in_binary));
+    field("pseudofreeze", std::to_string(DATA.pseudofreeze));
+    field("max_pseudorapidity", Util::shortestDouble(DATA.max_pseudorapidity));
+    field("pseudo_steps", std::to_string(DATA.pseudo_steps));
+    field("phi_steps", std::to_string(DATA.phi_steps));
+    field("min_pt", Util::shortestDouble(DATA.min_pt));
+    field("max_pt", Util::shortestDouble(DATA.max_pt));
+    field("pt_steps", std::to_string(DATA.pt_steps));
+    field(
+        "NumberOfParticlesToInclude",
+        std::to_string(DATA.NumberOfParticlesToInclude));
+    field(
+        "particleSpectrumNumber", std::to_string(DATA.particleSpectrumNumber));
+    field("include_deltaf", std::to_string(DATA.include_deltaf));
+    field("include_deltaf_qmu", std::to_string(DATA.include_deltaf_qmu));
+    field("include_deltaf_bulk", std::to_string(DATA.include_deltaf_bulk));
+    field("deltaf_14moments", std::to_string(DATA.deltaf_14moments));
+    field("dNdy_y_min", Util::shortestDouble(DATA.dNdy_y_min));
+    field("dNdy_y_max", Util::shortestDouble(DATA.dNdy_y_max));
+    field("dNdy_eta_min", Util::shortestDouble(DATA.dNdy_eta_min));
+    field("dNdy_eta_max", Util::shortestDouble(DATA.dNdy_eta_max));
+    field("dNdy_nrap", std::to_string(DATA.dNdy_nrap));
+    field("dNdyptdpt_y_min", Util::shortestDouble(DATA.dNdyptdpt_y_min));
+    field("dNdyptdpt_y_max", Util::shortestDouble(DATA.dNdyptdpt_y_max));
+    field("dNdyptdpt_eta_min", Util::shortestDouble(DATA.dNdyptdpt_eta_min));
+    field("dNdyptdpt_eta_max", Util::shortestDouble(DATA.dNdyptdpt_eta_max));
 }
 
 }  // namespace ReadInParameters
