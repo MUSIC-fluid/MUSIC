@@ -1,7 +1,8 @@
 # Skipping near-vacuum cells (`vacuumSkipEnergy`)
 
 2026-11-25, branch `gpu` at 3be45fe plus the uncommitted changes described
-here. Apple M4, 10 OpenMP threads, CPU hydro (gpu_backend 0).
+here. Apple M4, 10 OpenMP threads, CPU hydro (gpu_backend 0) unless
+noted.
 
 ## What it does
 
@@ -31,8 +32,8 @@ here. Apple M4, 10 OpenMP threads, CPU hydro (gpu_backend 0).
 * **Log.** At the end the run logs the fraction of cell updates and faces
   that were skipped.
 
-The logic is all in `Advance::AdvanceIt`, so it covers gpu_backend 0 only.
-The device backends do not read the parameter yet.
+On the CPU the logic is in `Advance::AdvanceIt`. The device backends do
+the same (see "Device backends" below).
 
 ## Test problem
 
@@ -176,13 +177,68 @@ pass. The `vacuum_skip` test sets 0 explicitly for its reference run.
   driver), and the unit tests pass. With `vacuumSkipEnergy 0` the outputs
   are bit-identical to before.
 
+## Device backends
+
+The device kernels skip the same cells. The host decides per stage, with
+the same source rule as `Advance::AdvanceIt`, and passes the threshold in
+`StepParams::eVacuum` (1/fm^4, 0 when the stage does not skip;
+`DeviceHydro::vacuumSkipAt`). There is no mask buffer: each thread tests
+the e of its stencil itself (`isVacuum`, `isFrozenCell` in
+`device_ideal.h`).
+
+* **`kernelFace`.** An interior face whose four stencil cells are vacuum
+  writes zero flux and returns before the reconstruction.
+* **`kernelCellVisc`.** A frozen cell still does `FirstRKStepT`, with the
+  W divergences. It then replaces the gradients, `firstRKStepW` and the
+  second-stage fixed point with the dilution of W, Pi and Pi_chem, as
+  `Advance::frozenViscousUpdate` does.
+* **Unchanged.** The ideal `kernelCell` (the CPU code does the full ideal
+  update of a frozen cell too), `kernelWFace` and the mu_B / T fill. The
+  mu_B / T fill costs under 1 % on Metal, and only computing the cells
+  that are read would need the frozen mask of the neighbours.
+* **Logging.** The device run logs "skipping the cells below ...
+  GeV/fm^3" in its "hydro on the device" line. It does not count the
+  skipped cells.
+
+The frozen regions are large and contiguous, so the threads of a GPU
+SIMD group mostly take the same branch.
+
+### Results (96 x 96 x 64 full event, as above)
+
+| backend | e_vac | wall (s) | max dE/E0 | max dPz/E0 | max dN_B/N_B0 |
+|---|---|---|---|---|---|
+| 1 (device kernels on the CPU, double) | 0 | 133.4 | 1.6e-7 | 2.2e-7 | 2.2e-7 |
+| 1 | 1e-6 | 100.5 | 2.2e-6 | 7.4e-7 | 2.8e-7 |
+| 1 | 1e-4 | 83.3 | 8.5e-5 | 6.0e-5 | 7.8e-5 |
+| 2 (Metal, float) | 0 | 14.0 | 4.3e-6 | 1.1e-6 | 1.7e-7 |
+| 2 | 1e-6 | 11.6 | 4.6e-6 | 1.1e-6 | 1.6e-7 |
+| 2 | 1e-4 | 10.8 | 4.2e-5 | 4.3e-5 | 1.7e-5 |
+
+* **gpu_backend 1 is bit-identical to the CPU code with skipping** at
+  both thresholds (`global_conservation_laws.dat`).
+* **Metal is 1.2x faster at 1e-6 and 1.3x at 1e-4.** At 1e-6 the
+  conservation stays at the float level of the run without skipping.
+* **The freeze-out surface is unchanged.** It has the same number of
+  cells, and the volume changes by under 1e-9 on Metal.
+* **Ideal hydro on Metal** (EoS 9, 215 steps): 3.5 s, against 2.2 s at
+  1e-4. dE/E0 goes from 3.5e-6 to 4.2e-6 and dPz/E0 from 1.4e-6 to
+  6.7e-6, both at the float level.
+* **The gain is smaller than on the CPU** because the Metal step is
+  dominated by kernels that still run on every cell: the face kernel of
+  non-vacuum faces, `kernelWFace` and the ideal part of the cell kernel.
+* **CUDA** uses the same kernel functions and needs no other change, but
+  it is **not compiled or tested** (no nvcc on this machine).
+* **Test.** The `vacuum_skip` integration test also runs backends 1 - 4
+  with 1e-6 and checks them against the CPU run with skipping, to the
+  `gpu_backend` limits:
+  * backend 1: 0 difference;
+  * Metal: 1.6e-6 in the conservation and 1.2e-7 in the surface volume.
+
 ## Not done
 
-* **Device backends.** The CPU backend, Metal and CUDA ignore the
-  parameter. The same face mask and frozen-cell branch would fit into the
-  face and cell kernels, but on a GPU skipped threads in a warp save
-  little unless the frozen cells are compacted first. Compacting at tile
-  granularity (for example 8 x 8 x 1) would be the way to do it there.
+* **Device compaction.** The skipped threads still launch. A list of
+  active tiles (for example 8 x 8 x 1) would also remove the launch and
+  test cost of the frozen cells, and allow skipping `kernelWFace` there.
 * **Tiles on the CPU.** The mask is built per cell in every stage (two
   passes over the grid, about 1 % of the time). An active-tile list would
   also skip the loop overhead of the frozen cells. That is a further gain,

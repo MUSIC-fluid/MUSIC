@@ -77,6 +77,11 @@ struct StepParams {
     int hasSource;
     // the conservation diagnostic: DATA.etaMin()
     Real etaMin;
+    // vacuumSkipEnergy / hbarc (1/fm^4) when the stage skips the
+    // near-vacuum cells, 0 otherwise (Advance::markVacuum): the interior
+    // faces whose KT stencil is all below it get zero flux, and the frozen
+    // cells (isFrozenCell) skip the viscous update
+    Real eVacuum;
 };
 
 template <typename Real>
@@ -96,6 +101,41 @@ MD_FN int cellIndex(int nx, int ny, int neta, int ix, int iy, int ieta) {
     iy = dmax(0, dmin(ny - 1, iy));
     ieta = dmax(0, dmin(neta - 1, ieta));
     return ix + nx * (iy + ny * ieta);
+}
+
+//! the cell (ix, iy, ieta), clamped to the grid, is below P.eVacuum
+template <typename Real>
+MD_FN bool isVacuum(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s, int ix,
+    int iy, int ieta) {
+    return (s[cellIndex(P.nx, P.ny, P.neta, ix, iy, ieta)] < P.eVacuum);
+}
+
+//! Advance::markVacuum: the cell is not at the grid edge (it has no
+//! boundary face) and it and the cells up to two away along each axis
+//! with more than one cell are below P.eVacuum. Then its six faces have
+//! zero flux (kernelFace), and its viscous update only dilutes W and Pi
+template <typename Real>
+MD_FN bool isFrozenCell(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s, int ix,
+    int iy, int ieta) {
+    if (!(P.eVacuum > Real(0))) return false;
+    const int sx = (P.nx > 1), sy = (P.ny > 1), seta = (P.neta > 1);
+    if ((sx && (ix == 0 || ix == P.nx - 1))
+        || (sy && (iy == 0 || iy == P.ny - 1))
+        || (seta && (ieta == 0 || ieta == P.neta - 1)))
+        return false;
+    if (!isVacuum(P, s, ix, iy, ieta)) return false;
+    for (int k = 1; k <= 2; k++) {
+        if (!(isVacuum(P, s, ix + k * sx, iy, ieta)
+              && isVacuum(P, s, ix - k * sx, iy, ieta)
+              && isVacuum(P, s, ix, iy + k * sy, ieta)
+              && isVacuum(P, s, ix, iy - k * sy, ieta)
+              && isVacuum(P, s, ix, iy, ieta + k * seta)
+              && isVacuum(P, s, ix, iy, ieta - k * seta)))
+            return false;
+    }
+    return true;
 }
 
 template <typename Real>
@@ -611,6 +651,19 @@ MD_FN void kernelFace(
     const int IL = cellIndex(nx, ny, neta, fx - dx, fy - dy, feta - deta);
     const int IR = cellIndex(nx, ny, neta, fx, fy, feta);
     const int IRR = cellIndex(nx, ny, neta, fx + dx, fy + dy, feta + deta);
+    const int nFaces = faceCount(nx, ny, neta, direction);
+    // Advance::computeFaceFluxes: an interior face whose four stencil cells
+    // are vacuum has zero flux (the boundary faces are always computed: the
+    // outflow of the conservation diagnostic evaluates them itself)
+    if (P.eVacuum > Real(0)) {
+        const int fd = (dx ? fx : (dy ? fy : feta));
+        const int nfd = (dx ? nfx : (dy ? nfy : neta + 1));
+        if (fd > 0 && fd < nfd - 1 && s[ILL] < P.eVacuum && s[IL] < P.eVacuum
+            && s[IR] < P.eVacuum && s[IRR] < P.eVacuum) {
+            for (int al = 0; al < 7; al++) flux[al * nFaces + f] = Real(0);
+            return;
+        }
+    }
     const Cell<Real> cLL = loadCell(s, n, ILL);
     const Cell<Real> cL = loadCell(s, n, IL);
     const Cell<Real> cR = loadCell(s, n, IR);
@@ -673,7 +726,6 @@ MD_FN void kernelFace(
     const Real aL = maxSpeed(tau, direction, gL, eL.g, flag);
     const Real aR = maxSpeed(tau, direction, gR, eR.g, flag);
     const Real a = dmax(aL, aR);
-    const int nFaces = faceCount(nx, ny, neta, direction);
     for (int al = 0; al < 7; al++) {
         const Real FL = tauFac * TJb(gL, al, direction, eL.g.p);
         const Real FR = tauFac * TJb(gR, al, direction, eR.g.p);

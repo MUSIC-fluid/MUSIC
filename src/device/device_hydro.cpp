@@ -501,6 +501,9 @@ DeviceHydro::DeviceHydro(
                   << (strings_ ? ", strings source on the device"
                                : (source_ ? ", source terms from the host"
                                           : ""));
+    if (DATA.vacuumSkipEnergy > 0.)
+        music_message << ", skipping the cells below " << DATA.vacuumSkipEnergy
+                      << " GeV/fm^3";
     music_message.flush("info");
 }
 
@@ -806,9 +809,22 @@ double DeviceHydro::edgeMaxE(const Fields &curr, int bandX, int bandY) {
     return (eMax);
 }
 
+bool DeviceHydro::vacuumSkipAt(double tauRk) const {
+    if (!(DATA.vacuumSkipEnergy > 0.)) return false;
+    // Advance: the sources count unless Initial_profile 42 has none
+    const bool withSource =
+        (source_
+         && (DATA.Initial_profile != 42
+             || source_->get_number_of_sources() > 0));
+    return (
+        !(withSource
+          && tauRk <= source_->get_source_tau_max() + DATA.delta_tau));
+}
+
 template <typename Real>
 void DeviceHydro::fillParams(
-    double tau, bool hasSource, std::vector<unsigned char> &out) const {
+    double tau, bool hasSource, std::vector<unsigned char> &out,
+    bool skipVacuum) const {
     StepParams<Real> P;
     std::memset(&P, 0, sizeof(P));
     P.nx = nx_;
@@ -844,6 +860,8 @@ void DeviceHydro::fillParams(
     P.hasSource = (hasSource ? 1 : 0);
     P.stringSource = (hasSource && strings_ != nullptr ? 1 : 0);
     P.etaMin = Real(DATA.etaMin());
+    P.eVacuum =
+        (skipVacuum ? Real(DATA.vacuumSkipEnergy / Util::hbarc) : Real(0));
     out.resize(sizeof(P));
     std::memcpy(out.data(), &P, sizeof(P));
 }
@@ -1648,10 +1666,11 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
                                  .count();
         }
         std::vector<unsigned char> params;
+        const bool skipVacuum = vacuumSkipAt(tauRk);
         if (float_) {
-            fillParams<float>(tau, hasSource, params);
+            fillParams<float>(tau, hasSource, params, skipVacuum);
         } else {
-            fillParams<double>(tau, hasSource, params);
+            fillParams<double>(tau, hasSource, params, skipVacuum);
         }
         int f = 0;
         if (!backend_->stage(params.data(), params.size(), rk, f, err))

@@ -463,6 +463,23 @@ def test_vacuum_skip(r):
         return np.sum(s[:, 4:8] * s[:, 8:12])
     report("|V_surface / V_surface(off) - 1|", rel(volume(s1), volume(s0)),
            1e-6)
+    # the device kernels skip the same cells (StepParams::eVacuum): against
+    # the CPU code with skipping, to the limits of the gpu_backend tests
+    for backend in GPU_KEYS[1:]:
+        log, c, s, t = run("gpu{}".format(backend),
+                           dict(vacuumSkipEnergy=1e-6, **gpu(backend)))
+        if "built without" in log:
+            print("    gpu_backend = {}: not in this build, skipped".format(
+                gpu_name(backend)))
+            continue
+        check("skipping the cells below" in log,
+              "gpu_backend = {} did not skip".format(gpu_name(backend)))
+        print("    gpu_backend {}: {:.1f} s".format(gpu_name(backend), t))
+        diff = np.max(np.abs(c[:, 1:] - c1[:, 1:]) / np.abs(c1[:, 1:2]))
+        report("backend {} max |conservation diff| / E".format(backend),
+               diff, GPU_LIMITS[backend])
+        report("backend {} |V_surface / V_surface(off) - 1|".format(backend),
+               rel(volume(s), volume(s0)), 1e-4)
 
 
 def _write_lumpy_TATB(wd, n, size):

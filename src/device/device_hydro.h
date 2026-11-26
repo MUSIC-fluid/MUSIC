@@ -322,8 +322,14 @@ class DeviceHydro {
     std::vector<int> outflowCells_;
     int outflowCellsNx_ = 0, outflowCellsNy_ = 0, outflowCellsNeta_ = 0;
     template <typename Real>
+    //! skipVacuum: StepParams::eVacuum = vacuumSkipEnergy (see
+    //! vacuumSkipAt), else 0
     void fillParams(
-        double tau, bool hasSource, std::vector<unsigned char> &out) const;
+        double tau, bool hasSource, std::vector<unsigned char> &out,
+        bool skipVacuum = false) const;
+    //! Advance::AdvanceIt: the stage at tauRk skips the near-vacuum cells
+    //! (vacuumSkipEnergy > 0, and no source can still deposit energy)
+    bool vacuumSkipAt(double tauRk) const;
     [[noreturn]] void fail(const std::string &what) const;
 };
 

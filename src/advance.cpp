@@ -189,7 +189,7 @@ void Advance::AdvanceIt(
     // since
     const bool withMuBOverT =
         (DATA.viscosity_flag == 1 && DATA.turn_on_diff == 1);
-    // since. With vacuum skipping only the cells that are read are filled,
+    // With vacuum skipping only the cells that are read are filled,
     // and the frozen cells change between the stages: no reuse then
     const std::vector<unsigned char> *needMuBOverT =
         (skipVacuum ? &needMuBOverT_ : nullptr);
@@ -1045,7 +1045,8 @@ void Advance::computeFaceFluxes(
                         fluxes.flux(direction, alpha, faceIdx) = flux[alpha];
                     }
                 }
-    }    if (vacuum != nullptr) {
+    }
+    if (vacuum != nullptr) {
         nFaces_ += nAll;
         nFacesSkipped_ += nSkipped;
     }

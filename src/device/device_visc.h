@@ -1755,124 +1755,141 @@ MD_FN void kernelCellVisc(
     int flagUsed = flag;
 
     // ----- the viscous update ---------------------------------------------
-    const ViscSolver<Real, EosType> vs = {&P, &d, tab};
-    Gradients<Real> G;
-    vs.gradients(tau, sCurr, sPrev, pCurr, aCurr, aPrev, i, wFluxDiv, G);
-    const Thermal<Real> th = eosThermal<Real, EosType>(
-        d, tab, curr.c.e, curr.c.rhob, curr.c.rhoq, curr.c.rhos);
-    vs.firstRKStepW(curr, prev, G, th, next);
+    // a frozen cell (Advance::frozenViscousUpdate): tau W, tau Pi and
+    // tau Pi_chem are kept in the first stage, and the second keeps the
+    // predictor
+    if (isFrozenCell(P, sCurr, ix, iy, ieta)) {
+        const Real s = P.tau / tauNext;
+        for (int k = 0; k < 14; k++)
+            next.W[k] = (P.rkFlag == 0 ? s * curr.W[k] : curr.W[k]);
+        next.pi = (P.rkFlag == 0 ? s * curr.pi : curr.pi);
+        next.piChem = (P.rkFlag == 0 ? s * curr.piChem : curr.piChem);
+    } else {
+        const ViscSolver<Real, EosType> vs = {&P, &d, tab};
+        Gradients<Real> G;
+        vs.gradients(tau, sCurr, sPrev, pCurr, aCurr, aPrev, i, wFluxDiv, G);
+        const Thermal<Real> th = eosThermal<Real, EosType>(
+            d, tab, curr.c.e, curr.c.rhob, curr.c.rhoq, curr.c.rhos);
+        vs.firstRKStepW(curr, prev, G, th, next);
 
-    if (kStage < 0 ? P.rkFlag == 1 : kStage == 1) {
-        // Advance::stage2ViscousFixedPoint
-        const Real tau_np2 = P.tau + Real(2.) * P.dtau;
-        const Real scaleT = dmax(fabs(qi[0]), tinyNormal<Real>());
-        const Real scaleJ = fabs(qi[4]) + Real(1e-12) * scaleT;
-        const Real tolerance = Real(1e-8);
-        const int maxIterations = 16;
-        const Real bigNumber = realMax<Real>();
-        Real shift[5] = {Real(0.), Real(0.), Real(0.), Real(0.), Real(0.)};
-        Real best[5] = {Real(0.), Real(0.), Real(0.), Real(0.), Real(0.)};
-        Real bestMiss = bigNumber;
-        Real prevMiss = bigNumber;
-        Real lastMiss = Real(0.);
-        Real relaxation = Real(1.);
-        bool accelerate = true;
-        bool havePrev = false;
-        Real prevShift[5] = {Real(0.), Real(0.), Real(0.), Real(0.), Real(0.)};
-        Real prevResidual[5] = {Real(0.), Real(0.), Real(0.), Real(0.),
-                                Real(0.)};
-        bool converged = false;
-        for (int iter = 0; iter <= maxIterations; iter++) {
-            Real target[5];
-            Real miss = Real(0.);
-            bool conv = true;
-            for (int alpha = 0; alpha < 5; alpha++) {
-                target[alpha] =
-                    Real(0.5) * tau_np2
-                    * (vs.viscousTimeComponent(next, alpha)
-                       - vs.viscousTimeComponent(curr, alpha));
-                const Real scale = (alpha < 4 ? scaleT : scaleJ);
-                const Real dd = fabs(target[alpha] - shift[alpha]);
-                miss += dd / scale;
-                if (dd > tolerance * scale) conv = false;
-            }
-            lastMiss = miss;
-            if (conv) {
-                converged = true;
-                break;
-            }
-            if (miss < bestMiss) {
-                bestMiss = miss;
-                for (int k = 0; k < 5; k++) best[k] = shift[k];
-            }
-            if (iter == maxIterations) break;
-            if (iter > 0 && miss > prevMiss) {
-                relaxation *= Real(0.5);
-                accelerate = false;
-            }
-            prevMiss = miss;
-            Real residual[5];
-            for (int alpha = 0; alpha < 5; alpha++) {
-                residual[alpha] = target[alpha] - shift[alpha];
-            }
-            Real nextShift[5];
-            for (int k = 0; k < 5; k++) nextShift[k] = shift[k];
-            bool mixed = false;
-            if (accelerate && havePrev) {
-                Real num = Real(0.);
-                Real den = Real(0.);
+        if (kStage < 0 ? P.rkFlag == 1 : kStage == 1) {
+            // Advance::stage2ViscousFixedPoint
+            const Real tau_np2 = P.tau + Real(2.) * P.dtau;
+            const Real scaleT = dmax(fabs(qi[0]), tinyNormal<Real>());
+            const Real scaleJ = fabs(qi[4]) + Real(1e-12) * scaleT;
+            const Real tolerance = Real(1e-8);
+            const int maxIterations = 16;
+            const Real bigNumber = realMax<Real>();
+            Real shift[5] = {Real(0.), Real(0.), Real(0.), Real(0.), Real(0.)};
+            Real best[5] = {Real(0.), Real(0.), Real(0.), Real(0.), Real(0.)};
+            Real bestMiss = bigNumber;
+            Real prevMiss = bigNumber;
+            Real lastMiss = Real(0.);
+            Real relaxation = Real(1.);
+            bool accelerate = true;
+            bool havePrev = false;
+            Real prevShift[5] = {Real(0.), Real(0.), Real(0.), Real(0.),
+                                 Real(0.)};
+            Real prevResidual[5] = {Real(0.), Real(0.), Real(0.), Real(0.),
+                                    Real(0.)};
+            bool converged = false;
+            for (int iter = 0; iter <= maxIterations; iter++) {
+                Real target[5];
+                Real miss = Real(0.);
+                bool conv = true;
                 for (int alpha = 0; alpha < 5; alpha++) {
-                    const Real w = Real(1.) / (alpha < 4 ? scaleT : scaleJ);
-                    const Real dr = (residual[alpha] - prevResidual[alpha]) * w;
-                    num += dr * residual[alpha] * w;
-                    den += dr * dr;
+                    target[alpha] =
+                        Real(0.5) * tau_np2
+                        * (vs.viscousTimeComponent(next, alpha)
+                           - vs.viscousTimeComponent(curr, alpha));
+                    const Real scale = (alpha < 4 ? scaleT : scaleJ);
+                    const Real dd = fabs(target[alpha] - shift[alpha]);
+                    miss += dd / scale;
+                    if (dd > tolerance * scale) conv = false;
                 }
-                if (den > Real(0.)) {
-                    const Real gamma = num / den;
+                lastMiss = miss;
+                if (conv) {
+                    converged = true;
+                    break;
+                }
+                if (miss < bestMiss) {
+                    bestMiss = miss;
+                    for (int k = 0; k < 5; k++) best[k] = shift[k];
+                }
+                if (iter == maxIterations) break;
+                if (iter > 0 && miss > prevMiss) {
+                    relaxation *= Real(0.5);
+                    accelerate = false;
+                }
+                prevMiss = miss;
+                Real residual[5];
+                for (int alpha = 0; alpha < 5; alpha++) {
+                    residual[alpha] = target[alpha] - shift[alpha];
+                }
+                Real nextShift[5];
+                for (int k = 0; k < 5; k++) nextShift[k] = shift[k];
+                bool mixed = false;
+                if (accelerate && havePrev) {
+                    Real num = Real(0.);
+                    Real den = Real(0.);
+                    for (int alpha = 0; alpha < 5; alpha++) {
+                        const Real w = Real(1.) / (alpha < 4 ? scaleT : scaleJ);
+                        const Real dr =
+                            (residual[alpha] - prevResidual[alpha]) * w;
+                        num += dr * residual[alpha] * w;
+                        den += dr * dr;
+                    }
+                    if (den > Real(0.)) {
+                        const Real gamma = num / den;
+                        for (int alpha = 0; alpha < 5; alpha++) {
+                            nextShift[alpha] =
+                                shift[alpha] + residual[alpha]
+                                - gamma
+                                      * ((shift[alpha] - prevShift[alpha])
+                                         + (residual[alpha]
+                                            - prevResidual[alpha]));
+                        }
+                        mixed = true;
+                    }
+                }
+                if (!mixed) {
                     for (int alpha = 0; alpha < 5; alpha++) {
                         nextShift[alpha] =
-                            shift[alpha] + residual[alpha]
-                            - gamma
-                                  * ((shift[alpha] - prevShift[alpha])
-                                     + (residual[alpha] - prevResidual[alpha]));
+                            shift[alpha] + relaxation * residual[alpha];
                     }
-                    mixed = true;
                 }
-            }
-            if (!mixed) {
-                for (int alpha = 0; alpha < 5; alpha++) {
-                    nextShift[alpha] =
-                        shift[alpha] + relaxation * residual[alpha];
+                for (int k = 0; k < 5; k++) {
+                    prevShift[k] = shift[k];
+                    prevResidual[k] = residual[k];
                 }
+                havePrev = true;
+                for (int k = 0; k < 5; k++) shift[k] = nextShift[k];
+                // applyShift
+                for (int k = 0; k < 7; k++) qiUsed[k] = qi[k];
+                for (int alpha = 0; alpha < 5; alpha++)
+                    qiUsed[alpha] -= shift[alpha];
+                flag = 0;
+                next.c = solver.reconstruct(
+                    tauNext, qiUsed, curr.c, (MD_THREAD EosState<Real> *)0,
+                    pressure, flag);
+                flagAll |= flag;
+                flagUsed = flag;
+                vs.firstRKStepW(curr, prev, G, th, next);
             }
-            for (int k = 0; k < 5; k++) {
-                prevShift[k] = shift[k];
-                prevResidual[k] = residual[k];
+            if (!converged && lastMiss > bestMiss) {
+                for (int k = 0; k < 7; k++) qiUsed[k] = qi[k];
+                for (int alpha = 0; alpha < 5; alpha++)
+                    qiUsed[alpha] -= best[alpha];
+                flag = 0;
+                next.c = solver.reconstruct(
+                    tauNext, qiUsed, curr.c, (MD_THREAD EosState<Real> *)0,
+                    pressure, flag);
+                flagAll |= flag;
+                flagUsed = flag;
+                vs.firstRKStepW(curr, prev, G, th, next);
             }
-            havePrev = true;
-            for (int k = 0; k < 5; k++) shift[k] = nextShift[k];
-            // applyShift
-            for (int k = 0; k < 7; k++) qiUsed[k] = qi[k];
-            for (int alpha = 0; alpha < 5; alpha++) qiUsed[alpha] -= shift[alpha];
-            flag = 0;
-            next.c = solver.reconstruct(
-                tauNext, qiUsed, curr.c, (MD_THREAD EosState<Real> *)0,
-                pressure, flag);
-            flagAll |= flag;
-            flagUsed = flag;
-            vs.firstRKStepW(curr, prev, G, th, next);
         }
-        if (!converged && lastMiss > bestMiss) {
-            for (int k = 0; k < 7; k++) qiUsed[k] = qi[k];
-            for (int alpha = 0; alpha < 5; alpha++) qiUsed[alpha] -= best[alpha];
-            flag = 0;
-            next.c = solver.reconstruct(
-                tauNext, qiUsed, curr.c, (MD_THREAD EosState<Real> *)0,
-                pressure, flag);
-            flagAll |= flag;
-            flagUsed = flag;
-            vs.firstRKStepW(curr, prev, G, th, next);
-        }
+
     }
 
     storeCell(sNext, n, i, next.c);
