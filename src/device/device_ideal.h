@@ -103,12 +103,25 @@ MD_FN int cellIndex(int nx, int ny, int neta, int ix, int iy, int ieta) {
     return ix + nx * (iy + ny * ieta);
 }
 
-//! the cell (ix, iy, ieta), clamped to the grid, is below P.eVacuum
+//! cell i is below P.eVacuum (Advance::markVacuum): with sources in the
+//! stage (src = qi_source = tau J, kernelStringSource or the host) it must
+//! stay below it with the energy of this step, e + |J^tau| dtau
+template <typename Real>
+MD_FN bool isVacuumIdx(
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s,
+    MD_GLOBAL const Real *src, int i) {
+    if (!P.hasSource) return (s[i] < P.eVacuum);
+    const Real tauRk = P.tau + Real(P.rkFlag) * P.dtau;
+    return (s[i] + fabs(src[i]) / tauRk * P.dtau < P.eVacuum);
+}
+
+//! isVacuumIdx of the cell (ix, iy, ieta), clamped to the grid
 template <typename Real>
 MD_FN bool isVacuum(
-    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s, int ix,
-    int iy, int ieta) {
-    return (s[cellIndex(P.nx, P.ny, P.neta, ix, iy, ieta)] < P.eVacuum);
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s,
+    MD_GLOBAL const Real *src, int ix, int iy, int ieta) {
+    return (
+        isVacuumIdx(P, s, src, cellIndex(P.nx, P.ny, P.neta, ix, iy, ieta)));
 }
 
 //! Advance::markVacuum: the cell is not at the grid edge (it has no
@@ -117,22 +130,22 @@ MD_FN bool isVacuum(
 //! zero flux (kernelFace), and its viscous update only dilutes W and Pi
 template <typename Real>
 MD_FN bool isFrozenCell(
-    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s, int ix,
-    int iy, int ieta) {
+    MD_CONST const StepParams<Real> &P, MD_GLOBAL const Real *s,
+    MD_GLOBAL const Real *src, int ix, int iy, int ieta) {
     if (!(P.eVacuum > Real(0))) return false;
     const int sx = (P.nx > 1), sy = (P.ny > 1), seta = (P.neta > 1);
     if ((sx && (ix == 0 || ix == P.nx - 1))
         || (sy && (iy == 0 || iy == P.ny - 1))
         || (seta && (ieta == 0 || ieta == P.neta - 1)))
         return false;
-    if (!isVacuum(P, s, ix, iy, ieta)) return false;
+    if (!isVacuum(P, s, src, ix, iy, ieta)) return false;
     for (int k = 1; k <= 2; k++) {
-        if (!(isVacuum(P, s, ix + k * sx, iy, ieta)
-              && isVacuum(P, s, ix - k * sx, iy, ieta)
-              && isVacuum(P, s, ix, iy + k * sy, ieta)
-              && isVacuum(P, s, ix, iy - k * sy, ieta)
-              && isVacuum(P, s, ix, iy, ieta + k * seta)
-              && isVacuum(P, s, ix, iy, ieta - k * seta)))
+        if (!(isVacuum(P, s, src, ix + k * sx, iy, ieta)
+              && isVacuum(P, s, src, ix - k * sx, iy, ieta)
+              && isVacuum(P, s, src, ix, iy + k * sy, ieta)
+              && isVacuum(P, s, src, ix, iy - k * sy, ieta)
+              && isVacuum(P, s, src, ix, iy, ieta + k * seta)
+              && isVacuum(P, s, src, ix, iy, ieta - k * seta)))
             return false;
     }
     return true;
@@ -635,7 +648,7 @@ MD_FN void kernelFace(
     MD_CONST const StepParams<Real> &P, MD_CONST const EosDesc<Real> &d,
     MD_GLOBAL const Real *tab, MD_GLOBAL const Real *s,
     MD_GLOBAL const Real *pressure, int direction, int f, MD_GLOBAL Real *flux,
-    MD_FLAGS flags) {
+    MD_FLAGS flags, MD_GLOBAL const Real *src) {
     const int nx = P.nx, ny = P.ny, neta = P.neta;
     const int n = nx * ny * neta;
     const int dx = (direction == 1), dy = (direction == 2),
@@ -658,8 +671,9 @@ MD_FN void kernelFace(
     if (P.eVacuum > Real(0)) {
         const int fd = (dx ? fx : (dy ? fy : feta));
         const int nfd = (dx ? nfx : (dy ? nfy : neta + 1));
-        if (fd > 0 && fd < nfd - 1 && s[ILL] < P.eVacuum && s[IL] < P.eVacuum
-            && s[IR] < P.eVacuum && s[IRR] < P.eVacuum) {
+        if (fd > 0 && fd < nfd - 1 && isVacuumIdx(P, s, src, ILL)
+            && isVacuumIdx(P, s, src, IL) && isVacuumIdx(P, s, src, IR)
+            && isVacuumIdx(P, s, src, IRR)) {
             for (int al = 0; al < 7; al++) flux[al * nFaces + f] = Real(0);
             return;
         }

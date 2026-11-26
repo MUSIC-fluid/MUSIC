@@ -242,7 +242,8 @@ class CpuBackend : public Backend {
                     Real *fl = flux_[d - 1].data();
 #pragma omp for schedule(dynamic, 64)
                     for (int i = 0; i < nf; i++)
-                        kernelFace(P, D, tab, sIn, pIn, d, i, fl, &f);
+                        kernelFace(
+                            P, D, tab, sIn, pIn, d, i, fl, &f, src_.data());
                     if (viscous) {
                         Real *wf = wFace_[d - 1].data();
 #pragma omp for schedule(dynamic, 64)
@@ -809,17 +810,6 @@ double DeviceHydro::edgeMaxE(const Fields &curr, int bandX, int bandY) {
     return (eMax);
 }
 
-bool DeviceHydro::vacuumSkipAt(double tauRk) const {
-    if (!(DATA.vacuumSkipEnergy > 0.)) return false;
-    // Advance: the sources count unless Initial_profile 42 has none
-    const bool withSource =
-        (source_
-         && (DATA.Initial_profile != 42
-             || source_->get_number_of_sources() > 0));
-    return (
-        !(withSource
-          && tauRk <= source_->get_source_tau_end() + DATA.delta_tau));
-}
 
 template <typename Real>
 void DeviceHydro::fillParams(
@@ -1666,7 +1656,9 @@ void DeviceHydro::beginStep(double tau, Fields *fpPrev, Fields *fpCurr) {
                                  .count();
         }
         std::vector<unsigned char> params;
-        const bool skipVacuum = vacuumSkipAt(tauRk);
+        // the kernels test the source of the stage per cell
+        // (isVacuumIdx), so skipping is on in every stage
+        const bool skipVacuum = (DATA.vacuumSkipEnergy > 0.);
         if (float_) {
             fillParams<float>(tau, hasSource, params, skipVacuum);
         } else {

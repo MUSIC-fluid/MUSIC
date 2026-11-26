@@ -57,9 +57,11 @@ class Advance {
     FaceFluxes faceFluxes_;
 
     //! vacuumSkipEnergy: per storage index of arenaFieldsCurr, ghost cells
-    //! included, 1 if e < vacuumSkipEnergy (vacuum_), and for the cells of
-    //! the grid 1 if the cell and the cells up to two away along each axis
-    //! are vacuum (frozen_: its update is skipped)
+    //! included, 1 if e < vacuumSkipEnergy and, in a stage with sources,
+    //! the cell stays below it with the energy deposited in this step
+    //! (vacuum_), and for the cells of the grid 1 if the cell and the cells
+    //! up to two away along each axis are vacuum (frozen_: its update is
+    //! skipped)
     std::vector<unsigned char> vacuum_;
     std::vector<unsigned char> frozen_;
     //! the cells whose mu_B / T is read: all but the frozen cells whose
@@ -69,8 +71,22 @@ class Advance {
     long long nCellUpdates_ = 0, nCellsFrozen_ = 0;
     long long nFaces_ = 0, nFacesSkipped_ = 0;
 
-    //! fills vacuum_ and frozen_ for arena; returns the frozen cells
-    long long markVacuum(const Fields &arena);
+    //! the source terms tau J^mu, tau rho_B, tau rho_Q of every cell of the
+    //! grid (ix + nx (iy + ny ieta)) in a stage with sources and vacuum
+    //! skipping (sourceCacheValid_): markVacuum and FirstRKStepT read them
+    std::vector<TJbVec> sourceCache_;
+    bool sourceCacheValid_ = false;
+    //! qi_source of FirstRKStepT for the cell fieldIdx of arena at tau_rk
+    TJbVec cellSource(
+        const double tau_rk, const double x_local, const double y_local,
+        const double eta_s_local, const Fields &arena, const int fieldIdx);
+    //! fills sourceCache_ for arena at tau_rk
+    void computeSourceCache(const double tau_rk, const Fields &arena);
+
+    //! fills vacuum_ and frozen_ for arena at tau_rk; returns the frozen
+    //! cells. With sourceCacheValid_ a cell is vacuum only if
+    //! e + |J^tau| dtau stays below the threshold
+    long long markVacuum(const Fields &arena, const double tau_rk);
     //! the viscous update of a frozen cell (see AdvanceIt)
     void frozenViscousUpdate(
         const double tau, const int rk_flag, const Fields &arenaFieldsPrev,

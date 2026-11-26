@@ -26,12 +26,8 @@ noted.
   V* = V_{n+1}.
 * **mu_B / T cache.** With diffusion on, mu_B / T is only filled in the
   cells that are read: those that are not frozen, and their neighbours.
-* **Sources.** Skipping is off while a hydro source can still deposit
-  energy, since the source can heat any cell. That lasts until
-  `get_source_tau_end() + dtau`: `source_tau_max` for the sources that
-  deposit within one time-step bin (strings, TATB, T^{mu nu}), and
-  `source_tau_max + 5 sigma_tau` for AMPT, whose partons deposit with a
-  Gaussian tail in tau.
+* **Sources.** Skipping stays on while sources deposit, but the cells
+  they heat are not vacuum (see "With sources" below).
 * **Log.** At the end the run logs the fraction of cell updates and faces
   that were skipped.
 
@@ -182,11 +178,10 @@ pass. The `vacuum_skip` test sets 0 explicitly for its reference run.
 
 ## Device backends
 
-The device kernels skip the same cells. The host decides per stage, with
-the same source rule as `Advance::AdvanceIt`, and passes the threshold in
-`StepParams::eVacuum` (1/fm^4, 0 when the stage does not skip;
-`DeviceHydro::vacuumSkipAt`). There is no mask buffer: each thread tests
-the e of its stencil itself (`isVacuum`, `isFrozenCell` in
+The device kernels skip the same cells. The host passes the threshold in
+`StepParams::eVacuum` (1/fm^4, 0 when skipping is off). There is no mask
+buffer: each thread tests the e of its stencil itself, and with sources in
+the stage also the source (`isVacuumIdx`, `isVacuum`, `isFrozenCell` in
 `device_ideal.h`).
 
 * **`kernelFace`.** An interior face whose four stencil cells are vacuum
@@ -236,6 +231,82 @@ SIMD group mostly take the same branch.
   `gpu_backend` limits:
   * backend 1: 0 difference;
   * Metal: 1.6e-6 in the conservation and 1.2e-7 in the surface volume.
+
+## With sources
+
+Skipping used to be off in every stage until the sources were over
+(`get_source_tau_end() + dtau`), because a source can heat any cell. Now
+the cells away from the sources are skipped while the sources deposit.
+
+* **CPU code.** In a stage with sources (`flag_add_hydro_source`, before
+  `get_source_tau_end() + dtau`, and `is_active_at`), `AdvanceIt` first
+  evaluates the source of every cell in one parallel pass
+  (`computeSourceCache`, the same `cellSource` that `FirstRKStepT` used to
+  call per cell). `FirstRKStepT` reads the result, so the arithmetic is
+  unchanged and runs without skipping are bit-identical. `markVacuum`
+  counts a cell as vacuum only if it stays below the threshold with the
+  energy of this step: e + |J^tau| dtau < e_vac (qi_source = tau J). The
+  faces and frozen cells then follow from this mask as before.
+* **Device.** `isVacuumIdx` applies the same test with the stage's source
+  buffer (the strings kernel or the host's source terms, filled before
+  the faces). The face kernel now also reads the source buffer.
+* **A frozen cell still gets its source** in `FirstRKStepT`, so the
+  energy it receives below the threshold is conserved. It is only not
+  transported until the cell rises above the threshold, and the mask is
+  rebuilt every stage.
+* **The ghost cells keep the test on e.** A face or stencil that reads a
+  ghost cell also reads the edge cell it copies, with the source test, so
+  the CPU and device masks agree.
+* **Memory.** The cache is 7 doubles per cell of the grid, only during
+  the source stages, and freed when they end. That is 84 MiB for
+  128 x 128 x 96.
+
+### Results: strings event
+
+The test case is the strings event of the integration tests (40 strings,
+deposits from tau = 0.5 to 2.0 fm). It runs on 61 x 61 x 49 cells, with
+shear and diffusion, EoS 0, to tau = 2.48 fm, on 10 threads. The
+deviations are the largest difference from the run without skipping,
+relative to the largest E of the run.
+
+| backend | e_vac | wall (s) | cells skipped | max dE / E_max | max dN_B / N_B |
+|---|---|---|---|---|---|
+| CPU | 0 | 85.4 | | | |
+| CPU, before (skip only after the sources) | 1e-6 | 83.3 | 37 % | 7.8e-8 | 3.6e-8 |
+| CPU | 1e-8 | 71.0 | 36 % | 1.3e-6 | 3.3e-7 |
+| CPU | 1e-6 | 66.2 | 45 % | 2.2e-5 | 4.1e-7 |
+| CPU | 1e-4 | 59.5 | 55 % | 9.2e-5 | 2.3e-6 |
+| Metal | 0 | 30.2 | | | |
+| Metal, before | 1e-6 | 29.7 | | 1.7e-6 | 1.2e-7 |
+| Metal | 1e-8 | 28.3 | | 5.1e-5 (see below) | 4.2e-7 |
+| Metal | 1e-6 | 27.2 | | 1.6e-5 | 1.4e-7 |
+| Metal | 1e-4 | 25.9 | | 9.1e-5 | 1.5e-7 |
+
+* **The CPU code is 1.2 - 1.4x faster** than before. Before, almost
+  nothing was saved, because the cells were only skipped after the
+  deposits (tau > 2.0 fm, about a quarter of the 338 steps). The "cells
+  skipped" column counts only the stages in which skipping is on.
+* **gpu_backend 1 is bit-identical to the CPU code** at 1e-6.
+* **With skipping off the results are bit-identical** to before, since
+  the source cache is not used then.
+* **The deviation grows smoothly with tau**, from the first deposits on,
+  as in the runs without sources. It is larger than there (2.2e-5 against
+  2.2e-6 at 1e-6), because the thin string deposits leave much of their
+  energy in dilute cells near the threshold.
+* **The Metal value at 1e-8 is a single event in float.** A jump of
+  +0.16 GeV in two steps at tau = 1.36 fm causes it. It is deterministic
+  and the same with one command buffer per kernel, so it is not a race.
+  The thresholds 3e-9, 1.01e-8, 3e-8, 1e-7 and 3e-7 give 2.4e-6, 2.2e-6,
+  2.8e-6, 3.9e-6 and 8.4e-6. So it is a float-sensitive event set off by
+  a small perturbation, not a systematic leak. For comparison, Metal
+  differs from the CPU code by 4.5e-6 without skipping.
+* **Metal gains less** (1.07 - 1.17x), because the strings source kernel
+  and the kernels that run on every cell dominate its step.
+* **Test.** The `vacuum_skip` integration test now also runs a strings
+  event that ends while the strings deposit (tau = 1.6 fm). With 1e-6 it
+  skips 43 % of the cell updates, with E within 9.7e-6 and N_B within
+  9e-7 of the run without skipping. Backend 1 differs by 0 and Metal by
+  4.7e-6.
 
 ## Not done
 

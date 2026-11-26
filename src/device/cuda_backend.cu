@@ -137,11 +137,12 @@ __global__ void cudaPressure(
 template <typename Real, int EosType>
 __global__ void cudaFace(
     const StepParams<Real> P, const EosDesc<Real> D, const Real *tab,
-    const Real *s, const Real *p, int direction, Real *flux, int *flags) {
+    const Real *s, const Real *p, int direction, Real *flux, int *flags,
+    const Real *src) {
     const int f = blockIdx.x * blockDim.x + threadIdx.x;
     if (f >= faceCount(P.nx, P.ny, P.neta, direction)) return;
     music_device::kernelFace<Real, EosType>(
-        P, D, tab, s, p, direction, f, flux, flags);
+        P, D, tab, s, p, direction, f, flux, flags, src);
 }
 
 template <typename Real>
@@ -867,7 +868,8 @@ struct Device : public DeviceBase {
     void launchFace(const StepParams<Real> &P, const Real *s, const Real *p,
                     int direction, int nFaces) {
         cudaFace<Real, EosType><<<grid(nFaces, kKFace), block[kKFace]>>>(
-            P, desc, table, s, p, direction, flux[direction - 1], flags);
+            P, desc, table, s, p, direction, flux[direction - 1], flags,
+            src);
     }
 
     template <int EosType>

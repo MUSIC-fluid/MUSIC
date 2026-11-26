@@ -466,6 +466,8 @@ static int metalStage(
                 [enc setBuffer:m->flux[d - 1] offset:0 atIndex:5];
                 [enc setBuffer:m->flags offset:0 atIndex:6];
                 [enc setBytes:&dir length:sizeof(int) atIndex:7];
+                // the vacuum test reads the source of the stage
+                [enc setBuffer:m->src offset:0 atIndex:15];
                 dispatch(enc, m->psFace, nf);
             } copy]];
             if (viscous) {

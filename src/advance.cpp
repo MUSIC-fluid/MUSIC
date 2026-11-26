@@ -85,7 +85,7 @@ void Advance::frozenViscousUpdate(
         arenaFieldsNext.piBulkChem_);
 }
 
-long long Advance::markVacuum(const Fields &arena) {
+long long Advance::markVacuum(const Fields &arena, const double tau_rk) {
     const int ncells = arena.nStorage();
     const int nx = arena.nX();
     const int ny = arena.nY();
@@ -96,6 +96,29 @@ long long Advance::markVacuum(const Fields &arena) {
 #pragma omp parallel for schedule(static)
     for (int idx = 0; idx < ncells; idx++) {
         vacuum_[idx] = (arena.e_[idx] < eVacuum ? 1 : 0);
+    }
+    if (sourceCacheValid_) {
+        // a source near the cell: it is vacuum only if the energy deposited
+        // in this step, |J^tau| dtau (qi_source = tau J), keeps it below the
+        // threshold. A frozen cell still gets its source in FirstRKStepT,
+        // so what it receives is conserved; it is only not transported
+        // until the cell rises above the threshold. The ghost cells keep
+        // the test on e: a face or stencil that reads one also reads the
+        // edge cell it copies, with the source test
+        const double dtau = DATA.delta_tau;
+#pragma omp parallel for collapse(3) schedule(static)
+        for (int ieta = 0; ieta < neta; ieta++)
+            for (int iy = 0; iy < ny; iy++)
+                for (int ix = 0; ix < nx; ix++) {
+                    const int idx = arena.getFieldIdx(ix, iy, ieta);
+                    const double q0 =
+                        sourceCache_[ix + nx * (iy + ny * ieta)][0];
+                    vacuum_[idx] =
+                        (arena.e_[idx] + std::abs(q0) / tau_rk * dtau
+                                 < eVacuum
+                             ? 1
+                             : 0);
+                }
     }
     // the faces of a cell read the cells up to two away along each axis
     // (their KT stencils), the derivatives one away
@@ -170,16 +193,24 @@ void Advance::AdvanceIt(
         pressureValid = false;
     }
     if (!pressureValid) computePressure(arenaFieldsCurr, pressureCurr_);
-    // vacuumSkipEnergy: not while a source can still deposit energy into
-    // the vacuum
+    // vacuumSkipEnergy. While a source can still deposit energy, the
+    // sources of the stage are evaluated first (sourceCache_, also read by
+    // FirstRKStepT), and the cells they heat are not vacuum (markVacuum)
     const double tauStage = tau + rk_flag * DATA.delta_tau;
-    const bool skipVacuum =
-        (DATA.vacuumSkipEnergy > 0.
-         && !(flag_add_hydro_source
-              && tauStage <= hydro_source_terms_ptr->get_source_tau_end()
-                                 + DATA.delta_tau));
+    const bool skipVacuum = (DATA.vacuumSkipEnergy > 0.);
+    const bool sourceStage =
+        (flag_add_hydro_source
+         && tauStage <= hydro_source_terms_ptr->get_source_tau_end()
+                            + DATA.delta_tau
+         && hydro_source_terms_ptr->is_active_at(tauStage));
+    sourceCacheValid_ = false;
+    if (skipVacuum && sourceStage) {
+        computeSourceCache(tauStage, arenaFieldsCurr);
+    } else if (!sourceCache_.empty()) {
+        std::vector<TJbVec>().swap(sourceCache_);  // the sources are over
+    }
     if (skipVacuum) {
-        nCellsFrozen_ += markVacuum(arenaFieldsCurr);
+        nCellsFrozen_ += markVacuum(arenaFieldsCurr, tauStage);
         nCellUpdates_ += static_cast<long long>(grid_nx) * grid_ny * grid_neta;
     }
     // the first stage's slice is kept for the second stage only
@@ -508,6 +539,60 @@ void Advance::computePressure(
 }
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
+TJbVec Advance::cellSource(
+    const double tau_rk, const double x_local, const double y_local,
+    const double eta_s_local, const Fields &arenaFieldsCurr,
+    const int fieldIdx) {
+    TJbVec qi_source = {0.0};
+    EnergyFlowVec j_mu = {0};
+    FlowVec u_local;
+    for (int ii = 0; ii < 4; ii++)
+        u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
+
+    hydro_source_terms_ptr->get_hydro_energy_source(
+        tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+    for (int ii = 0; ii < 4; ii++) {
+        qi_source[ii] = tau_rk * j_mu[ii];
+        if (isnan(qi_source[ii])) {
+            music_message << "qi_source is nan. i = " << ii;
+            music_message.flush("error");
+            exit(1);
+        }
+    }
+
+    if (DATA.turn_on_rhob == 1) {
+        qi_source[4] =
+            (tau_rk
+             * hydro_source_terms_ptr->get_hydro_rhob_source(
+                 tau_rk, x_local, y_local, eta_s_local, u_local));
+    }
+
+    if (DATA.turn_on_QS == 1) {
+        qi_source[5] =
+            (tau_rk
+             * hydro_source_terms_ptr->get_hydro_rhoQ_source(
+                 tau_rk, x_local, y_local, eta_s_local, u_local));
+    }
+    return (qi_source);
+}
+
+void Advance::computeSourceCache(const double tau_rk, const Fields &arena) {
+    const int nx = arena.nX(), ny = arena.nY(), neta = arena.nEta();
+    sourceCache_.resize(static_cast<size_t>(nx) * ny * neta);
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
+    for (int ieta = 0; ieta < neta; ieta++)
+        for (int iy = 0; iy < ny; iy++)
+            for (int ix = 0; ix < nx; ix++) {
+                const double eta_s_local = DATA.etaAt(ieta);
+                const double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
+                const double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
+                sourceCache_[ix + nx * (iy + ny * ieta)] = cellSource(
+                    tau_rk, x_local, y_local, eta_s_local, arena,
+                    arena.getFieldIdx(ix, iy, ieta));
+            }
+    sourceCacheValid_ = true;
+}
+
 void Advance::FirstRKStepT(
     const double tau, const double x_local, const double y_local,
     const double eta_s_local, const int ix, const int iy, const int ieta,
@@ -541,36 +626,12 @@ void Advance::FirstRKStepT(
 
     TJbVec qi_source = {0.0};
 
-    if (flag_add_hydro_source) {
-        EnergyFlowVec j_mu = {0};
-        FlowVec u_local;
-        for (int ii = 0; ii < 4; ii++)
-            u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
-
-        hydro_source_terms_ptr->get_hydro_energy_source(
-            tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
-        for (int ii = 0; ii < 4; ii++) {
-            qi_source[ii] = tau_rk * j_mu[ii];
-            if (isnan(qi_source[ii])) {
-                music_message << "qi_source is nan. i = " << ii;
-                music_message.flush("error");
-                exit(1);
-            }
-        }
-
-        if (DATA.turn_on_rhob == 1) {
-            qi_source[4] =
-                (tau_rk
-                 * hydro_source_terms_ptr->get_hydro_rhob_source(
-                     tau_rk, x_local, y_local, eta_s_local, u_local));
-        }
-
-        if (DATA.turn_on_QS == 1) {
-            qi_source[5] =
-                (tau_rk
-                 * hydro_source_terms_ptr->get_hydro_rhoQ_source(
-                     tau_rk, x_local, y_local, eta_s_local, u_local));
-        }
+    if (sourceCacheValid_) {
+        const int nx = arenaFieldsCurr.nX(), ny = arenaFieldsCurr.nY();
+        qi_source = sourceCache_[ix + nx * (iy + ny * ieta)];
+    } else if (flag_add_hydro_source) {
+        qi_source = cellSource(
+            tau_rk, x_local, y_local, eta_s_local, arenaFieldsCurr, fieldIdx);
     }
 
     // now MakeWSource returns partial_a W^{a mu}

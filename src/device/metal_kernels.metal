@@ -25,9 +25,10 @@ kernel void musicFace(
     device const float *p [[buffer(4)]], device float *flux [[buffer(5)]],
     device metal::atomic_int *flags [[buffer(6)]],
     constant int &direction [[buffer(7)]],
+    device const float *src [[buffer(15)]],
     uint gid [[thread_position_in_grid]]) {
     if (int(gid) >= faceCount(P.nx, P.ny, P.neta, direction)) return;
-    kernelFace(P, D, tab, s, p, direction, int(gid), flux, flags);
+    kernelFace(P, D, tab, s, p, direction, int(gid), flux, flags, src);
 }
 
 kernel void musicCell(

@@ -1758,7 +1758,7 @@ MD_FN void kernelCellVisc(
     // a frozen cell (Advance::frozenViscousUpdate): tau W, tau Pi and
     // tau Pi_chem are kept in the first stage, and the second keeps the
     // predictor
-    if (isFrozenCell(P, sCurr, ix, iy, ieta)) {
+    if (isFrozenCell(P, sCurr, src, ix, iy, ieta)) {
         const Real s = P.tau / tauNext;
         for (int k = 0; k < 14; k++)
             next.W[k] = (P.rkFlag == 0 ? s * curr.W[k] : curr.W[k]);

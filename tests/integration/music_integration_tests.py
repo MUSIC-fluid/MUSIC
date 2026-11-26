@@ -481,6 +481,51 @@ def test_vacuum_skip(r):
         report("backend {} |V_surface / V_surface(off) - 1|".format(backend),
                rel(volume(s), volume(s0)), 1e-4)
 
+    # with sources: a strings event that ends while the strings still
+    # deposit (tau_max ~ 2 fm/c). The cells away from the sources are
+    # skipped (markVacuum tests e + |J^tau| dtau, isVacuumIdx on the
+    # device); the energy they get is deposited in place
+    def run_strings(tag, extra):
+        wd = r.workdir("vacuum_skip_strings_" + tag)
+        _write_strings_event(os.path.join(wd, "strings.dat"))
+        params = base_params(
+            Initial_profile=13,
+            Initial_Distribution_input_filename="strings.dat",
+            string_source_sigma_x=0.5, string_source_sigma_eta=0.5,
+            stringPreEqFlowFactor=1.0, Include_Rhob_Yes_1_No_0=1,
+            boost_invariant=0, Initial_time_tau_0=0.4,
+            Total_evolution_time_tau=1.2, Delta_Tau=0.02,
+            Eta_grid_size=12.0, Grid_size_in_eta=49,
+            X_grid_size_in_fm=12.0, Y_grid_size_in_fm=12.0,
+            Grid_size_in_x=41, Grid_size_in_y=41,
+            Viscosity_Flag_Yes_1_No_0=1, Include_Shear_Visc_Yes_1_No_0=1,
+            Shear_to_S_ratio=0.12, Include_second_order_terms=1, **extra)
+        log, _, seconds = r.run(wd, params)
+        return log, read_conservation(wd), seconds
+
+    _, a0, t0 = run_strings("off", {"vacuumSkipEnergy": 0.})
+    log, a1, t1 = run_strings("on", {"vacuumSkipEnergy": 1e-6})
+    skipped = re.findall(r"vacuum skip .*\(([0-9.]+)%\) and", log)
+    check(skipped, "no vacuum skip summary in the strings log")
+    print("    strings: {}% of the cell updates skipped while depositing, "
+          "{:.1f} s -> {:.1f} s".format(skipped[-1], t0, t1))
+    check(float(skipped[-1]) > 10., "almost nothing was skipped with sources")
+    Emax = np.max(np.abs(a0[:, 1]))
+    report("strings max |E - E(off)| / E_max",
+           np.max(np.abs(a1[:, 1] - a0[:, 1])) / Emax, 2e-5)
+    report("strings max |N_B - N_B(off)| / N_B,max",
+           np.max(np.abs(a1[:, 5] - a0[:, 5])) / np.max(a0[:, 5]), 2e-5)
+    for backend in GPU_KEYS[1:]:
+        log, c, t = run_strings("gpu{}".format(backend),
+                                dict(vacuumSkipEnergy=1e-6, **gpu(backend)))
+        if "built without" in log:
+            continue
+        print("    strings gpu_backend {}: {:.1f} s".format(
+            gpu_name(backend), t))
+        report("strings backend {} max |conservation diff| / E_max".format(
+            backend), np.max(np.abs(c[:, 1:] - a1[:, 1:])) / Emax,
+            GPU_LIMITS[backend])
+
 
 def _write_lumpy_TATB(wd, n, size):
     # 40 nucleons of width 0.5 fm per nucleus
