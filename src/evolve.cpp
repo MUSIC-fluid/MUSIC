@@ -663,6 +663,7 @@ int Evolve::EvolveIt(
         music_message.info("Finished.");
     } else {
         music_message.warning("Maximum allowed time reached.");
+        if (freezeout_flag) return -1;
     }
     return 1;
 }

@@ -55,6 +55,9 @@ int main(int argc, char *argv[]) {
                 bReRunHydro = false;
                 bGridTooSmall = true;
             }
+            if (evoStatus != 1 && !bReRunHydro && !bGridTooSmall) {
+                return (1);
+            }
         }
 
         if (evoStatus == 1) {
