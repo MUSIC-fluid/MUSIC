@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 ./MUSIChydro tests/Gubser_flow/music_input_Gubser
 
-python3 tests/Gubser_flow/TestOutputFiles.py
-STATUS=$?
-
-if [ $STATUS == 0 ]; then
+if python3 tests/Gubser_flow/TestOutputFiles.py; then
     echo "All tests passed! :)"
     rm -fr ./*.dat
 else

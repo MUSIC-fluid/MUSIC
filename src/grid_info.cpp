@@ -1813,8 +1813,8 @@ void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
                 pixx_analytic[i] - arena.Wmunu_[4][fieldIdx] * Util::hbarc));
             pixx_sum += fabs(pixx_analytic[i]);
             pixy_diff += (fabs(
-                pixx_analytic[i] - arena.Wmunu_[5][fieldIdx] * Util::hbarc));
-            pixy_sum += fabs(pixx_analytic[i]);
+                pixy_analytic[i] - arena.Wmunu_[5][fieldIdx] * Util::hbarc));
+            pixy_sum += fabs(pixy_analytic[i]);
             piyy_diff += (fabs(
                 piyy_analytic[i] - arena.Wmunu_[7][fieldIdx] * Util::hbarc));
             piyy_sum += fabs(piyy_analytic[i]);

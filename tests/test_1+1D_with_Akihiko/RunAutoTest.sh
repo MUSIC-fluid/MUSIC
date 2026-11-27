@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-cd EOS; bash download_Neos2D.sh 2; cd ..
+bash EOS/download_Neos2D.sh 2
 
 ./MUSIChydro tests/test_1+1D_with_Akihiko/music_input_test_baryon_diffusion
 
 rm -fr EOS/neos_2
 
-python3 tests/test_1+1D_with_Akihiko/TestOutputFiles.py
-STATUS=$?
-
-if [ $STATUS == 0 ]; then
+if python3 tests/test_1+1D_with_Akihiko/TestOutputFiles.py; then
     echo "All tests passed! :)"
     rm -fr ./*.dat
 else
