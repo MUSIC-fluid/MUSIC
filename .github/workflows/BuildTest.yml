@@ -34,12 +34,11 @@ jobs:
           make install
       - name: Unit Tests
         run: |
-          mkdir build_unittest
-          cd build_unittest
-          cmake .. -Dunittest=ON
-          make -j2
+          bash EOS/download_hotQCD.sh
+          cmake -S . -B build_unittest -Dunittest=ON
+          cmake --build build_unittest --parallel 2
           for test in bugfix reconst cell minmod grid; do
-            ./src/unittest_${test}.e
+            ./build_unittest/src/unittest_${test}.e
           done
       - name: Gubser Flow Test
         run: |

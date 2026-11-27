@@ -114,6 +114,11 @@ endif()
 
 if (unittest)
     set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # GCC can fuse multiply-adds differently in the implementations
+        # that the unit tests compare bit for bit.
+        string(APPEND CMAKE_CXX_FLAGS " -ffp-contract=off")
+    endif()
 endif()
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
