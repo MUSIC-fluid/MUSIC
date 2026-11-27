@@ -443,7 +443,11 @@ def test_vacuum_skip(r):
             "turn_on_baryon_diffusion": 1,
             "kappa_coefficient": 0.2,
         })
-        log, _, seconds = r.run(wd, params)
+        # This fixed-duration run compares the partial freeze-out surface.
+        log, status, seconds = r.run(wd, params, expect_success=False)
+        check(status == 1 and "Maximum allowed time reached." in log,
+              "expected incomplete freeze-out at the time limit, got exit "
+              "status {} (see {}/music_input.log)".format(status, wd))
         return log, read_conservation(wd), read_surface(wd), seconds
 
     _, c0, s0, t0 = run("off", {"vacuumSkipEnergy": 0.})

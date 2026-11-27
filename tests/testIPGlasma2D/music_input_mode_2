@@ -111,7 +111,7 @@ output_evolution_every_N_timesteps  10  # output evolution every Ntime steps
 ###########################################
 # parameters for freeze out and Cooper-Frye 
 ###########################################
-Do_FreezeOut_Yes_1_No_0 1       # flag to find freeze-out surface
+Do_FreezeOut_Yes_1_No_0 0       # this fixed-duration check uses hydro diagnostics only
 Do_FreezeOut_lowtemp 1          # flag to include cold corona
 freeze_out_method 4             # method for hyper-surface finder
                                 # 4: Cornelius
